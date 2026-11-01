@@ -26,8 +26,44 @@
     L('liga-portugal-2', 'Liga Portugal 2', 2, 18, ['Académica', 'Amarante', 'AVS', 'Benfica B', 'Chaves', 'Farense', 'Feirense', 'Felgueiras', 'Leixões', 'Lusitânia Lourosa', 'Penafiel', 'Porto B', 'Portimonense', 'Sporting CP B', 'Tondela', 'Torreense', 'União Leiria', 'Vizela']),
   ];
 
+  // ——— Qit'alar va davlatlar (Rasmiy turnirlar -> davlat bayrog'i) ———
+  // Asia va Africa hozircha yopiq (open: false). Davlatlar 2x6 setkada chiqadi.
+  const CONTINENTS = [
+    { id: 'europe', open: true },
+    { id: 'asia', open: false },
+    { id: 'africa', open: false },
+  ];
+  const C = (id, flag, uz, en, ru) => ({ id, continent: 'europe', flag, name: { uz, en, ru } });
+  const COUNTRIES = [
+    C('en', '🇬🇧', 'Angliya', 'England', 'Англия'),
+    C('es', '🇪🇸', 'Ispaniya', 'Spain', 'Испания'),
+    C('it', '🇮🇹', 'Italiya', 'Italy', 'Италия'),
+    C('de', '🇩🇪', 'Germaniya', 'Germany', 'Германия'),
+    C('fr', '🇫🇷', 'Fransiya', 'France', 'Франция'),
+    C('pt', '🇵🇹', 'Portugaliya', 'Portugal', 'Португалия'),
+    C('tr', '🇹🇷', 'Turkiya', 'Turkey', 'Турция'),
+    C('nl', '🇳🇱', 'Niderlandiya', 'Netherlands', 'Нидерланды'),
+    C('be', '🇧🇪', 'Belgiya', 'Belgium', 'Бельгия'),
+    C('at', '🇦🇹', 'Avstriya', 'Austria', 'Австрия'),
+    C('gr', '🇬🇷', 'Gresiya', 'Greece', 'Греция'),
+    C('ch', '🇨🇭', 'Shveytsariya', 'Switzerland', 'Швейцария'),
+  ];
+  // Qaysi liga qaysi davlatniki. Superliga, Saudi, UAE, J1 — Osiyo (hozircha yopiq), shuning uchun country yo'q.
+  const COUNTRY_OF = {
+    'premier-league': 'en', championship: 'en',
+    laliga: 'es', 'laliga-2': 'es',
+    'serie-a': 'it', 'serie-b': 'it',
+    bundesliga: 'de', 'bundesliga-2': 'de',
+    'ligue-1': 'fr', 'ligue-2': 'fr',
+    'liga-portugal': 'pt', 'liga-portugal-2': 'pt',
+    'super-lig': 'tr',
+  };
+  LEAGUES.forEach((l) => { l.country = COUNTRY_OF[l.id] || null; });
+  const countryById = Object.fromEntries(COUNTRIES.map((c) => [c.id, c]));
+  const leaguesOf = (countryId) => LEAGUES.filter((l) => l.country === countryId);
+
   const byId = Object.fromEntries(LEAGUES.map((l) => [l.id, l]));
   const clubName = (leagueId, clubId) => byId[leagueId]?.clubs.find((c) => c.id === clubId)?.name || clubId;
-  const data = { season: 6, LEAGUES, byId, clubName };
+  const data = { season: 6, LEAGUES, byId, clubName, CONTINENTS, COUNTRIES, countryById, leaguesOf };
   if (typeof module !== 'undefined') module.exports = data; else root.EFL = data;
 })(this);

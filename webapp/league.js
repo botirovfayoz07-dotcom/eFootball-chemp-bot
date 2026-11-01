@@ -1,6 +1,6 @@
 window.LeagueView = (() => {
   const T = {
-    uz: { back: 'Ortga', full: "TO'LIQ", open: 'OCHIQ', players: "O'yinchilar", max: 'Maksimal', season: 'Mavsum', register: "Ro'yxatdan o'tish", registered: "Ro'yxatdan o'tdingiz", pick: 'Klubni tanlang',
+    uz: { continents: { europe: 'Europe', asia: 'Asia', africa: 'Africa' }, pickCountry: 'Davlatni tanlang', cups: 'Turnirlar', noLeagues: "Bu davlatning turnirlari tez orada qo'shiladi", back: 'Ortga', full: "TO'LIQ", open: 'OCHIQ', players: "O'yinchilar", max: 'Maksimal', season: 'Mavsum', register: "Ro'yxatdan o'tish", registered: "Ro'yxatdan o'tdingiz", pick: 'Klubni tanlang',
       choose: 'Liga tanlash', clubs: 'Ligadagi klublar', rules: 'Qoidalar', notice: "E'lon", details: 'Batafsil', prize: 'Sovrin',
       nav: ['Asosiy', 'Reyting', 'Profil', 'Sovrinlar', "Do'kon"], soon: 'Tez orada', ok: "Ro'yxatdan o'tdingiz ✅", taken: 'Bu klub band', already: "Siz allaqachon ro'yxatdan o'tgansiz", fail: "Xatolik, qayta urinib ko'ring",
       rulesList: ["O'yin **8 daqiqa** davom etadi.", 'Ikkitalik himoya yoqish **mumkin emas**.', `O'yinchilar holati **"Excellent"** bo'lishi kerak.`, 'Extra time va penalti **yo\'q**.', 'Dedline har kuni tungi soat **23:30** da.', "Agar raqib javob bermasa yoki hisobni noto'g'ri kiritsa — **rasm yoki video bilan adminga murojaat qiling**."],
@@ -9,7 +9,7 @@ window.LeagueView = (() => {
       noticeText: "Bot a'zo bo'lishni so'ragan kanalda yangiliklar joriy qilinadi.",
       detailsText: "Botni haqiqiy futbol formatiga asta-sekin o'tkazib boramiz. Ishtirokchilar soni oshsa, ligalar soni 5 taga oshiriladi va Chempionlar ligasi ham qo'shiladi. Milliy ligadagi 1-o'rindan 6-o'ringacha bo'lgan klublar Chempionlar ligasida qatnashish imkoniyatiga ega bo'lishadi.",
       prizeText: 'Sovrinlar masalasida homiylarga mutanosib ravishda pul ham beriladi.' },
-    en: { back: 'Back', full: 'FULL', open: 'OPEN', players: 'Players', max: 'Maximum', season: 'Season', register: 'Sign up', registered: 'You are signed up', pick: 'Pick a club',
+    en: { continents: { europe: 'Europe', asia: 'Asia', africa: 'Africa' }, pickCountry: 'Choose a country', cups: 'Tournaments', noLeagues: "This country's tournaments are coming soon", back: 'Back', full: 'FULL', open: 'OPEN', players: 'Players', max: 'Maximum', season: 'Season', register: 'Sign up', registered: 'You are signed up', pick: 'Pick a club',
       choose: 'Choose a league', clubs: 'Clubs in the league', rules: 'Rules', notice: 'Notice', details: 'Details', prize: 'Prize',
       nav: ['Home', 'Ranking', 'Profile', 'Prizes', 'Shop'], soon: 'Coming soon', ok: 'You are signed up ✅', taken: 'This club is taken', already: 'You are already signed up', fail: 'Error, please try again',
       rulesList: ['A match lasts **8 minutes**.', 'Double defence is **not allowed**.', 'Player condition must be **"Excellent"**.', 'No extra time or penalties.', 'The deadline is every day at **23:30**.', "If your opponent doesn't respond or enters the score wrongly — **contact the admin with a photo or video**."],
@@ -18,7 +18,7 @@ window.LeagueView = (() => {
       noticeText: 'News is published in the channel the bot asks you to join.',
       detailsText: 'We are gradually moving the bot to a real football format. As the number of participants grows, the number of leagues will rise to 5 and a Champions League will be added. Clubs placed 1st to 6th in a national league will be able to enter the Champions League.',
       prizeText: 'Prize money is also paid out in proportion to sponsor funding.' },
-    ru: { back: 'Назад', full: 'ЗАПОЛНЕНА', open: 'ОТКРЫТА', players: 'Игроки', max: 'Максимум', season: 'Сезон', register: 'Записаться', registered: 'Вы записаны', pick: 'Выберите клуб',
+    ru: { continents: { europe: 'Европа', asia: 'Азия', africa: 'Африка' }, pickCountry: 'Выберите страну', cups: 'Турниры', noLeagues: 'Турниры этой страны скоро появятся', back: 'Назад', full: 'ЗАПОЛНЕНА', open: 'ОТКРЫТА', players: 'Игроки', max: 'Максимум', season: 'Сезон', register: 'Записаться', registered: 'Вы записаны', pick: 'Выберите клуб',
       choose: 'Выбор лиги', clubs: 'Клубы лиги', rules: 'Правила', notice: 'Объявление', details: 'Подробнее', prize: 'Призы',
       nav: ['Главная', 'Рейтинг', 'Профиль', 'Призы', 'Магазин'], soon: 'Скоро', ok: 'Вы записаны ✅', taken: 'Этот клуб занят', already: 'Вы уже записаны', fail: 'Ошибка, попробуйте ещё раз',
       rulesList: ['Матч длится **8 минут**.', 'Двойную защиту включать **нельзя**.', 'Состояние игроков должно быть **«Excellent»**.', 'Дополнительного времени и пенальти **нет**.', 'Дедлайн каждый день в **23:30**.', 'Если соперник не отвечает или неверно вводит счёт — **обратитесь к админу с фото или видео**.'],
@@ -34,31 +34,34 @@ window.LeagueView = (() => {
   const rich = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
   const api = (path, opts = {}) => fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', 'x-init-data': tg?.initData || '' } }).then(async (r) => ({ ok: r.ok, ...(await r.json().catch(() => ({}))) })).catch(() => ({ ok: false }));
 
-  let prof = { league: null, club: null, pos: null, w: 0, d: 0, l: 0, games: [] }, tab = 'home',
+  let prof = { league: null, club: null, pos: null, w: 0, d: 0, l: 0, games: [] }, tab = 'home', view = 'geo', country = null, cont = 'europe',
     rank = { group: '1', chip: 'laliga', league: 'laliga', rows: [] },
     data = { mine: null, stats: {}, releasing: [] }, // stats: { [ligaId]: { players, taken[] } }
-    cur = EFL.LEAGUES[0].id, selected = null, el, lang = 'uz', toast, firstLoad = true, settle;
+    cur = null, selected = null, el, lang = 'uz', toast, firstLoad = true, settle;
 
   const stat = (id) => data.stats[id] || { players: 0, taken: [] };
   const isFull = (l) => stat(l.id).players >= l.max;
 
   const navHtml = (t, active) => `<nav class="l-nav">${['🏠', '🏆', '👤', '🎁', '⚽'].map((i, k) => `<button class="${k === active ? 'on' : ''}" data-act="${['home', 'rating', 'profile', 'soon', 'soon'][k]}"><span>${i}</span><small>${t.nav[k]}</small></button>`).join('')}</nav>`;
 
+  // Reyting/Profil bo'limlari ro'yxatdan o'tgandan keyin ochiladi
+  const nav = (t, active) => (data.mine ? navHtml(t, active) : '');
+
   function renderRating() {
-    el.innerHTML = `<div class="page l-page"><button class="back" data-act="back"><span>‹</span> ${T[lang].back}</button>${window.RatingView.html(lang, rank)}</div>${navHtml(T[lang], 1)}`;
+    el.innerHTML = `<div class="page l-page"><button class="back" data-act="back"><span>‹</span> ${T[lang].back}</button>${window.RatingView.html(lang, rank)}</div>${nav(T[lang], 1)}`;
   }
   async function loadRank() {
     const id = rank.league, r = await api('/api/rankings/' + id);
     if (r.ok && id === rank.league) { rank.rows = r.rows; if (tab === 'rating') renderRating(); }
   }
   function openRating() {
-    const id = data.mine?.league || cur;
+    const id = data.mine?.league || cur || EFL.LEAGUES[0].id;
     rank = { group: String(EFL.byId[id].group), chip: id, league: id, rows: [] };
     tab = 'rating'; renderRating(); loadRank();
   }
 
   function renderProfile() {
-    el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, prof)}</div>${navHtml(T[lang], 2)}`;
+    el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, prof)}</div>${nav(T[lang], 2)}`;
   }
   async function loadProfile() {
     const r = await api('/api/profile');
@@ -77,7 +80,7 @@ window.LeagueView = (() => {
   }
   const cardHtml = (l) => {
     const t = T[lang], s = stat(l.id), full = isFull(l);
-    return `<button class="lc${l.id === cur ? ' on' : ''}" data-lg="${l.id}"><img src="cards/leagues/${l.id}.png" alt="" onerror="this.remove()"><b>${esc(l.name)}</b><small>${s.players}/${l.max} ${t.players}</small><span class="l-badge ${full ? 'full' : 'open'}">${full ? t.full : t.open}</span></button>`;
+    return `<button class="lc${l.id === cur ? ' on' : ''}" data-lg="${l.id}"><img src="cards/leagues/${l.id}.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'lc-cup',textContent:'🏆'}))"><b>${esc(l.name)}</b><small>${s.players}/${l.max} ${t.players}</small><span class="l-badge ${full ? 'full' : 'open'}">${full ? t.full : t.open}</span></button>`;
   };
   function releasingHtml() {
     const t = T[lang], list = data.releasing, mine = data.mine;
@@ -138,21 +141,55 @@ window.LeagueView = (() => {
     }, 90);
   }
 
-  function render() {
-    if (tab === 'rating') return renderRating();
-    if (tab === 'profile') return renderProfile();
+  // ——— Qit'a -> davlat bayrog'i (2x6) ———
+  function geoHtml() {
     const t = T[lang];
-    el.innerHTML = `<div class="page l-page">
+    const tabs = EFL.CONTINENTS.map((c) => `<button class="ct${c.id === cont ? ' on' : ''}${c.open ? '' : ' lock'}" data-cont="${c.id}">${c.open ? '' : '🔒 '}${esc(t.continents[c.id])}</button>`).join('');
+    const flags = EFL.COUNTRIES.filter((c) => c.continent === cont).map((c) => `<button class="flag${EFL.leaguesOf(c.id).length ? '' : ' dim'}" data-country="${c.id}" aria-label="${esc(c.name[lang])}">${c.flag}</button>`).join('');
+    return `<div class="page l-page">
       <button class="back" data-act="back"><span>‹</span> ${t.back}</button>
+      <div class="ct-tabs">${tabs}</div>
+      <div class="g-label"><span>${t.pickCountry}</span></div>
+      <div class="flags">${flags}</div></div>${nav(t, 0)}`;
+  }
+
+  // ——— Davlat sahifasi: tepada kuboklar (turnirlar), keyin ro'yxatdan o'tish, pastda klublar ———
+  function countryHtml() {
+    const t = T[lang], c = EFL.countryById[country], ls = EFL.leaguesOf(country);
+    const head = `<button class="back" data-act="back"><span>‹</span> ${t.back}</button>
+      <div class="ct-head"><span class="ct-flag">${c.flag}</span><h2>${esc(c.name[lang])}</h2></div>`;
+    if (!ls.length) return `<div class="page l-page">${head}<div class="note n-info"><small>🏆 ${t.cups.toUpperCase()}</small><p>${esc(t.noLeagues)}</p></div></div>${nav(t, 0)}`;
+    return `<div class="page l-page">${head}
+      <div class="g-label"><span>${t.cups}</span></div>
+      <div class="lc-track" id="lTrack">${ls.map(cardHtml).join('')}</div>
       <div class="l-hero" id="lHero">${heroHtml()}</div>
-      <div class="g-label"><span>${t.choose}</span></div>
-      <div class="lc-track" id="lTrack">${EFL.LEAGUES.map(cardHtml).join('')}</div>
       <div id="lBelow">${belowHtml()}</div>
       <div class="g-card l-rules"><h3>📋 ${t.rules}</h3><ul>${t.rulesList.map((x) => `<li>${rich(x)}</li>`).join('')}</ul></div>
       <div class="note n-info"><small>📢 ${t.notice.toUpperCase()}</small><p>${esc(t.noticeText)}</p></div>
       <div class="note n-det"><small>${t.details.toUpperCase()}</small><p>${esc(t.detailsText)}</p></div>
       <div class="note n-prize"><small>🏆 ${t.prize.toUpperCase()}</small><p>${esc(t.prizeText)}</p></div></div>
-      ${navHtml(t, 0)}`;
+      ${nav(t, 0)}`;
+  }
+
+  function enterCountry(code) {
+    const ls = EFL.leaguesOf(code);
+    country = code; view = 'country'; selected = null;
+    cur = (data.mine && ls.find((l) => l.id === data.mine.league)?.id) || ls[0]?.id || null;
+    tg?.HapticFeedback?.selectionChanged();
+    window.scrollTo(0, 0);
+    render();
+  }
+
+  // Telegram/ilova "orqaga": davlat sahifasidan davlatlar ro'yxatiga. Boshqa joyda false qaytaradi.
+  function back() {
+    if (tab === 'home' && view === 'country') { view = 'geo'; selected = null; window.scrollTo(0, 0); render(); return true; }
+    return false;
+  }
+
+  function render() {
+    if (tab === 'rating') return renderRating();
+    if (tab === 'profile') return renderProfile();
+    el.innerHTML = view === 'country' && country ? countryHtml() : geoHtml();
     const tr = el.querySelector('#lTrack');
     if (tr) { centerOn(cur, false); nearest(tr); }
   }
@@ -161,7 +198,7 @@ window.LeagueView = (() => {
     const r = await api('/api/leagues');
     if (!r.ok) return;
     data = { mine: r.mine, releasing: r.releasing || [], stats: Object.fromEntries(r.leagues.map((l) => [l.id, { players: l.players, taken: l.taken }])) };
-    if (firstLoad) { firstLoad = false; if (r.mine) cur = r.mine.league; }
+    if (firstLoad) { firstLoad = false; const m = r.mine && EFL.byId[r.mine.league]; if (view === 'country' && m && m.country === country) cur = m.id; }
     selected = null;
     if (tab === 'home') render();
   }
@@ -198,13 +235,15 @@ window.LeagueView = (() => {
       el.dataset.bound = '1';
       el.addEventListener('scroll', (e) => { if (e.target.id === 'lTrack') onTrackScroll(e.target); }, { capture: true, passive: true });
       el.addEventListener('click', (e) => {
-        const cl = e.target.closest('[data-claim]'), c = e.target.closest('[data-club]'), a = e.target.closest('[data-act]')?.dataset.act, lg = e.target.closest('[data-lg]');
-        if (cl) { if (!cl.disabled) claim(cl.dataset.claim); }
+        const cl = e.target.closest('[data-claim]'), c = e.target.closest('[data-club]'), a = e.target.closest('[data-act]')?.dataset.act, lg = e.target.closest('[data-lg]'), ct = e.target.closest('[data-cont]'), cn = e.target.closest('[data-country]');
+        if (ct) { const k = EFL.CONTINENTS.find((x) => x.id === ct.dataset.cont); if (k?.open) { cont = k.id; render(); } else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
+        else if (cn) enterCountry(cn.dataset.country);
+        else if (cl) { if (!cl.disabled) claim(cl.dataset.claim); }
         else if (lg && lg.dataset.lg !== cur) centerOn(lg.dataset.lg, true);
         else if (c && !c.disabled) { selected = c.dataset.club; tg?.HapticFeedback?.selectionChanged(); updHero(); updBelow(); }
         else if (a === 'register') register();
         else if (a === 'release') toggleRelease();
-        else if (a === 'back') location.hash = '#official';
+        else if (a === 'back') { if (!back()) location.hash = '#official'; }
         else if (a === 'soon') toast(T[lang].soon);
         else if (a === 'home') { tab = 'home'; render(); }
         else if (a === 'profile') { tab = 'profile'; renderProfile(); loadProfile(); }
@@ -221,6 +260,6 @@ window.LeagueView = (() => {
       });
     }
   }
-  const leave = () => { if (el) el.dataset.loaded = ''; tab = 'home'; firstLoad = true; };
-  return { show, leave };
+  const leave = () => { if (el) el.dataset.loaded = ''; tab = 'home'; view = 'geo'; country = null; firstLoad = true; };
+  return { show, leave, back };
 })();

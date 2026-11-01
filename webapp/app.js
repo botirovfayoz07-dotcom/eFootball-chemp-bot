@@ -50,7 +50,7 @@
   }
   const go = (id) => { location.hash = id === '' ? '' : id === 'index' ? '#guide' : '#guide/' + id; if (id === '') history.replaceState(null, '', location.pathname + location.search); route(); };
   window.addEventListener('hashchange', route);
-  tg?.BackButton?.onClick(() => location.hash === '#league' ? (location.hash = '#official') : go(location.hash.split('/')[1] ? 'index' : ''));
+  tg?.BackButton?.onClick(() => location.hash === '#league' ? (window.LeagueView.back() || (location.hash = '#official')) : go(location.hash.split('/')[1] ? 'index' : ''));
   $('#official').addEventListener('click', (e) => {
     if (e.target.closest('[data-back]')) return go('');
     const m = e.target.closest('[data-mode]');

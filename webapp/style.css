@@ -280,3 +280,17 @@ body {
 .rel-card.on { border-color: rgba(245,192,74,.6); }
 .rel-txt { flex: 1; display: flex; flex-direction: column; gap: 4px; } .rel-txt b { font: 600 18px 'Rajdhani', sans-serif; } .rel-txt small { color: var(--muted); } .rel-txt em { font-style: normal; color: #9aa6c4; font-size: 13px; line-height: 1.45; } .rel-card.on em { color: #f5c04a; }
 .sw { flex: none; width: 50px; height: 30px; border-radius: 999px; background: #2a2f4a; position: relative; transition: background .2s; } .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .2s; } .sw.on { background: #3b6cff; } .sw.on::after { transform: translateX(20px); }
+
+/* ——— Rasmiy turnirlar: qit'alar, bayroqlar, davlat sahifasi ——— */
+.ct-tabs { display: flex; gap: 8px; }
+.ct { flex: 1; min-height: 46px; border-radius: 14px; border: 1px solid rgba(255,255,255,.1); background: #12152a; color: #cfd6ea; cursor: pointer; font: 600 17px 'Rajdhani', sans-serif; letter-spacing: 1px; }
+.ct.on { color: #fff; border-color: #22d3ee; background: linear-gradient(135deg, rgba(109,40,217,.5), rgba(14,165,233,.35)); box-shadow: 0 0 16px rgba(34,211,238,.3); }
+.ct.lock { opacity: .5; }
+.flags { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.flag { aspect-ratio: 1; padding: 0; display: grid; place-items: center; border-radius: 16px; cursor: pointer; border: 1px solid rgba(255,255,255,.1); background: #12152a; font-size: clamp(22px, 7vw, 32px); line-height: 1; transition: transform .12s, border-color .2s; }
+.flag:active { transform: scale(.93); border-color: #22d3ee; }
+.flag.dim { opacity: .55; }
+.ct-head { display: flex; align-items: center; gap: 12px; }
+.ct-flag { font-size: 34px; line-height: 1; }
+.ct-head h2 { font: 700 30px 'Rajdhani', sans-serif; letter-spacing: 2px; }
+.lc-cup { font-size: 54px; line-height: 64px; }

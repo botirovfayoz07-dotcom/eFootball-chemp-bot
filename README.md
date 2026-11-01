@@ -21,7 +21,14 @@ Mahalliy sinov uchun: `ngrok http 3000` va chiqqan https manzilni `MINI_APP_URL`
 Rasm qo'yilmasa, ilova buzilmaydi: gradient yoki bo'sh joy ko'rinadi.
 
 ## Hozir ishlaydigan qismlar
-/start → til tanlash → Kirish (ilova ichida yuklanish ekrani) → bosh sahifa → Rasmiy turnirlar → Ligalar:
+/start → til tanlash → Kirish (ilova ichida yuklanish ekrani) → bosh sahifa → Rasmiy turnirlar → **Rasmiy turnirlar** (avvalgi "Ligalar") → qit'a → davlat:
+- **Qit'alar:** tepada Europe | Asia | Africa. Europe tanlangan; Asia va Africa yopiq (🔒, bosilsa "Tez orada"). Ochish: `webapp/league-data.js` → `CONTINENTS` da `open: true`.
+- **Davlatlar:** pastda 12 ta bayroq, 2 qator × 6 ta (`COUNTRIES`). Turnirlari yo'q davlat xiraroq ko'rinadi va "tez orada" sahifasi ochiladi.
+- **Davlat sahifasi:** tepada shu davlat turnirlarining (kubok rasmi + nomi) karuseli, uning ostida liga kartasi va "Ro'yxatdan o'tish" tugmasi, undan pastda klublar ro'yxati. Klubni tanlab "Ro'yxatdan o'tish" bosiladi.
+- **Pastki menyu (Asosiy · Reyting · Profil · Sovrinlar · Do'kon)** faqat ro'yxatdan o'tgandan keyin ochiladi (`league.js` ichidagi `nav` funksiyasi; har doim ko'rsatish uchun `data.mine ?` shartini olib tashlang). Reyting va Profil avvalgidek.
+- Liga ↔ davlat bog'lanishi: `COUNTRY_OF` (league-data.js). Superliga, Saudi, UAE va J1 Osiyo ligalari bo'lgani uchun Asia ochilguncha ko'rinmaydi.
+
+Liga ichidagi imkoniyatlar:
 - 17 ta liga karuseli (11 ta 1-liga + 6 ta 2-liga). Chapga-o'ngga surilganda tepadagi kartada liga nomi, o'yinchilar soni, maksimal va mavsum almashadi.
 - Ro'yxatdan o'tmagan foydalanuvchiga tanlangan liganing klublari chiqadi; klub tanlab "Ro'yxatdan o'tish" bosiladi. Band klublar o'chiq turadi, liga to'lsa (TO'LIQ) tugma yopiladi.
 - Ro'yxatdan o'tgan foydalanuvchiga klublar o'rniga uning ligasi/klubi haqida xabar chiqadi. Mavsumda faqat bitta ligada bitta klub olish mumkin.

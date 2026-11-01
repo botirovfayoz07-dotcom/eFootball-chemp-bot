@@ -27,3 +27,8 @@ Fayl nomi = klub nomining kichik harfli, defisli ko'rinishi (`Real Madrid` → `
     node -e "require('./webapp/league-data').LEAGUES.forEach(l=>l.clubs.forEach(c=>console.log(l.id+'/'+c.id+'.png')))"
 
 Logotip bo'lmasa klub o'rnida bosh harf ko'rinadi.
+
+## 5. Bayroqlar
+Davlat bayroqlari hozircha emoji (🇬🇧 🇪🇸 ...) bilan chiqadi, rasm shart emas. Eslatma: Windows kompyuterida emoji bayroqlar harf ko'rinishida chiqadi, telefonda (Telegram) to'g'ri ko'rinadi. Rasm bilan almashtirmoqchi bo'lsangiz — ayting.
+
+Liga logotipi (3-bo'lim) endi davlat sahifasidagi **kubok kartasi** sifatida ham ishlatiladi; rasm bo'lmasa 🏆 belgisi chiqadi.
