@@ -5,7 +5,7 @@ window.I18N = {
     chooseMode: 'Rejimni tanlang',
     modeLeagues: 'Rasmiy turnirlar',
     modeWorld: 'Jahon Chempionati',
-    modeDivision: 'Divizion',
+    modeDivision: 'Division',
     chooseSection: "Bo'limni tanlang",
     officialTitle: 'Rasmiy turnirlar',
     officialSub: "Ligalar · Jahon chempionati · CL · EL · Division",
