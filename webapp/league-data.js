@@ -26,29 +26,53 @@
     L('liga-portugal-2', 'Liga Portugal 2', 2, 18, ['Académica', 'Amarante', 'AVS', 'Benfica B', 'Chaves', 'Farense', 'Feirense', 'Felgueiras', 'Leixões', 'Lusitânia Lourosa', 'Penafiel', 'Porto B', 'Portimonense', 'Sporting CP B', 'Tondela', 'Torreense', 'União Leiria', 'Vizela']),
   ];
 
-  // ——— Qit'alar va davlatlar (Rasmiy turnirlar -> davlat bayrog'i) ———
-  // Asia va Africa hozircha yopiq (open: false). Davlatlar 2x6 setkada chiqadi.
-  const CONTINENTS = [
-    { id: 'europe', open: true },
-    { id: 'asia', open: false },
-    { id: 'africa', open: false },
-  ];
-  const C = (id, flag, uz, en, ru) => ({ id, continent: 'europe', flag, name: { uz, en, ru } });
+  // ——— Qit'alar, davlatlar, kuboklar ———
+  // Qit'alar hammasi ochiq. Davlat esa `open: true` bo'lsagina ochiladi (hozircha 5 ta).
+  const CONTINENTS = [{ id: 'europe', open: true }, { id: 'asia', open: true }, { id: 'africa', open: true }];
+  const K = (continent, id, flag, uz, en, ru, open) => ({ id, continent, flag, open: !!open, name: { uz, en, ru } });
   const COUNTRIES = [
-    C('en', '🇬🇧', 'Angliya', 'England', 'Англия'),
-    C('es', '🇪🇸', 'Ispaniya', 'Spain', 'Испания'),
-    C('it', '🇮🇹', 'Italiya', 'Italy', 'Италия'),
-    C('de', '🇩🇪', 'Germaniya', 'Germany', 'Германия'),
-    C('fr', '🇫🇷', 'Fransiya', 'France', 'Франция'),
-    C('pt', '🇵🇹', 'Portugaliya', 'Portugal', 'Португалия'),
-    C('tr', '🇹🇷', 'Turkiya', 'Turkey', 'Турция'),
-    C('nl', '🇳🇱', 'Niderlandiya', 'Netherlands', 'Нидерланды'),
-    C('be', '🇧🇪', 'Belgiya', 'Belgium', 'Бельгия'),
-    C('at', '🇦🇹', 'Avstriya', 'Austria', 'Австрия'),
-    C('gr', '🇬🇷', 'Gresiya', 'Greece', 'Греция'),
-    C('ch', '🇨🇭', 'Shveytsariya', 'Switzerland', 'Швейцария'),
+    // Europe (ochiq: Angliya, Ispaniya, Italiya, Germaniya, Fransiya)
+    K('europe', 'en', '🇬🇧', 'Angliya', 'England', 'Англия', true),
+    K('europe', 'es', '🇪🇸', 'Ispaniya', 'Spain', 'Испания', true),
+    K('europe', 'it', '🇮🇹', 'Italiya', 'Italy', 'Италия', true),
+    K('europe', 'de', '🇩🇪', 'Germaniya', 'Germany', 'Германия', true),
+    K('europe', 'fr', '🇫🇷', 'Fransiya', 'France', 'Франция', true),
+    K('europe', 'pt', '🇵🇹', 'Portugaliya', 'Portugal', 'Португалия'),
+    K('europe', 'tr', '🇹🇷', 'Turkiya', 'Turkey', 'Турция'),
+    K('europe', 'nl', '🇳🇱', 'Niderlandiya', 'Netherlands', 'Нидерланды'),
+    K('europe', 'be', '🇧🇪', 'Belgiya', 'Belgium', 'Бельгия'),
+    K('europe', 'at', '🇦🇹', 'Avstriya', 'Austria', 'Австрия'),
+    K('europe', 'gr', '🇬🇷', 'Gresiya', 'Greece', 'Греция'),
+    K('europe', 'ch', '🇨🇭', 'Shveytsariya', 'Switzerland', 'Швейцария'),
+    // Asia (hammasi yopiq)
+    K('asia', 'uz', '🇺🇿', "O'zbekiston", 'Uzbekistan', 'Узбекистан'),
+    K('asia', 'jp', '🇯🇵', 'Yaponiya', 'Japan', 'Япония'),
+    K('asia', 'sa', '🇸🇦', 'Saudiya Arabistoni', 'Saudi Arabia', 'Саудовская Аравия'),
+    K('asia', 'ae', '🇦🇪', 'BAA', 'UAE', 'ОАЭ'),
+    K('asia', 'kr', '🇰🇷', 'Janubiy Koreya', 'South Korea', 'Южная Корея'),
+    K('asia', 'cn', '🇨🇳', 'Xitoy', 'China', 'Китай'),
+    K('asia', 'qa', '🇶🇦', 'Qatar', 'Qatar', 'Катар'),
+    K('asia', 'ir', '🇮🇷', 'Eron', 'Iran', 'Иран'),
+    K('asia', 'kz', '🇰🇿', "Qozog'iston", 'Kazakhstan', 'Казахстан'),
+    K('asia', 'in', '🇮🇳', 'Hindiston', 'India', 'Индия'),
+    K('asia', 'th', '🇹🇭', 'Tailand', 'Thailand', 'Таиланд'),
+    K('asia', 'jo', '🇯🇴', 'Iordaniya', 'Jordan', 'Иордания'),
+    // Africa (hammasi yopiq)
+    K('africa', 'eg', '🇪🇬', 'Misr', 'Egypt', 'Египет'),
+    K('africa', 'ma', '🇲🇦', 'Marokash', 'Morocco', 'Марокко'),
+    K('africa', 'dz', '🇩🇿', 'Jazoir', 'Algeria', 'Алжир'),
+    K('africa', 'tn', '🇹🇳', 'Tunis', 'Tunisia', 'Тунис'),
+    K('africa', 'ng', '🇳🇬', 'Nigeriya', 'Nigeria', 'Нигерия'),
+    K('africa', 'za', '🇿🇦', 'JAR', 'South Africa', 'ЮАР'),
+    K('africa', 'sn', '🇸🇳', 'Senegal', 'Senegal', 'Сенегал'),
+    K('africa', 'gh', '🇬🇭', 'Gana', 'Ghana', 'Гана'),
+    K('africa', 'cm', '🇨🇲', 'Kamerun', 'Cameroon', 'Камерун'),
+    K('africa', 'ci', '🇨🇮', "Kot-d'Ivuar", 'Ivory Coast', 'Кот-д’Ивуар'),
+    K('africa', 'ke', '🇰🇪', 'Keniya', 'Kenya', 'Кения'),
+    K('africa', 'tz', '🇹🇿', 'Tanzaniya', 'Tanzania', 'Танзания'),
   ];
-  // Qaysi liga qaysi davlatniki. Superliga, Saudi, UAE, J1 — Osiyo (hozircha yopiq), shuning uchun country yo'q.
+
+  // Qaysi liga qaysi davlatniki
   const COUNTRY_OF = {
     'premier-league': 'en', championship: 'en',
     laliga: 'es', 'laliga-2': 'es',
@@ -57,13 +81,59 @@
     'ligue-1': 'fr', 'ligue-2': 'fr',
     'liga-portugal': 'pt', 'liga-portugal-2': 'pt',
     'super-lig': 'tr',
+    superliga: 'uz', 'saudi-pro-league': 'sa', 'uae-pro-league': 'ae', 'j1-league': 'jp',
   };
   LEAGUES.forEach((l) => { l.country = COUNTRY_OF[l.id] || null; });
+
+  // Davlat sahifasidagi kuboklar (faqat ko'rsatiladi, bosilmaydi). Rasm: webapp/cards/kubok/<id>.png
+  // type: league | league2 | cup | supercup — tagiga yoziladigan tur nomi
+  const cup = (id, name, type) => ({ id, name, type });
+  const CUPS = {
+    en: [cup('premier-league', 'Premier League', 'league'), cup('championship', 'Championship', 'league2'), cup('fa-cup', 'FA Cup', 'cup'), cup('community-shield', 'Community Shield', 'supercup')],
+    es: [cup('laliga', 'La Liga', 'league'), cup('laliga-2', 'La Liga 2', 'league2'), cup('copa-del-rey', 'Copa del Rey', 'cup'), cup('supercopa', 'Supercopa de España', 'supercup')],
+    it: [cup('serie-a', 'Serie A', 'league'), cup('serie-b', 'Serie B', 'league2'), cup('coppa-italia', 'Coppa Italia', 'cup'), cup('supercoppa', 'Supercoppa Italiana', 'supercup')],
+    de: [cup('bundesliga', 'Bundesliga', 'league'), cup('bundesliga-2', '2. Bundesliga', 'league2'), cup('dfb-pokal', 'DFB-Pokal', 'cup'), cup('dfl-supercup', 'DFL-Supercup', 'supercup')],
+    fr: [cup('ligue-1', 'Ligue 1', 'league'), cup('ligue-2', 'Ligue 2', 'league2'), cup('coupe-de-france', 'Coupe de France', 'cup'), cup('trophee-des-champions', 'Trophée des Champions', 'supercup')],
+  };
+  COUNTRIES.forEach((c) => { c.cups = CUPS[c.id] || []; });
+
+  // Turnir formati (davlat sahifasi pastida). Hozircha faqat Angliya uchun yozilgan.
+  const FORMATS = {
+    en: {
+      leagues: {
+        'premier-league': {
+          uz: ['20 ta klub', "1–5-o'rinlar: Chempionlar ligasi (UEFA CL) ro'yxatiga kiradi", "6–7-o'rinlar: Yevropa ligasiga kiradi", "8–9-o'rinlar: Konferensiya ligasiga o'tadi", "Oxirgi 3 o'rin: Championshipga tushadi"],
+          en: ['20 clubs', '1st–5th: enter the Champions League (UEFA CL) list', '6th–7th: enter the Europa League', '8th–9th: go to the Conference League', 'Bottom 3: relegated to the Championship'],
+          ru: ['20 клубов', '1–5 места: попадают в список Лиги чемпионов (УЕФА)', '6–7 места: попадают в Лигу Европы', '8–9 места: выходят в Лигу конференций', 'Последние 3 места: вылетают в Чемпионшип'],
+        },
+        championship: {
+          uz: ['24 ta klub (2-liga)', "1-o'rin: Yevropa ligasiga kiradi va Premier Ligaga chiqadi", "2–3-o'rinlar: Premier Ligaga chiqadi"],
+          en: ['24 clubs (2nd tier)', '1st: enters the Europa League and is promoted to the Premier League', '2nd–3rd: promoted to the Premier League'],
+          ru: ['24 клуба (2-я лига)', '1 место: попадает в Лигу Европы и выходит в Премьер-лигу', '2–3 места: выходят в Премьер-лигу'],
+        },
+      },
+      cups: [
+        {
+          id: 'fa-cup', name: 'FA Cup',
+          uz: ["Championshipdan 6 ta klub saralanadi: 24 klub tasodifiy o'zaro o'ynaydi → 12 ta qoladi, ular yana tasodifiy o'ynaydi → 6 ta qoladi", "Premier Ligadan 10 ta klub saralanadi: 20 klub tasodifiy o'zaro o'ynaydi → 10 ta qoladi", "Jami 6 + 10 = 16 klub FA Cup'da o'ynaydi", "G'olib Yevropa ligasi ro'yxatiga kiradi"],
+          en: ['6 clubs qualify from the Championship: all 24 clubs play each other at random → 12 remain, then they are paired at random again → 6 remain', '10 clubs qualify from the Premier League: all 20 clubs play each other at random → 10 remain', 'In total 6 + 10 = 16 clubs play the FA Cup', 'The winner enters the Europa League list'],
+          ru: ['Из Чемпионшипа проходят 6 клубов: 24 клуба играют друг с другом случайным образом → остаются 12, затем их снова случайно разбивают на пары → остаются 6', 'Из Премьер-лиги проходят 10 клубов: 20 клубов играют случайным образом → остаются 10', 'Всего 6 + 10 = 16 клубов играют в Кубке Англии', 'Победитель попадает в список Лиги Европы'],
+        },
+        {
+          id: 'community-shield', name: 'Community Shield',
+          uz: ["Premier Liga g'olibi va FA Cup g'olibi o'rtasidagi o'yin", "Agar ikkala kubokni bitta klub yutgan bo'lsa, Community Shield g'olibi avtomatik shu klub bo'ladi"],
+          en: ['A match between the Premier League winner and the FA Cup winner', 'If one club won both, it automatically becomes the Community Shield winner'],
+          ru: ['Матч между победителем Премьер-лиги и обладателем Кубка Англии', 'Если оба трофея выиграл один клуб, он автоматически становится обладателем Суперкубка'],
+        },
+      ],
+    },
+  };
+
   const countryById = Object.fromEntries(COUNTRIES.map((c) => [c.id, c]));
   const leaguesOf = (countryId) => LEAGUES.filter((l) => l.country === countryId);
 
   const byId = Object.fromEntries(LEAGUES.map((l) => [l.id, l]));
   const clubName = (leagueId, clubId) => byId[leagueId]?.clubs.find((c) => c.id === clubId)?.name || clubId;
-  const data = { season: 6, LEAGUES, byId, clubName, CONTINENTS, COUNTRIES, countryById, leaguesOf };
+  const data = { season: 6, LEAGUES, byId, clubName, CONTINENTS, COUNTRIES, FORMATS, countryById, leaguesOf };
   if (typeof module !== 'undefined') module.exports = data; else root.EFL = data;
 })(this);

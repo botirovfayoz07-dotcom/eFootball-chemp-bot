@@ -32,3 +32,13 @@ Logotip bo'lmasa klub o'rnida bosh harf ko'rinadi.
 Davlat bayroqlari hozircha emoji (🇬🇧 🇪🇸 ...) bilan chiqadi, rasm shart emas. Eslatma: Windows kompyuterida emoji bayroqlar harf ko'rinishida chiqadi, telefonda (Telegram) to'g'ri ko'rinadi. Rasm bilan almashtirmoqchi bo'lsangiz — ayting.
 
 Liga logotipi (3-bo'lim) endi davlat sahifasidagi **kubok kartasi** sifatida ham ishlatiladi; rasm bo'lmasa 🏆 belgisi chiqadi.
+
+## 6. Kubok rasmlari — `webapp/cards/kubok/` (PNG, shaffof fon, ~200×200)
+Davlat sahifasining tepasida 4 ta kubok yonma-yon turadi (bosilmaydi), tagida nomi va turi yoziladi. Rasm bo'lmasa 🏆 chiqadi.
+- **England:** `premier-league.png`, `championship.png`, `fa-cup.png`, `community-shield.png`
+- **Spain:** `laliga.png`, `laliga-2.png`, `copa-del-rey.png`, `supercopa.png`
+- **Italy:** `serie-a.png`, `serie-b.png`, `coppa-italia.png`, `supercoppa.png`
+- **Germany:** `bundesliga.png`, `bundesliga-2.png`, `dfb-pokal.png`, `dfl-supercup.png`
+- **France:** `ligue-1.png`, `ligue-2.png`, `coupe-de-france.png`, `trophee-des-champions.png`
+
+Turnir tanlash kartalari (Premier League, Championship) uchun esa 3-bo'limdagi `webapp/cards/leagues/premier-league.png`, `championship.png` ishlatiladi.

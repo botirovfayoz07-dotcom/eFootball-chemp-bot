@@ -22,11 +22,12 @@ Rasm qo'yilmasa, ilova buzilmaydi: gradient yoki bo'sh joy ko'rinadi.
 
 ## Hozir ishlaydigan qismlar
 /start → til tanlash → Kirish (ilova ichida yuklanish ekrani) → bosh sahifa → Rasmiy turnirlar → **Rasmiy turnirlar** (avvalgi "Ligalar") → qit'a → davlat:
-- **Qit'alar:** tepada Europe | Asia | Africa. Europe tanlangan; Asia va Africa yopiq (🔒, bosilsa "Tez orada"). Ochish: `webapp/league-data.js` → `CONTINENTS` da `open: true`.
-- **Davlatlar:** pastda 12 ta bayroq, 2 qator × 6 ta (`COUNTRIES`). Turnirlari yo'q davlat xiraroq ko'rinadi va "tez orada" sahifasi ochiladi.
-- **Davlat sahifasi:** tepada shu davlat turnirlarining (kubok rasmi + nomi) karuseli, uning ostida liga kartasi va "Ro'yxatdan o'tish" tugmasi, undan pastda klublar ro'yxati. Klubni tanlab "Ro'yxatdan o'tish" bosiladi.
+- **Qit'alar:** tepada Europe | Asia | Africa, uchalasi ochiq. Europe tanlangan holda ochiladi.
+- **Davlatlar:** har bir qit'ada 12 ta davlat, 6 qator × 2 ustun, bayroq + nom (`league-data.js` → `COUNTRIES`). Hozircha faqat 5 tasi ochiq (Angliya, Ispaniya, Italiya, Germaniya, Fransiya); qolganlari 🔒 (bosilsa "Tez orada"). Davlatni ochish: `open: true` qo'ying. Asia va Africa davlatlarining hammasi hozircha yopiq.
+- **Davlat sahifasi (tartib):** davlat nomi → 4 ta kubok (bosilmaydi, tagida nomi/turi; rasm `cards/kubok/`) → **turnir tanlash** karuseli (Angliyada Premier League va Championship, rasm `cards/leagues/`) → «Ro'yxatdan o'tish» → klublar ro'yxati → turnir formati (tanlangan liga + kuboklar qoidalari). Klubni tanlab «Ro'yxatdan o'tish» bosiladi.
+- **Turnir formatlari** (`FORMATS` ichida) hozircha faqat Angliya uchun: Premier League, Championship, FA Cup, Community Shield. Boshqa davlatlarda kubok rasmlari chiqadi, format matni keyin qo'shiladi. Kuboklarning o'zi (FA Cup, Community Shield) hali o'ynalmaydi — ular hozircha ma'lumot sifatida ko'rsatiladi.
 - **Pastki menyu (Asosiy · Reyting · Profil · Sovrinlar · Do'kon)** faqat ro'yxatdan o'tgandan keyin ochiladi (`league.js` ichidagi `nav` funksiyasi; har doim ko'rsatish uchun `data.mine ?` shartini olib tashlang). Reyting va Profil avvalgidek.
-- Liga ↔ davlat bog'lanishi: `COUNTRY_OF` (league-data.js). Superliga, Saudi, UAE va J1 Osiyo ligalari bo'lgani uchun Asia ochilguncha ko'rinmaydi.
+- Liga ↔ davlat bog'lanishi: `COUNTRY_OF` (league-data.js). Superliga, Saudi, UAE va J1 ligalari Osiyo davlatlariga bog'langan; bu davlatlar yopiq bo'lgani uchun ular hozircha ko'rinmaydi.
 
 Liga ichidagi imkoniyatlar:
 - 17 ta liga karuseli (11 ta 1-liga + 6 ta 2-liga). Chapga-o'ngga surilganda tepadagi kartada liga nomi, o'yinchilar soni, maksimal va mavsum almashadi.

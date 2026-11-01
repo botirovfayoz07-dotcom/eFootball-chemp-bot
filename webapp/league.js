@@ -1,6 +1,6 @@
 window.LeagueView = (() => {
   const T = {
-    uz: { continents: { europe: 'Europe', asia: 'Asia', africa: 'Africa' }, pickCountry: 'Davlatni tanlang', cups: 'Turnirlar', noLeagues: "Bu davlatning turnirlari tez orada qo'shiladi", back: 'Ortga', full: "TO'LIQ", open: 'OCHIQ', players: "O'yinchilar", max: 'Maksimal', season: 'Mavsum', register: "Ro'yxatdan o'tish", registered: "Ro'yxatdan o'tdingiz", pick: 'Klubni tanlang',
+    uz: { continents: { europe: 'Europe', asia: 'Asia', africa: 'Africa' }, pickCountry: 'Davlatni tanlang', cups: 'Turnir tanlash', cupsLabel: 'Kuboklar', format: 'Turnir formati', cupTypes: { league: 'Liga', league2: '2-liga', cup: 'Kubok', supercup: 'Superkubok' }, noLeagues: "Bu davlatning turnirlari tez orada qo'shiladi", back: 'Ortga', full: "TO'LIQ", open: 'OCHIQ', players: "O'yinchilar", max: 'Maksimal', season: 'Mavsum', register: "Ro'yxatdan o'tish", registered: "Ro'yxatdan o'tdingiz", pick: 'Klubni tanlang',
       choose: 'Liga tanlash', clubs: 'Ligadagi klublar', rules: 'Qoidalar', notice: "E'lon", details: 'Batafsil', prize: 'Sovrin',
       nav: ['Asosiy', 'Reyting', 'Profil', 'Sovrinlar', "Do'kon"], soon: 'Tez orada', ok: "Ro'yxatdan o'tdingiz ✅", taken: 'Bu klub band', already: "Siz allaqachon ro'yxatdan o'tgansiz", fail: "Xatolik, qayta urinib ko'ring",
       rulesList: ["O'yin **8 daqiqa** davom etadi.", 'Ikkitalik himoya yoqish **mumkin emas**.', `O'yinchilar holati **"Excellent"** bo'lishi kerak.`, 'Extra time va penalti **yo\'q**.', 'Dedline har kuni tungi soat **23:30** da.', "Agar raqib javob bermasa yoki hisobni noto'g'ri kiritsa — **rasm yoki video bilan adminga murojaat qiling**."],
@@ -9,7 +9,7 @@ window.LeagueView = (() => {
       noticeText: "Bot a'zo bo'lishni so'ragan kanalda yangiliklar joriy qilinadi.",
       detailsText: "Botni haqiqiy futbol formatiga asta-sekin o'tkazib boramiz. Ishtirokchilar soni oshsa, ligalar soni 5 taga oshiriladi va Chempionlar ligasi ham qo'shiladi. Milliy ligadagi 1-o'rindan 6-o'ringacha bo'lgan klublar Chempionlar ligasida qatnashish imkoniyatiga ega bo'lishadi.",
       prizeText: 'Sovrinlar masalasida homiylarga mutanosib ravishda pul ham beriladi.' },
-    en: { continents: { europe: 'Europe', asia: 'Asia', africa: 'Africa' }, pickCountry: 'Choose a country', cups: 'Tournaments', noLeagues: "This country's tournaments are coming soon", back: 'Back', full: 'FULL', open: 'OPEN', players: 'Players', max: 'Maximum', season: 'Season', register: 'Sign up', registered: 'You are signed up', pick: 'Pick a club',
+    en: { continents: { europe: 'Europe', asia: 'Asia', africa: 'Africa' }, pickCountry: 'Choose a country', cups: 'Choose a tournament', cupsLabel: 'Cups', format: 'Tournament format', cupTypes: { league: 'League', league2: '2nd tier', cup: 'Cup', supercup: 'Super Cup' }, noLeagues: "This country's tournaments are coming soon", back: 'Back', full: 'FULL', open: 'OPEN', players: 'Players', max: 'Maximum', season: 'Season', register: 'Sign up', registered: 'You are signed up', pick: 'Pick a club',
       choose: 'Choose a league', clubs: 'Clubs in the league', rules: 'Rules', notice: 'Notice', details: 'Details', prize: 'Prize',
       nav: ['Home', 'Ranking', 'Profile', 'Prizes', 'Shop'], soon: 'Coming soon', ok: 'You are signed up ✅', taken: 'This club is taken', already: 'You are already signed up', fail: 'Error, please try again',
       rulesList: ['A match lasts **8 minutes**.', 'Double defence is **not allowed**.', 'Player condition must be **"Excellent"**.', 'No extra time or penalties.', 'The deadline is every day at **23:30**.', "If your opponent doesn't respond or enters the score wrongly — **contact the admin with a photo or video**."],
@@ -18,7 +18,7 @@ window.LeagueView = (() => {
       noticeText: 'News is published in the channel the bot asks you to join.',
       detailsText: 'We are gradually moving the bot to a real football format. As the number of participants grows, the number of leagues will rise to 5 and a Champions League will be added. Clubs placed 1st to 6th in a national league will be able to enter the Champions League.',
       prizeText: 'Prize money is also paid out in proportion to sponsor funding.' },
-    ru: { continents: { europe: 'Европа', asia: 'Азия', africa: 'Африка' }, pickCountry: 'Выберите страну', cups: 'Турниры', noLeagues: 'Турниры этой страны скоро появятся', back: 'Назад', full: 'ЗАПОЛНЕНА', open: 'ОТКРЫТА', players: 'Игроки', max: 'Максимум', season: 'Сезон', register: 'Записаться', registered: 'Вы записаны', pick: 'Выберите клуб',
+    ru: { continents: { europe: 'Европа', asia: 'Азия', africa: 'Африка' }, pickCountry: 'Выберите страну', cups: 'Выбор турнира', cupsLabel: 'Кубки', format: 'Формат турнира', cupTypes: { league: 'Лига', league2: '2-я лига', cup: 'Кубок', supercup: 'Суперкубок' }, noLeagues: 'Турниры этой страны скоро появятся', back: 'Назад', full: 'ЗАПОЛНЕНА', open: 'ОТКРЫТА', players: 'Игроки', max: 'Максимум', season: 'Сезон', register: 'Записаться', registered: 'Вы записаны', pick: 'Выберите клуб',
       choose: 'Выбор лиги', clubs: 'Клубы лиги', rules: 'Правила', notice: 'Объявление', details: 'Подробнее', prize: 'Призы',
       nav: ['Главная', 'Рейтинг', 'Профиль', 'Призы', 'Магазин'], soon: 'Скоро', ok: 'Вы записаны ✅', taken: 'Этот клуб занят', already: 'Вы уже записаны', fail: 'Ошибка, попробуйте ещё раз',
       rulesList: ['Матч длится **8 минут**.', 'Двойную защиту включать **нельзя**.', 'Состояние игроков должно быть **«Excellent»**.', 'Дополнительного времени и пенальти **нет**.', 'Дедлайн каждый день в **23:30**.', 'Если соперник не отвечает или неверно вводит счёт — **обратитесь к админу с фото или видео**.'],
@@ -137,7 +137,7 @@ window.LeagueView = (() => {
       cur = id; selected = null;
       tr.querySelectorAll('.lc').forEach((c) => c.classList.toggle('on', c.dataset.lg === cur));
       tg?.HapticFeedback?.selectionChanged();
-      updHero(); updBelow();
+      updHero(); updBelow(); updFormat();
     }, 90);
   }
 
@@ -145,7 +145,7 @@ window.LeagueView = (() => {
   function geoHtml() {
     const t = T[lang];
     const tabs = EFL.CONTINENTS.map((c) => `<button class="ct${c.id === cont ? ' on' : ''}${c.open ? '' : ' lock'}" data-cont="${c.id}">${c.open ? '' : '🔒 '}${esc(t.continents[c.id])}</button>`).join('');
-    const flags = EFL.COUNTRIES.filter((c) => c.continent === cont).map((c) => `<button class="flag${EFL.leaguesOf(c.id).length ? '' : ' dim'}" data-country="${c.id}" aria-label="${esc(c.name[lang])}">${c.flag}</button>`).join('');
+    const flags = EFL.COUNTRIES.filter((c) => c.continent === cont).map((c) => `<button class="flag${c.open ? '' : ' lock'}" data-country="${c.id}"><span class="fl">${c.flag}</span><b>${esc(c.name[lang])}</b>${c.open ? '' : '<i>🔒</i>'}</button>`).join('');
     return `<div class="page l-page">
       <button class="back" data-act="back"><span>‹</span> ${t.back}</button>
       <div class="ct-tabs">${tabs}</div>
@@ -153,17 +153,37 @@ window.LeagueView = (() => {
       <div class="flags">${flags}</div></div>${nav(t, 0)}`;
   }
 
+  // 4 ta kubok (faqat ko'rsatiladi, bosilmaydi) — rasm: cards/kubok/<id>.png
+  function cupsHtml(c) {
+    const t = T[lang];
+    if (!c.cups?.length) return '';
+    const fallback = `this.replaceWith(Object.assign(document.createElement('span'),{className:'lc-cup',textContent:'🏆'}))`;
+    return `<div class="g-label"><span>${t.cupsLabel}</span></div><div class="cups">${c.cups.map((k) => `<div class="cup"><span class="cup-img"><img src="cards/kubok/${k.id}.png" alt="" onerror="${fallback}"></span><b>${esc(k.name)}</b><small>${esc(t.cupTypes[k.type])}</small></div>`).join('')}</div>`;
+  }
+  // Tanlangan turnirning formati + davlat kuboklari qoidalari (pastda)
+  function formatHtml() {
+    const f = EFL.FORMATS[country];
+    if (!f) return '';
+    const blocks = [];
+    const lf = f.leagues[cur];
+    if (lf) blocks.push({ title: EFL.byId[cur].name, lines: lf[lang] });
+    (f.cups || []).forEach((k) => blocks.push({ title: k.name, lines: k[lang] }));
+    return `<div class="g-label"><span>${T[lang].format}</span></div>` + blocks.map((b) => `<div class="g-card l-rules"><h3>🏆 ${esc(b.title)}</h3><ul>${b.lines.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('');
+  }
+  const updFormat = () => { const f = el.querySelector('#lFormat'); if (f) f.innerHTML = formatHtml(); };
+
   // ——— Davlat sahifasi: tepada kuboklar (turnirlar), keyin ro'yxatdan o'tish, pastda klublar ———
   function countryHtml() {
     const t = T[lang], c = EFL.countryById[country], ls = EFL.leaguesOf(country);
     const head = `<button class="back" data-act="back"><span>‹</span> ${t.back}</button>
-      <div class="ct-head"><span class="ct-flag">${c.flag}</span><h2>${esc(c.name[lang])}</h2></div>`;
-    if (!ls.length) return `<div class="page l-page">${head}<div class="note n-info"><small>🏆 ${t.cups.toUpperCase()}</small><p>${esc(t.noLeagues)}</p></div></div>${nav(t, 0)}`;
+      <div class="ct-head"><span class="ct-flag">${c.flag}</span><h2>${esc(c.name[lang])}</h2></div>${cupsHtml(c)}`;
+    if (!ls.length) return `<div class="page l-page">${head}<div class="note n-info"><small>🏆 ${t.cupsLabel.toUpperCase()}</small><p>${esc(t.noLeagues)}</p></div></div>${nav(t, 0)}`;
     return `<div class="page l-page">${head}
       <div class="g-label"><span>${t.cups}</span></div>
       <div class="lc-track" id="lTrack">${ls.map(cardHtml).join('')}</div>
       <div class="l-hero" id="lHero">${heroHtml()}</div>
       <div id="lBelow">${belowHtml()}</div>
+      <div id="lFormat">${formatHtml()}</div>
       <div class="g-card l-rules"><h3>📋 ${t.rules}</h3><ul>${t.rulesList.map((x) => `<li>${rich(x)}</li>`).join('')}</ul></div>
       <div class="note n-info"><small>📢 ${t.notice.toUpperCase()}</small><p>${esc(t.noticeText)}</p></div>
       <div class="note n-det"><small>${t.details.toUpperCase()}</small><p>${esc(t.detailsText)}</p></div>
@@ -237,7 +257,7 @@ window.LeagueView = (() => {
       el.addEventListener('click', (e) => {
         const cl = e.target.closest('[data-claim]'), c = e.target.closest('[data-club]'), a = e.target.closest('[data-act]')?.dataset.act, lg = e.target.closest('[data-lg]'), ct = e.target.closest('[data-cont]'), cn = e.target.closest('[data-country]');
         if (ct) { const k = EFL.CONTINENTS.find((x) => x.id === ct.dataset.cont); if (k?.open) { cont = k.id; render(); } else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
-        else if (cn) enterCountry(cn.dataset.country);
+        else if (cn) { const k = EFL.countryById[cn.dataset.country]; if (k?.open) enterCountry(k.id); else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
         else if (cl) { if (!cl.disabled) claim(cl.dataset.claim); }
         else if (lg && lg.dataset.lg !== cur) centerOn(lg.dataset.lg, true);
         else if (c && !c.disabled) { selected = c.dataset.club; tg?.HapticFeedback?.selectionChanged(); updHero(); updBelow(); }
