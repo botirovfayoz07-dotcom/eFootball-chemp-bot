@@ -9,7 +9,7 @@ Rasm qo'yilmasa ilova buzilmaydi. 1-va 2-bo'limdagi 9 ta karta rasmi qo'yilgan. 
 | Fayl | Karta | O'lcham |
 |---|---|---|
 | official.jpg | Rasmiy turnirlar | 1040×450 |
-| private.jpg | Shaxsiy turnirlar | 1040×450 |
+| private.jpg | Norasmiy turnirlar | 1040×450 |
 | team.jpg | Teamlar jangi (qahramonlar o'ng yarmida) | 1040×570 |
 
 ## 2. Rejim kartalari — `webapp/cards/modes/` (1060×444)

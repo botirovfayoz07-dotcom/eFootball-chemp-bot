@@ -1,11 +1,14 @@
 window.ProfileView = (() => {
   const T = {
     uz: { stats: 'Statistika', place: "O'rin", w: "G'alaba", d: 'Durang', l: "Mag'lubiyat", games: "Mening o'yinlarim", none: "Hali o'yinlar yo'q", noClub: 'Klub tanlanmagan',
-      release: 'Klubimni topshiraman', relOff: "Yoqsangiz, klubingiz bosh sahifadagi ro'yxatga chiqadi. Kimdir olsa — siz ligadan chiqasiz.", relOn: "⏳ Klubingiz ro'yxatda. Kimdir olsa, sizga xabar keladi. Fikringiz o'zgarsa — o'chiring." },
+      release: 'Klubimni topshiraman', relOff: "Yoqsangiz, klubingiz bosh sahifadagi ro'yxatga chiqadi. Kimdir olsa — siz ligadan chiqasiz.", relOn: "⏳ Klubingiz ro'yxatda. Kimdir olsa, sizga xabar keladi. Fikringiz o'zgarsa — o'chiring.",
+      adminPanel: 'Admin panel', adminSub: "Natijalarni tasdiqlash, qur'a, vaqtlar va ishtirokchilar" },
     en: { stats: 'Statistics', place: 'Place', w: 'Wins', d: 'Draws', l: 'Losses', games: 'My games', none: 'No games yet', noClub: 'No club selected',
-      release: 'I am giving up my club', relOff: 'If on, your club appears in the list on the home page. If someone takes it, you leave the league.', relOn: '⏳ Your club is listed. You will be notified if someone takes it. Changed your mind — turn it off.' },
+      release: 'I am giving up my club', relOff: 'If on, your club appears in the list on the home page. If someone takes it, you leave the league.', relOn: '⏳ Your club is listed. You will be notified if someone takes it. Changed your mind — turn it off.',
+      adminPanel: 'Admin panel', adminSub: 'Confirm results, draw, times and participants' },
     ru: { stats: 'Статистика', place: 'Место', w: 'Победы', d: 'Ничьи', l: 'Поражения', games: 'Мои игры', none: 'Игр пока нет', noClub: 'Клуб не выбран',
-      release: 'Отдаю свой клуб', relOff: 'Если включить, клуб появится в списке на главной. Если кто-то его возьмёт — вы выйдете из лиги.', relOn: '⏳ Ваш клуб в списке. Если кто-то возьмёт его, вам придёт сообщение. Передумали — выключите.' },
+      release: 'Отдаю свой клуб', relOff: 'Если включить, клуб появится в списке на главной. Если кто-то его возьмёт — вы выйдете из лиги.', relOn: '⏳ Ваш клуб в списке. Если кто-то возьмёт его, вам придёт сообщение. Передумали — выключите.',
+      adminPanel: 'Админ-панель', adminSub: 'Подтверждение результатов, жеребьёвка, время и участники' },
   };
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -18,6 +21,7 @@ window.ProfileView = (() => {
     return `<div class="pf-card"><div class="pf-ava">${avatar}</div>
       <div class="pf-info"><h2>${esc(club?.name || t.noClub)}</h2><p>${esc(u.first_name || '')}</p>${u.username ? `<a>@${esc(u.username)}</a>` : ''}</div>
       ${club ? `<img class="pf-crest" src="cards/clubs/${club.id}.png" alt="" onerror="this.style.visibility='hidden'">` : ''}</div>
+      ${st.admin ? `<button class="rel-card admin-link" data-act="admin"><span class="rel-txt"><b>🛡 ${t.adminPanel}</b><small>${t.adminSub}</small></span><span class="chev">›</span></button>` : ''}
       ${club ? `<button class="rel-card${st.releasing ? ' on' : ''}" data-act="release"><span class="rel-txt"><b>${t.release}</b><small>${esc(club.name)} · ${esc(window.EFL.byId[st.league]?.name || '')}</small><em>${st.releasing ? t.relOn : t.relOff}</em></span><i class="sw${st.releasing ? ' on' : ''}"></i></button>` : ''}
       <div class="g-label"><span>${t.stats}</span></div>
       <div class="pf-stats"><div><b>${st.pos ? '#' + st.pos : '—'}</b><small>${t.place}</small></div><div><b>${st.w}</b><small>${t.w}</small></div><div><b>${st.d}</b><small>${t.d}</small></div><div><b>${st.l}</b><small>${t.l}</small></div></div>

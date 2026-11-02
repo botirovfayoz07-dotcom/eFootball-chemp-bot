@@ -8,10 +8,18 @@ const express = require('express');
 const crypto = require('crypto');
 const Registration = require('./models/Registration');
 const EFL = require('./webapp/league-data');
+const registerPrivateRoutes = require('./private-api');
 
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const MINI_APP_URL = process.env.MINI_APP_URL; // HTTPS bo'lishi shart
+const ADMIN_IDS = new Set(
+  String(process.env.ADMIN_IDS || '')
+    .split(',')
+    .map((x) => Number(x.trim()))
+    .filter(Number.isFinite)
+);
+const isGlobalAdmin = (id) => ADMIN_IDS.has(Number(id));
 
 const langKeyboard = Markup.inlineKeyboard([
   [Markup.button.callback("O'zbekcha", 'lang_uz')],
@@ -41,6 +49,17 @@ bot.action(/^lang_(uz|en|ru)$/, async (ctx) => {
   await User.updateOne({ telegramId: ctx.from.id }, { lang });
   await ctx.answerCbQuery();
   await ctx.editMessageText(t[lang].langChanged, mainKeyboard(lang));
+});
+
+// Adminlar uchun tezkor kirish: /admin
+bot.command('admin', async (ctx) => {
+  if (!isGlobalAdmin(ctx.from.id)) return ctx.reply("⛔ Bu bo'lim faqat adminlar uchun.");
+  const u = await User.findOne({ telegramId: ctx.from.id }).lean();
+  const lang = ['uz', 'en', 'ru'].includes(u?.lang) ? u.lang : 'uz';
+  if (!MINI_APP_URL) return ctx.reply('MINI_APP_URL sozlanmagan.');
+  return ctx.reply('🛡 Admin panel', Markup.inlineKeyboard([
+    [Markup.button.webApp('Admin panelni ochish', `${MINI_APP_URL}?lang=${lang}#private`)],
+  ]));
 });
 
 // Mini app fayllarini (webapp/) HTTPS domen orqali beradi
@@ -85,9 +104,9 @@ app.get('/api/profile', async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const me = await Registration.findOne({ season, telegramId: u.id }).lean();
-  if (!me) return res.json({ league: null, club: null, releasing: false, pos: null, w: 0, d: 0, l: 0, games: [] });
+  if (!me) return res.json({ league: null, club: null, releasing: false, pos: null, w: 0, d: 0, l: 0, games: [], admin: isGlobalAdmin(u.id) });
   const regs = (await Registration.find({ season, league: me.league }).lean()).sort(rankSort);
-  res.json({ league: me.league, club: me.club, releasing: !!me.releasing, pos: regs.findIndex((r) => r.telegramId === u.id) + 1, w: me.w, d: me.d, l: me.l, games: [] });
+  res.json({ league: me.league, club: me.club, releasing: !!me.releasing, pos: regs.findIndex((r) => r.telegramId === u.id) + 1, w: me.w, d: me.d, l: me.l, games: [], admin: isGlobalAdmin(u.id) });
 });
 
 app.get('/api/rankings/:league', async (req, res) => {
@@ -153,13 +172,38 @@ app.post('/api/claim', async (req, res) => {
     res.status(e.code === 11000 ? 409 : 500).json({ error: e.code === 11000 ? 'already' : 'fail' });
   }
 });
+
+// Norasmiy turnirlar + admin panel API
+registerPrivateRoutes(app, {
+  tgUser,
+  bot,
+  miniAppUrl: MINI_APP_URL,
+  adminIds: [...ADMIN_IDS],
+});
+
+// Kutilmagan server xatolari JSON bo'lib qaytsin
+app.use((err, req, res, next) => {
+  console.error('API xatosi:', err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'fail' });
+});
+
 app.listen(process.env.PORT || 3000, () => console.log('Mini app serveri ishga tushdi'));
 
 (async () => {
+  if (!process.env.MONGO_URI) throw new Error('MONGO_URI sozlanmagan');
   await mongoose.connect(process.env.MONGO_URI);
+  // Test/sinov uchun botni ishga tushirmaslik mumkin
+  if (process.env.NO_BOT === '1') {
+    console.log('NO_BOT=1 — bot polling o‘chirilgan');
+    return;
+  }
   await bot.launch();
   console.log('Bot ishga tushdi');
-})();
+})().catch((e) => {
+  console.error('Ishga tushirish xatosi:', e.message);
+  process.exitCode = 1;
+});
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));

@@ -263,6 +263,7 @@ window.LeagueView = (() => {
         else if (c && !c.disabled) { selected = c.dataset.club; tg?.HapticFeedback?.selectionChanged(); updHero(); updBelow(); }
         else if (a === 'register') register();
         else if (a === 'release') toggleRelease();
+        else if (a === 'admin') { location.hash = '#private'; }
         else if (a === 'back') { if (!back()) location.hash = '#official'; }
         else if (a === 'soon') toast(T[lang].soon);
         else if (a === 'home') { tab = 'home'; render(); }
