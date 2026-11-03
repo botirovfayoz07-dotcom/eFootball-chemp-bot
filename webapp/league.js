@@ -108,8 +108,9 @@ window.LeagueView = (() => {
   async function loadLots() { const r = await api('/api/auctions'); if (r.ok) { lots = r.lots || []; if (tab === 'shop' && !modalOpen()) render(); } }
 
   // ——— Do'kon: Coins sotib olish, kosmetika, Sell (kubokni adminga sotish) ———
+  const syncBg = () => { const B = window.AppBg; if (pview) B.preview(pview.equipped?.bg); else if (tab === 'me') B.show(); else B.hide(); };   // futbolchi foni faqat Me bo'limida
   const modalOpen = () => !!el.querySelector('#shopModal');
-  const closeShop = () => { el.querySelector('#shopModal')?.remove(); if (!pview) window.AppBg.reset(); };
+  const closeShop = () => { el.querySelector('#shopModal')?.remove(); syncBg(); };
   const showModal = (inner, cls = '') => { closeShop(); el.insertAdjacentHTML('beforeend', `<div class="modal${cls ? ' ' + cls : ''}" id="shopModal">${inner}</div>`); };
   const cosList = (kind) => (kind === 'frame' ? window.SHOP.FRAMES : window.SHOP.BACKGROUNDS);
   const ok = () => tg?.HapticFeedback?.notificationOccurred('success');
@@ -337,7 +338,7 @@ window.LeagueView = (() => {
 
   function render() {
     if (!loaded) { el.innerHTML = '<div class="page l-page"><div class="pf-empty"><span>⏳</span></div></div>'; return; }
-    if (pview) window.AppBg.preview(pview.equipped?.bg); else if (!modalOpen()) window.AppBg.reset();   // boshqa user profilida — uning foni
+    if (!modalOpen()) syncBg();
     if (data.mine && tab === 'home') tab = 'info';       // ro'yxatdan o'tgan -> Ma'lumotlar
     if (!data.mine && tab !== 'home') { tab = 'home'; meSel = null; pview = null; }
     if (pview) { el.innerHTML = `<div class="page l-page">${window.ProfileView.publicHtml(lang, pview)}</div>${nav(T[lang], 0)}`; return; }
@@ -432,6 +433,6 @@ window.LeagueView = (() => {
   }
   // ?open=games (o'yin hisobi xabaridagi tugma): Me → klub → Mening o'yinlarim
   const preset = (name) => { pendingTab = name === 'profile' ? 'me' : name; autoClub = pendingTab === 'me'; };
-  const leave = () => { window.AppBg.reset(); pview = null; if (el) el.dataset.loaded = ''; tab = 'home'; view = 'geo'; country = null; meSel = null; openGame = null; loaded = false; };
+  const leave = () => { window.AppBg.hide(); pview = null; if (el) el.dataset.loaded = ''; tab = 'home'; view = 'geo'; country = null; meSel = null; openGame = null; loaded = false; };
   return { show, leave, back, preset };
 })();
