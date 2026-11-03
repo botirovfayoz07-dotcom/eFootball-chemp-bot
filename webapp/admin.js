@@ -55,7 +55,7 @@ window.AdminView = (() => {
   // ——— Ishtirokchilar ———
   function playersHtml() {
     const d = pl.data;
-    const list = !d ? '<p class="ad-hint">Yuklanmoqda…</p>' : `${d.players.map((p) => `<div class="g-card ad-pl"><span><b>${esc(p.club)}</b><small>${esc(p.user)} · ${p.pts} ball · ${p.games} o'yin</small></span><button class="ad-btn bad" data-act="remove" data-tid="${p.telegramId}" data-name="${esc(p.club)}">Chiqarish</button></div>`).join('') || '<p class="ad-hint">Ishtirokchi yo\'q</p>'}
+    const list = !d ? '<p class="ad-hint">Yuklanmoqda…</p>' : `${d.players.map((p) => `<div class="g-card ad-pl"><span><b>${esc(p.club)}</b><small>${esc(p.user)} · ${p.pts} ball · ${p.games} o'yin</small></span><button class="ad-btn ok" data-act="award" data-tid="${p.telegramId}" data-name="${esc(p.club)}">🏆 Kubok</button><button class="ad-btn bad" data-act="remove" data-tid="${p.telegramId}" data-name="${esc(p.club)}">Chiqarish</button></div>`).join('') || '<p class="ad-hint">Ishtirokchi yo\'q</p>'}
       <div class="g-label"><span>Qo'shish (${d.players.length}/${d.max})</span></div>
       <div class="g-card ad-add"><input type="text" data-user placeholder="@username yoki Telegram ID"><select data-club>${d.free.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select><button class="ad-btn ok" data-act="add">➕ Qo'shish</button><p class="ad-hint">Foydalanuvchi botga kamida bir marta /start bosgan bo'lishi kerak. Qura o'tgan bo'lsa, unga qolganlar bilan o'yinlar qo'shiladi.</p></div>`;
     return `<div class="ad-filters"><select data-f="plleague">${leagueOpts(pl.league, false)}</select></div>${list}`;
@@ -108,6 +108,13 @@ window.AdminView = (() => {
     if (act === 'redo') {
       if (!(await confirmBox('Qurani qayta o\'tkazamizmi? Eski o\'yinlar jadvali o\'chiriladi.'))) return;
       return done(await post(`/api/admin/league/${lg}/draw`, { redo: true, rounds: ov.leagues.find((l) => l.id === lg)?.rounds }), 'Qayta qura o\'tkazildi 🎲');
+    }
+    if (act === 'award') {
+      const lname = ov?.leagues.find((l) => l.id === pl.league)?.name || '';
+      if (!(await confirmBox(`${a.dataset.name} — ${lname} g'olibi sifatida kubok topshirilsinmi? Kubok uning Me → Kolleksiyasiga tushadi.`))) return;
+      const r = await post(`/api/admin/league/${pl.league}/award`, { telegramId: Number(a.dataset.tid) });
+      if (r.ok) { tg?.HapticFeedback?.notificationOccurred('success'); return toast('Kubok topshirildi 🏆'); }
+      return toast(r.error === 'already' ? 'Bu kubok unga allaqachon berilgan' : ERR[r.error] || ERR.fail);
     }
     if (act === 'remove') {
       if (!(await confirmBox(`${a.dataset.name} ligadan chiqarilsinmi? Uning barcha o'yinlari bekor qilinadi, natijalari jadvaldan olib tashlanadi.`))) return;

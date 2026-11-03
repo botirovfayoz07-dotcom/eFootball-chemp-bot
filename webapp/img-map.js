@@ -434,7 +434,16 @@ window.EFL_IMG = {
   E.clubSrc = (lg, id) => I.clubs[lg + '/' + id] ? 'cards/' + I.clubs[lg + '/' + id] : 'cards/clubs/' + id + '.png';
   E.leagueSrc = (id) => I.leagues[id] ? 'cards/' + I.leagues[id] : 'cards/leagues/' + id + '.png';
   // Kubok rasmi: avval cards/kubok/<id>.png (rasmiy kubok surati), so'ng yuklangan liga/kubok logotipi, oxirida 🏆
-  E.cupSrcs = (id) => ['cards/kubok/' + id + '.png', I.cups[id] && 'cards/' + I.cups[id], I.leagues[id] && 'cards/' + I.leagues[id]].filter(Boolean);
+  // Yuklangan haqiqiy kubok rasmlari (webapp/cards/kubok/): kubok id -> fayl nomi
+  const CUP_FILES = {
+    'premier-league': 'premierleague.jpg', championship: 'angliyachampionship.png', 'fa-cup': 'FACup.jpg', 'community-shield': 'communityshield.jpg',
+    laliga: 'La_Liga.jpg', 'laliga-2': 'Laliga2.jpeg', 'copa-del-rey': 'copadelrey.jpg', supercopa: 'supercoppa de espanna.jpg',
+    'serie-a': 'seriaA.jpg', 'serie-b': 'seriaB.jpg', 'coppa-italia': 'coppaItalia.jpg', supercoppa: 'supercoppa iatliano.jpg',
+    bundesliga: 'bundesliga.jpeg', 'bundesliga-2': '2.budesliga.jpg', 'dfb-pokal': 'dfb pokal.jpg', 'dfl-supercup': 'Dfl-super-cup-pokal.png',
+    'ligue-1': 'ligue1.jpg', 'ligue-2': 'ligue2.jpg', 'coupe-de-france': 'coupa de france.jpg', 'trophee-des-champions': 'trophee des champions.jpg',
+  };
+  // Kubok rasmi: avval yuklangan kubok surati, so'ng cards/kubok/<id>.png, so'ng liga logotipi, oxirida 🏆
+  E.cupSrcs = (id) => [CUP_FILES[id] && 'cards/kubok/' + encodeURIComponent(CUP_FILES[id]), 'cards/kubok/' + id + '.png', I.cups[id] && 'cards/' + I.cups[id], I.leagues[id] && 'cards/' + I.leagues[id]].filter(Boolean);
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   // Klub logotipi (rasm bo'lmasa klub nomining bosh harfi)
   E.crest = (lg, id, name, cls = 'crest') => `<span class="${cls}"><img src="${esc(E.clubSrc(lg, id))}" loading="lazy" alt="" data-i="${esc(String(name || '?')[0])}" onerror="this.replaceWith(Object.assign(document.createElement('b'),{textContent:this.dataset.i}))"></span>`;

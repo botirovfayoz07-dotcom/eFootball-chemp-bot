@@ -28,6 +28,12 @@ window.LeagueView = (() => {
       detailsText: 'Мы постепенно переводим бота на формат настоящего футбола. С ростом числа участников лиг станет 5 и добавится Лига чемпионов. Клубы, занявшие в национальной лиге места с 1-го по 6-е, получат шанс сыграть в Лиге чемпионов.',
       prizeText: 'Денежные призы выплачиваются пропорционально средствам спонсоров.' },
   };
+  // Do'kon xabarlari (toast)
+  const ST = {
+    uz: { coinSent: "Chek adminga yuborildi ✅ Tasdiqlangach Coins qo'shiladi", badImage: "Rasm noto'g'ri yoki juda katta", tooMany: "Tasdiqlanmagan to'lovlar ko'p, biroz kuting", noCoins: "Coins yetarli emas — avval Coins sotib oling", owned: 'Bu allaqachon sizda', bought: 'Sotib olindi ✅', copied: 'Karta raqami nusxalandi', sellOk: "So'rov adminga yuborildi. 24 soat ichida pulni tashlab beramiz ✅", badCard: "Karta raqami noto'g'ri (16 ta raqam)", gone: "Kubok holati o'zgargan", fail: "Xatolik, qayta urinib ko'ring" },
+    en: { coinSent: 'Receipt sent to the admin ✅ Coins are added once it is confirmed', badImage: 'The image is invalid or too large', tooMany: 'Too many unconfirmed payments, please wait', noCoins: 'Not enough Coins — buy Coins first', owned: 'You already own this', bought: 'Purchased ✅', copied: 'Card number copied', sellOk: 'Request sent to the admin. We will send the money within 24 hours ✅', badCard: 'Invalid card number (16 digits)', gone: 'The trophy status has changed', fail: 'Error, please try again' },
+    ru: { coinSent: 'Чек отправлен админу ✅ Coins добавятся после подтверждения', badImage: 'Неверное или слишком большое изображение', tooMany: 'Слишком много неподтверждённых платежей, подождите', noCoins: 'Недостаточно Coins — сначала купите Coins', owned: 'Это уже у вас есть', bought: 'Куплено ✅', copied: 'Номер карты скопирован', sellOk: 'Заявка отправлена админу. Переведём деньги в течение 24 часов ✅', badCard: 'Неверный номер карты (16 цифр)', gone: 'Статус кубка изменился', fail: 'Ошибка, попробуйте ещё раз' },
+  };
   const tg = window.Telegram?.WebApp;
   const EFL = window.EFL;
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -42,7 +48,7 @@ window.LeagueView = (() => {
 
   // tab: home (davlat -> ro'yxatdan o'tish; faqat ro'yxatdan o'tmaganlar) | info | me | shop (ro'yxatdan o'tgach)
   let tab = 'home', view = 'geo', country = null, cont = 'europe', loaded = false, meSel = null, openGame = null, pendingTab = null, autoClub = false,
-    prof = { clubs: [], collection: [] }, lots = [], rank = { league: null, chip: null, group: '1', rows: [], single: true },
+    prof = { clubs: [], collection: [], equipped: {} }, lots = [], shop = { tab: 'coins', coins: 0, owned: [], equipped: {}, card: '', holder: '', trophies: [] }, prev = null, rcptPack = null, rank = { league: null, chip: null, group: '1', rows: [], single: true },
     data = { mine: null, stats: {} }, // stats: { [ligaId]: { players, taken[] } }
     cur = null, selected = null, el, lang = 'uz', toast, settle;
 
@@ -96,14 +102,100 @@ window.LeagueView = (() => {
   }
 
   // ——— Me va Do'kon ———
-  const renderMe = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { clubs: prof.clubs, collection: prof.collection, sel: meSel, openGame })}</div>${nav(T[lang], 1)}`; };
-  const renderShop = () => { el.innerHTML = `<div class="page l-page">${window.ShopView.html(lang, { lots })}</div>${nav(T[lang], 2)}`; };
-  async function loadProfile() { const r = await api('/api/profile'); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [] }; if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me') render(); } }
-  async function loadLots() { const r = await api('/api/auctions'); if (r.ok) { lots = r.lots || []; if (tab === 'shop') render(); } }
+  const renderMe = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { clubs: prof.clubs, collection: prof.collection, equipped: prof.equipped, sel: meSel, openGame })}</div>${nav(T[lang], 1)}`; };
+  const renderShop = () => { el.innerHTML = `<div class="page l-page">${window.ShopView.html(lang, { ...shop, lots })}</div>${nav(T[lang], 2)}`; };
+  async function loadProfile() { const r = await api('/api/profile'); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {} }; if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me') render(); } }
+  async function loadLots() { const r = await api('/api/auctions'); if (r.ok) { lots = r.lots || []; if (tab === 'shop' && !modalOpen()) render(); } }
+
+  // ——— Do'kon: Coins sotib olish, kosmetika, Sell (kubokni adminga sotish) ———
+  const modalOpen = () => !!el.querySelector('#shopModal');
+  const closeShop = () => el.querySelector('#shopModal')?.remove();
+  const showModal = (inner) => { closeShop(); el.insertAdjacentHTML('beforeend', `<div class="modal" id="shopModal">${inner}</div>`); };
+  const cosList = (kind) => (kind === 'frame' ? window.SHOP.FRAMES : window.SHOP.BACKGROUNDS);
+  const ok = () => tg?.HapticFeedback?.notificationOccurred('success');
+  async function loadShop() {
+    const r = await api('/api/shop');
+    if (!r.ok) return;
+    shop = { ...shop, coins: r.coins, owned: r.owned || [], equipped: r.equipped || {}, card: r.card || '', holder: r.holder || '', trophies: r.trophies || [] };
+    if (tab === 'shop' && !modalOpen()) render();
+  }
+  function compress(file) {              // chek rasmini kichraytirib JPEG qiladi (serverga base64 ketadi)
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 1280 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url); resolve(c.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img')); };
+      img.src = url;
+    });
+  }
+  async function uploadReceipt(input) {
+    const file = input.files?.[0], s = ST[lang], pack = rcptPack;
+    input.value = '';
+    if (!file || !pack) return;
+    let image;
+    try { image = await compress(file); } catch (_) { return toast(s.badImage); }
+    const btn = el.querySelector('[data-act="pickrcpt"]');
+    if (btn) btn.disabled = true;
+    const r = await post('/api/shop/topup', { pack, image });
+    if (btn) btn.disabled = false;
+    if (!r.ok) return toast(s[r.error] || s.fail);
+    closeShop(); ok(); toast(s.coinSent);
+  }
+  function openPreview(kind, id) {
+    prev = { kind, idx: Math.max(0, cosList(kind).findIndex((x) => x.id === id)) };
+    showModal(window.ShopView.previewModal(lang, prev, shop));
+  }
+  function navPreview(d) {
+    const n = cosList(prev.kind).length;
+    prev.idx = (prev.idx + d + n) % n;
+    showModal(window.ShopView.previewModal(lang, prev, shop));
+  }
+  async function buyItem(id) {
+    const s = ST[lang], r = await post('/api/shop/buy', { id });
+    if (!r.ok) {
+      if (r.error === 'noCoins') { closeShop(); shop.tab = 'coins'; render(); window.scrollTo(0, 0); }
+      return toast(s[r.error] || s.fail);
+    }
+    closeShop(); ok(); toast(s.bought);
+    await Promise.all([loadShop(), loadProfile()]);
+  }
+  async function equipItem(kind, id) {
+    const r = await post('/api/shop/equip', { kind, id: id || null });
+    if (!r.ok) return toast(ST[lang].fail);
+    tg?.HapticFeedback?.selectionChanged();
+    await Promise.all([loadShop(), loadProfile()]);
+  }
+  function openSell(tid) {
+    const tr = shop.trophies.find((x) => x.id === tid);
+    if (!tr) return;
+    showModal(window.ShopView.sellModal(lang, tr));
+    el.querySelector('#sellCard')?.focus();
+  }
+  async function confirmSell(tid) {
+    const s = ST[lang], card = (el.querySelector('#sellCard')?.value || '').replace(/\D/g, '');
+    if (card.length !== 16) return toast(s.badCard);
+    const r = await post('/api/shop/sell', { trophy: tid, card });
+    if (!r.ok) { if (r.error === 'gone') { closeShop(); loadShop(); } return toast(s[r.error] || s.fail); }
+    closeShop(); ok(); toast(s.sellOk);
+    await Promise.all([loadShop(), loadProfile()]);
+  }
+  function copyCard(card) {
+    const done = () => toast(ST[lang].copied), raw = card.replace(/\s/g, '');
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(raw).then(done, done); else done();
+  }
+  function contactAdmin() {
+    const a = window.ADMIN; if (!a) return;
+    const u = 'https://t.me/' + a.replace(/^@/, '');
+    if (tg?.openTelegramLink) tg.openTelegramLink(u); else window.open(u, '_blank');
+  }
 
   function setTab(n) {
     tab = n; meSel = null; window.scrollTo(0, 0); render();
-    if (n === 'info') loadRank(); else if (n === 'me') loadProfile(); else if (n === 'shop') loadLots();
+    if (n === 'info') loadRank(); else if (n === 'me') loadProfile(); else if (n === 'shop') { loadShop(); loadLots(); }
   }
 
   const closeModal = () => el.querySelector('#aucModal')?.remove();
@@ -285,7 +377,10 @@ window.LeagueView = (() => {
     if (!el.dataset.bound) {
       el.dataset.bound = '1';
       el.addEventListener('scroll', (e) => { if (e.target.id === 'lTrack') onTrackScroll(e.target); }, { capture: true, passive: true });
+      el.addEventListener('change', (e) => { if (e.target.id === 'rcpt') uploadReceipt(e.target); });
+      el.addEventListener('input', (e) => { if (e.target.id === 'sellCard') e.target.value = e.target.value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim(); });
       el.addEventListener('click', (e) => {
+        if (e.target.id === 'shopModal') return closeShop();
         const q = (s) => e.target.closest(s), ct = q('[data-cont]'), cn = q('[data-country]'), lg = q('[data-lg]'), c = q('[data-club]'), mc = q('[data-mc]'), btn = q('[data-act]'), a = btn?.dataset.act;
         if (ct) { const k = EFL.CONTINENTS.find((x) => x.id === ct.dataset.cont); if (k?.open) { cont = k.id; render(); } else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
         else if (cn) { const k = EFL.countryById[cn.dataset.country]; if (k?.open) enterCountry(k.id); else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
@@ -303,6 +398,18 @@ window.LeagueView = (() => {
         else if (a === 'aucno') closeModal();
         else if (a === 'aucok') confirmAuction();
         else if (a === 'unauction') cancelAuction(btn.dataset.key);
+        else if (a === 'stab') { shop.tab = btn.dataset.tab; render(); }
+        else if (a === 'pack') { const pk = window.SHOP.PACKS.find((x) => x.id === btn.dataset.pack); if (pk) showModal(window.ShopView.topupModal(lang, pk, shop)); }
+        else if (a === 'pickrcpt') { rcptPack = btn.dataset.pack; el.querySelector('#rcpt')?.click(); }
+        else if (a === 'copycard') copyCard(btn.dataset.card);
+        else if (a === 'contact') contactAdmin();
+        else if (a === 'mclose') closeShop();
+        else if (a === 'preview') openPreview(btn.dataset.kind, btn.dataset.id);
+        else if (a === 'pvnav') navPreview(Number(btn.dataset.d));
+        else if (a === 'pvbuy') buyItem(btn.dataset.id);
+        else if (a === 'equip') equipItem(btn.dataset.kind, btn.dataset.id);
+        else if (a === 'sell') openSell(btn.dataset.tid);
+        else if (a === 'sellgo') confirmSell(btn.dataset.tid);
         else if (a === 'buy') { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); }
       });
     }

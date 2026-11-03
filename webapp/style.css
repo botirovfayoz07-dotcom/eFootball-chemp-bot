@@ -421,3 +421,57 @@ body {
 .ut-prize { display: flex; gap: 14px; align-items: center; } .ut-prize.gold { border-color: rgba(251,191,36,.4); background: linear-gradient(135deg, rgba(251,191,36,.1), #14172b); } .ut-prize.cup { border-color: rgba(34,211,238,.4); }
 .ut-ico { font-size: 40px; } .ut-prize b { display: block; font: 700 20px 'Rajdhani', sans-serif; } .ut-prize small { color: var(--muted); display: block; } .ut-prize p { margin-top: 6px; color: var(--cyan); font-weight: 600; } .ut-prize em { color: var(--muted); font-style: normal; font-weight: 400; }
 .r-table tr.gold .pos { background: rgba(251,191,36,.25); } 
+/* ——— Do'kon: Coins (sariq tanga), kosmetika, Sell ——— */
+.coin { position: relative; display: inline-block; width: 1em; height: 1em; border-radius: 50%; vertical-align: -.14em; background: radial-gradient(circle at 35% 30%, #fff3a6, #fbbf24 45%, #d97706); box-shadow: inset 0 0 0 .08em #b45309, inset 0 0 0 .14em rgba(255,255,255,.35), 0 0 6px rgba(251,191,36,.45); }
+.coin::after { content: 'C'; position: absolute; inset: 0; display: grid; place-items: center; font: 800 .62em 'Rajdhani', sans-serif; color: #92400e; }
+.coin.lg { width: 1em; height: 1em; font-size: 54px; flex: none; }
+.stack { position: relative; display: inline-block; width: 46px; height: 58px; }
+.stack .coin { position: absolute; left: calc(7px + (var(--i) % 2) * 4px); bottom: calc(var(--i) * 6px); width: 1em; height: 1em; font-size: 30px; }
+.shop-bal { display: flex; align-items: center; gap: 16px; margin: 10px 0 14px; padding: 16px 18px; border-radius: 22px; border: 1px solid rgba(251,191,36,.35); background: linear-gradient(135deg, #2a2208, #14172b); }
+.shop-bal small { display: block; color: var(--muted); font-size: 13px; } .shop-bal b { font: 700 34px 'Rajdhani', sans-serif; color: #ffd166; line-height: 1.1; } .shop-bal em { font-style: normal; font-size: 16px; color: var(--muted); font-weight: 600; }
+.seg.four { grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 5px; margin-bottom: 4px; }
+.seg.four button { padding: 11px 0; font-size: 14px; letter-spacing: 0; border-radius: 12px; }
+.shop-note { color: var(--muted); font-size: 14px; line-height: 1.45; margin: 10px 0 4px; }
+.packs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
+.pack { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 10px 12px; border-radius: 20px; background: #12152a; border: 1px solid rgba(255,255,255,.1); }
+.pack b { font: 700 24px 'Rajdhani', sans-serif; color: #ffd166; } .pack small { color: var(--muted); margin-top: -4px; font-size: 12px; letter-spacing: 1px; }
+.pack-buy { width: 100%; margin-top: 6px; padding: 10px 0; border: 0; border-radius: 12px; cursor: pointer; color: #fff; font: 700 15px 'Rajdhani', sans-serif; background: linear-gradient(90deg, #06b6d4, #3b82f6); }
+.cos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; } .cos-grid.two { grid-template-columns: repeat(2, 1fr); }
+.cos { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border-radius: 18px; background: #12152a; border: 1px solid rgba(255,255,255,.1); } .cos.on { border-color: #22d3ee; box-shadow: 0 0 14px rgba(34,211,238,.25); }
+.cos b { font: 600 15px 'Rajdhani', sans-serif; text-align: center; }
+.cos-av { display: grid; place-items: center; height: 62px; } .cos-av .pf-ava { width: 52px; height: 52px; } .cos-av .pf-ava b { font-size: 22px; }
+.cos-bg { width: 100%; height: 62px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); }
+.cos-btn { width: 100%; padding: 8px 0; border: 0; border-radius: 12px; cursor: pointer; color: #fff; font: 700 14px 'Rajdhani', sans-serif; background: linear-gradient(135deg, #6d28d9, #3b82f6); } .cos-btn.on { background: rgba(34,211,238,.15); color: #22d3ee; } .cos-btn.eq { background: #1d2140; }
+.cos-prev { border: 0; background: none; color: var(--muted); font: 600 13px 'Rajdhani', sans-serif; cursor: pointer; }
+.sell-item { display: flex; align-items: center; gap: 12px; padding: 12px; margin-top: 10px; border-radius: 18px; background: #12152a; border: 1px solid rgba(255,255,255,.1); }
+.sell-img { flex: none; width: 56px; height: 56px; display: grid; place-items: center; font-size: 34px; } .sell-img img { max-width: 100%; max-height: 56px; object-fit: contain; }
+.sell-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; } .sell-info b { font: 700 18px 'Rajdhani', sans-serif; } .sell-info small { color: var(--muted); font-size: 12px; } .sell-wait { color: #fbbf24; font-size: 13px; margin-top: 4px; }
+.sell-btn { flex: none; border: 0; border-radius: 12px; padding: 10px 14px; cursor: pointer; color: #fff; font: 700 15px 'Rajdhani', sans-serif; background: linear-gradient(135deg, #16a34a, #22c55e); }
+.shopbox { max-height: 90vh; overflow: auto; text-align: center; align-items: stretch; }
+.shopbox .tu-ico { align-self: center; }
+.tu-step { display: flex; align-items: center; gap: 10px; text-align: left; font-size: 15px; } .tu-step i { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 13px; font-weight: 700; background: #7c3aed; } .tu-step b { color: #ffd166; }
+.tu-card { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-radius: 14px; background: #0b0f20; border: 1px solid rgba(255,255,255,.18); } .tu-card b { font: 700 19px 'Rajdhani', sans-serif; letter-spacing: 1px; }
+.tu-card button { border: 0; border-radius: 10px; padding: 6px 12px; cursor: pointer; color: #fff; font: 600 14px 'Rajdhani', sans-serif; background: #2a2f55; }
+.tu-holder, .tu-note { color: var(--muted); font-size: 12px; text-align: left; } .tu-note { text-align: center; line-height: 1.4; } .tu-warn { color: #fb923c; font-size: 14px; }
+.tu-send { min-height: 48px; border: 0; border-radius: 14px; cursor: pointer; color: #fff; font: 700 17px 'Rajdhani', sans-serif; background: linear-gradient(90deg, #7c5cff, #38b6ff); } .tu-send:disabled { opacity: .45; cursor: default; }
+.tu-link { border: 0; background: none; color: var(--muted); text-decoration: underline; font-size: 13px; cursor: pointer; }
+.tu-close { min-height: 44px; border: 1px solid rgba(255,255,255,.14); border-radius: 14px; background: transparent; color: var(--muted); font: 600 16px 'Rajdhani', sans-serif; cursor: pointer; }
+.pv-title { text-align: center; } .pv-card { margin: 4px 0; } .pv-hint { color: var(--muted); font-size: 12px; text-align: center; }
+.pv-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; } .pv-nav button { width: 44px; height: 44px; border: 0; border-radius: 50%; background: #1d2140; color: #fff; font-size: 24px; cursor: pointer; }
+.pv-nav span { display: flex; flex-direction: column; } .pv-nav b { font: 700 20px 'Rajdhani', sans-serif; } .pv-nav small { color: var(--muted); font-size: 12px; }
+.coll-item small { color: var(--muted); font-size: 11px; } .coll-item.trophy { padding: 10px 6px; } .coll-img { display: grid; place-items: center; height: 56px; font-size: 34px; } .coll-img img { max-width: 100%; max-height: 56px; object-fit: contain; }
+
+/* Avatar ramkalari (kosmetika) */
+.pf-ava.fr-neon { border-color: #22d3ee; box-shadow: 0 0 6px #22d3ee, 0 0 18px #22d3ee, inset 0 0 8px rgba(34,211,238,.5); }
+.pf-ava.fr-ice { border-color: #bfeaff; box-shadow: 0 0 8px #7dd3fc, 0 0 18px rgba(125,211,252,.6), inset 0 0 8px rgba(255,255,255,.35); }
+.pf-ava.fr-emerald { border-color: #10b981; box-shadow: 0 0 8px #10b981, 0 0 18px rgba(16,185,129,.6), inset 0 0 8px rgba(16,185,129,.4); }
+.pf-ava.fr-gold { border: 4px solid transparent; background: linear-gradient(#0d1020, #0d1020) padding-box, linear-gradient(135deg, #fff3b0, #f5b301, #a16207) border-box; box-shadow: 0 0 16px rgba(245,179,1,.55); }
+.pf-ava.fr-fire { border: 4px solid transparent; background: linear-gradient(#0d1020, #0d1020) padding-box, linear-gradient(135deg, #fde047, #f97316, #dc2626) border-box; box-shadow: 0 0 18px rgba(249,115,22,.6); }
+.pf-ava.fr-champion { border: 4px solid transparent; background: linear-gradient(#0d1020, #0d1020) padding-box, conic-gradient(#f5b301, #ef4444, #a855f7, #22d3ee, #f5b301) border-box; box-shadow: 0 0 18px rgba(168,85,247,.55); }
+/* Profil fonlari (kosmetika) */
+.bg-galaxy { background: radial-gradient(circle at 20% 25%, rgba(168,85,247,.6), transparent 45%), radial-gradient(circle at 80% 75%, rgba(34,211,238,.45), transparent 45%), #0b0620; }
+.bg-golden { background: linear-gradient(135deg, #3b2a05, #a16207 45%, #f5c04a 60%, #3b2a05); }
+.bg-aurora { background: linear-gradient(135deg, #052e2b, #0f766e 40%, #7c3aed 75%, #1e1b4b); }
+.bg-sunset { background: linear-gradient(135deg, #4c1d95, #be185d 50%, #f97316); }
+.bg-ocean { background: linear-gradient(135deg, #031b34, #075985 55%, #22d3ee); }
+.bg-carbon { background: repeating-linear-gradient(45deg, #151515 0 4px, #1f1f1f 4px 8px); }

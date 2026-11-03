@@ -11,6 +11,9 @@ const Match = require('./models/Match');
 const LeagueConfig = require('./models/LeagueConfig');
 const FX = require('./fixtures');
 const EFL = require('./webapp/league-data');
+const SHOP = require('./webapp/shop-data');
+const Trophy = require('./models/Trophy');
+const TopUp = require('./models/TopUp');
 
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -62,7 +65,7 @@ bot.action(/^lang_(uz|en|ru)$/, async (ctx) => {
 
 // Mini app fayllarini (webapp/) HTTPS domen orqali beradi
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '8mb' })); // Coins chek rasmi (base64) uchun
 app.use(express.static(path.join(__dirname, 'webapp')));
 
 // Telegram initData imzosini tekshiradi va foydalanuvchini qaytaradi
@@ -233,7 +236,12 @@ app.get('/api/profile', ah(async (req, res) => {
       games: await gamesOf(u.id, r.league, regs),
     });
   }
-  res.json({ clubs, collection: [] }); // collection: yutilgan kubok / sotib olingan narsalar (keyingi bosqich)
+  const [trs, me] = await Promise.all([Trophy.find({ telegramId: u.id, status: { $in: ['owned', 'selling'] } }).sort({ createdAt: -1 }).lean(), User.findOne({ telegramId: u.id }).lean()]);
+  const collection = [
+    ...trs.map((x) => ({ kind: 'trophy', cup: x.league, season: x.season, selling: x.status === 'selling' })),
+    ...(me?.cosmetics || []).map((id) => ({ kind: 'item', id })),
+  ];
+  res.json({ clubs, collection, equipped: { frame: me?.equipped?.frame || null, bg: me?.equipped?.bg || null } });
 }));
 
 app.get('/api/rankings/:league', async (req, res) => {
@@ -306,6 +314,144 @@ app.get('/api/auctions', async (req, res) => {
   const regs = await Registration.find({ season, 'auction.price': { $gt: 0 } }).sort({ 'auction.at': -1 }).lean();
   res.json({ lots: regs.map((r) => ({ league: r.league, club: r.club, price: r.auction.price, games: r.w + r.d + r.l, mine: r.telegramId === u.id })) });
 });
+// ——— Do'kon: Coins, kosmetika, kubok sotish (Sell) ———
+const PAY_CARD = process.env.PAY_CARD || '9860190109195155', PAY_HOLDER = process.env.PAY_HOLDER || 'Fayozbek Botirov'; // .env da PAY_CARD / PAY_HOLDER bilan almashtirish mumkin
+const money = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const cardFmt = (d) => d.replace(/(.{4})/g, '$1 ').trim();
+const luhn = (d) => { let s = 0; for (let i = 0; i < d.length; i++) { let n = +d[d.length - 1 - i]; if (i % 2) { n *= 2; if (n > 9) n -= 9; } s += n; } return s % 10 === 0; };
+const who = (u) => (u.username ? '@' + u.username : u.first_name || String(u.id));
+const adminKb = (okData, noData, okText = '✅ Tasdiqlash', noText = '❌ Rad etish') => Markup.inlineKeyboard([[Markup.button.callback(okText, okData), Markup.button.callback(noText, noData)]]);
+
+// Foydalanuvchiga uning tilida xabar (texts: { uz, en, ru })
+async function say(telegramId, texts, open = 'shop') {
+  try {
+    const owner = await User.findOne({ telegramId }).lean(), lang = owner?.lang || 'uz';
+    await bot.telegram.sendMessage(telegramId, texts[lang] || texts.uz, Markup.inlineKeyboard([[Markup.button.webApp(t[lang].open, `${MINI_APP_URL}?lang=${lang}&open=${open}`)]]));
+  } catch (_) { /* bot bloklangan bo'lishi mumkin */ }
+}
+// Adminlarning hammasiga yuboradi; kamida bittasiga yetsa true
+async function toAdmins(send) {
+  const rs = await Promise.allSettled(ADMINS.map((id) => send(id)));
+  return rs.some((r) => r.status === 'fulfilled');
+}
+
+app.get('/api/shop', ah(async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const [me, trs] = await Promise.all([User.findOne({ telegramId: u.id }).lean(), Trophy.find({ telegramId: u.id, status: { $ne: 'sold' } }).sort({ createdAt: -1 }).lean()]);
+  res.json({
+    coins: me?.coins || 0, owned: me?.cosmetics || [], equipped: { frame: me?.equipped?.frame || null, bg: me?.equipped?.bg || null },
+    card: PAY_CARD, holder: PAY_HOLDER,
+    trophies: trs.map((x) => ({ id: String(x._id), league: x.league, season: x.season, status: x.status })),
+  });
+}));
+
+// Coins sotib olish: kartaga o'tkazib, chek rasmini yuboradi -> adminga boradi -> admin tasdiqlasa Coins qo'shiladi
+app.post('/api/shop/topup', ah(async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const pack = SHOP.PACKS.find((p) => p.id === req.body?.pack), img = String(req.body?.image || ''), cut = img.indexOf(',');
+  if (!pack || cut < 0 || !/^data:image\/(jpeg|png|webp);base64$/.test(img.slice(0, cut))) return res.status(400).json({ error: 'fail' });
+  const buf = Buffer.from(img.slice(cut + 1), 'base64');
+  if (buf.length < 1000 || buf.length > 5 * 1024 * 1024) return res.status(400).json({ error: 'badImage' });
+  if (!ADMINS.length) return res.status(503).json({ error: 'fail' });
+  if ((await TopUp.countDocuments({ telegramId: u.id, status: 'pending' })) >= 3) return res.status(429).json({ error: 'tooMany' });
+  const tu = await TopUp.create({ telegramId: u.id, coins: pack.coins, amount: pack.uzs });
+  const caption = `💰 Coins to'ldirish\n👤 ${who(u)} (id ${u.id})\n🪙 ${money(pack.coins)} Coins · ${money(pack.uzs)} UZS\n\nChekni tekshiring va tasdiqlang.`;
+  const sent = await toAdmins((id) => bot.telegram.sendPhoto(id, { source: buf }, { caption, ...adminKb('tu_ok_' + tu._id, 'tu_no_' + tu._id) }));
+  if (!sent) { await TopUp.deleteOne({ _id: tu._id }); return res.status(502).json({ error: 'fail' }); }
+  res.json({ ok: true });
+}));
+
+// Kosmetika sotib olish (Coins evaziga) va profilda yoqish
+app.post('/api/shop/buy', ah(async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const item = SHOP.findItem(req.body?.id);
+  if (!item) return res.status(400).json({ error: 'fail' });
+  const r = await User.findOneAndUpdate(
+    { telegramId: u.id, coins: { $gte: item.price }, cosmetics: { $ne: item.id } },
+    { $inc: { coins: -item.price }, $addToSet: { cosmetics: item.id }, $set: { ['equipped.' + item.kind]: item.id } }, { new: true }).lean();
+  if (!r) { const me = await User.findOne({ telegramId: u.id }).lean(); return res.status(409).json({ error: me?.cosmetics?.includes(item.id) ? 'owned' : 'noCoins' }); }
+  res.json({ ok: true, coins: r.coins });
+}));
+app.post('/api/shop/equip', ah(async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const { kind, id } = req.body || {};
+  if (kind !== 'frame' && kind !== 'bg') return res.status(400).json({ error: 'fail' });
+  if (id && !(SHOP.itemOf(kind, id) && (await User.exists({ telegramId: u.id, cosmetics: id })))) return res.status(400).json({ error: 'fail' });
+  await User.updateOne({ telegramId: u.id }, { $set: { ['equipped.' + kind]: id || null } });
+  res.json({ ok: true });
+}));
+
+// Do'kon -> Sell: kubokni adminga sotish. Foydalanuvchi karta raqamini yuboradi, u adminga boradi, 24 soat ichida pul tashlanadi.
+app.post('/api/shop/sell', ah(async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const card = String(req.body?.card || '').replace(/\D/g, ''), tid = req.body?.trophy;
+  if (!validId(tid)) return res.status(400).json({ error: 'fail' });
+  if (card.length !== 16 || !luhn(card)) return res.status(400).json({ error: 'badCard' });
+  if (!ADMINS.length) return res.status(503).json({ error: 'fail' });
+  const tr = await Trophy.findOneAndUpdate({ _id: tid, telegramId: u.id, status: 'owned' }, { $set: { status: 'selling', 'sell.cardLast4': card.slice(-4), 'sell.at': new Date() } }, { new: true }).lean();
+  if (!tr) return res.status(409).json({ error: 'gone' });
+  const text = `💸 Kubok sotish so'rovi\n🏆 ${EFL.byId[tr.league]?.name || tr.league} (mavsum ${tr.season})\n👤 ${who(u)} (id ${u.id})\n💳 Karta: ${cardFmt(card)}\n\nPulni 24 soat ichida o'tkazib bering. O'tkazgach «To'lab berildi» ni bosing — kubok foydalanuvchi ro'yxatidan o'chiriladi.`;
+  const sent = await toAdmins((id) => bot.telegram.sendMessage(id, text, adminKb('sl_ok_' + tr._id, 'sl_no_' + tr._id, "✅ To'lab berildi", '❌ Rad etish')));
+  if (!sent) { await Trophy.updateOne({ _id: tr._id }, { $set: { status: 'owned' }, $unset: { sell: 1 } }); return res.status(502).json({ error: 'fail' }); }
+  res.json({ ok: true });
+}));
+
+// Admin: ligada g'olib bo'lgan ishtirokchiga kubok topshirish
+app.post('/api/admin/league/:id/award', adminOnly, ah(async (req, res) => {
+  const league = EFL.byId[req.params.id], tid = Number(req.body?.telegramId);
+  if (!league || !tid) return res.status(400).json({ error: 'fail' });
+  if (!(await Registration.exists({ season, league: league.id, telegramId: tid }))) return res.status(404).json({ error: 'gone' });
+  if (await Trophy.exists({ season, league: league.id, telegramId: tid })) return res.status(409).json({ error: 'already' });
+  await Trophy.create({ telegramId: tid, league: league.id, season });
+  say(tid, {
+    uz: `🏆 Tabriklaymiz! Siz ${league.name} kubogini yutdingiz. Me → Kolleksiya. Sotmoqchi bo'lsangiz: Do'kon → Sell.`,
+    en: `🏆 Congratulations! You won the ${league.name} trophy. Me → Collection. To sell it: Shop → Sell.`,
+    ru: `🏆 Поздравляем! Вы выиграли кубок ${league.name}. Я → Коллекция. Чтобы продать: Магазин → Sell.`,
+  }, 'me');
+  res.json({ ok: true });
+}));
+
+// Admin tugmalari (bot ichida): Coins to'lovini tasdiqlash / rad etish
+const adminCb = (fn) => async (ctx) => {
+  if (!ADMINS.includes(ctx.from.id)) return ctx.answerCbQuery('⛔');
+  try { await fn(ctx, ctx.match[1] === 'ok', ctx.match[2]); } catch (e) { console.error(e); await ctx.answerCbQuery('Xatolik').catch(() => {}); }
+};
+const markDone = async (ctx, line) => {
+  const m = ctx.callbackQuery.message, tag = `\n\n${line} — ${ctx.from.username ? '@' + ctx.from.username : ctx.from.first_name}`;
+  if (m.photo) await ctx.editMessageCaption((m.caption || '') + tag).catch(() => {});
+  else await ctx.editMessageText((m.text || '') + tag).catch(() => {});
+};
+bot.action(/^tu_(ok|no)_([a-f0-9]{24})$/, adminCb(async (ctx, ok, id) => {
+  const tu = await TopUp.findOneAndUpdate({ _id: id, status: 'pending' }, { $set: { status: ok ? 'approved' : 'rejected', doneAt: new Date() } }, { new: true }).lean();
+  if (!tu) return ctx.answerCbQuery("Allaqachon ko'rib chiqilgan");
+  if (ok) {
+    try { await User.updateOne({ telegramId: tu.telegramId }, { $inc: { coins: tu.coins } }, { upsert: true }); }
+    catch (e) { await TopUp.updateOne({ _id: id }, { $set: { status: 'pending' }, $unset: { doneAt: 1 } }); throw e; }
+  }
+  await ctx.answerCbQuery(ok ? '✅' : '❌');
+  await markDone(ctx, ok ? '✅ Tasdiqlandi' : '❌ Rad etildi');
+  say(tu.telegramId, ok
+    ? { uz: `✅ To'lov tasdiqlandi: hisobingizga ${money(tu.coins)} Coins qo'shildi.`, en: `✅ Payment confirmed: ${money(tu.coins)} Coins were added to your balance.`, ru: `✅ Оплата подтверждена: на баланс добавлено ${money(tu.coins)} Coins.` }
+    : { uz: "❌ To'lov tasdiqlanmadi. Chek noto'g'ri bo'lsa, admin bilan bog'laning.", en: '❌ The payment was not confirmed. If the receipt is correct, contact the admin.', ru: '❌ Оплата не подтверждена. Если чек верный, свяжитесь с админом.' });
+}));
+// Kubok sotish: «To'lab berildi» -> kubok ro'yxatdan chiqadi; «Rad etish» -> kubok qaytadi
+bot.action(/^sl_(ok|no)_([a-f0-9]{24})$/, adminCb(async (ctx, ok, id) => {
+  const upd = ok ? { $set: { status: 'sold', 'sell.paidAt': new Date() } } : { $set: { status: 'owned' }, $unset: { sell: 1 } };
+  const tr = await Trophy.findOneAndUpdate({ _id: id, status: 'selling' }, upd, { new: true }).lean();
+  if (!tr) return ctx.answerCbQuery("Allaqachon ko'rib chiqilgan");
+  await ctx.answerCbQuery(ok ? '✅' : '❌');
+  await markDone(ctx, ok ? "✅ To'lab berildi" : '❌ Rad etildi');
+  const name = EFL.byId[tr.league]?.name || tr.league;
+  say(tr.telegramId, ok
+    ? { uz: `✅ ${name} kubogi uchun pul kartangizga o'tkazildi. Kubok ro'yxatingizdan chiqarildi.`, en: `✅ The payment for the ${name} trophy was sent to your card. The trophy was removed from your list.`, ru: `✅ Деньги за кубок ${name} переведены на вашу карту. Кубок удалён из вашего списка.` }
+    : { uz: `❌ ${name} kubogini sotish so'rovi rad etildi. Kubok ro'yxatingizda qoldi.`, en: `❌ The request to sell the ${name} trophy was declined. The trophy stays in your list.`, ru: `❌ Заявка на продажу кубка ${name} отклонена. Кубок остался в вашем списке.` }, 'me');
+}));
+
 // ——— O'yin hisobi: biri kiritadi, raqib tasdiqlaydi yoki "Yolg'on" deydi ———
 app.post('/api/matches/:id/report', ah(async (req, res) => {
   const u = tgUser(req);
