@@ -22,7 +22,7 @@ window.RatingView = (() => {
     let rows = st.rows || [];
     if (isScorers) rows = [...rows].sort((a, b) => b.gf - a.gf).map((r, i) => ({ ...r, pos: i + 1 }));
     const body = rows.map((r) => {
-      const who = `<td class="pl">${crest(st.league, r.club)}<b>${esc(clubName(st.league, r.club))}</b>${r.user ? `<small>${esc(r.user)}</small>` : ''}</td>`;
+      const who = `<td class="pl"><div class="pl-in">${crest(st.league, r.club)}<span class="pl-txt"><b>${esc(clubName(st.league, r.club))}</b><small>${r.user ? '👤 ' + esc(r.user) : '—'}</small></span></div></td>`;
       const line = !isScorers && r.pos === max - 2 ? ' relegation' : '';
       const nums = isScorers ? `<td class="hl">${r.gf}</td>` : `<td class="hl">${r.pts}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf}</td><td>${r.ga}</td><td>${r.gd}</td>`;
       return `<tr class="${medal(r.pos).trim()}${line} pvrow" data-pv="${st.league}|${esc(r.club)}"><td class="ps"><span class="pos ${isScorers ? '' : posCls(r.pos)}">${r.pos}</span></td>${who}${nums}</tr>`;

@@ -370,7 +370,7 @@ body {
 /* ——— Admin panel ——— */
 .admin-btn { border-color: rgba(251,191,36,.45); }
 .ad-page { gap: 14px; }
-.ad-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 6px; border-radius: 18px; background: #12152a; border: 1px solid rgba(255,255,255,.08); }
+.ad-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px; border-radius: 18px; background: #12152a; border: 1px solid rgba(255,255,255,.08); }
 .ad-tabs button { padding: 12px 0; border: 0; border-radius: 12px; background: transparent; color: var(--muted); font: 600 16px 'Rajdhani', sans-serif; cursor: pointer; }
 .ad-tabs button.on { color: #fff; background: linear-gradient(90deg, #7c5cff, #38b6ff); }
 .ad-tabs i { font-style: normal; background: #ef4444; color: #fff; border-radius: 999px; padding: 1px 7px; font-size: 13px; margin-left: 4px; }
@@ -490,11 +490,26 @@ body {
 
 /* ——— Umumiy ilova foni (yoqilgan fon butun ekranda, barcha bo'limlarda) ——— */
 #appbg { position: fixed; inset: 0; z-index: -1; pointer-events: none; background-position: center; }
-#appbg[class*="bg-"]::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7,10,20,.18), rgba(7,10,20,.42) 55%, rgba(7,10,20,.62)); }
+#appbg[class*="bg-"]::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7,10,20,.3), rgba(7,10,20,.5) 55%, rgba(7,10,20,.7)); }
 body.has-bg { background: transparent; }
 body.has-bg .mc, body.has-bg .coll-item, body.has-bg .lot, body.has-bg .cos, body.has-bg .r-wrap, body.has-bg .g-card, body.has-bg .pack, body.has-bg .sell-item, body.has-bg .pf-stats > div {
   background: rgba(10,13,28,.62); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
-body.has-bg .pf-card { background: none; border: 0; box-shadow: none; padding-left: 4px; padding-right: 4px; }
+body.has-bg .pf-card:not([class*="bg-"]) { background: linear-gradient(180deg, rgba(8,10,22,.55), rgba(8,10,22,.3)); border: 0; box-shadow: none; padding-left: 4px; padding-right: 4px; }
 body.has-bg .pf-info h2, body.has-bg .pf-info p, body.has-bg .pf-info a, body.has-bg .g-label, body.has-bg .back { text-shadow: 0 2px 8px rgba(0,0,0,.85); }
 .pf-ava.ph { position: relative; } .pf-ava.ph > * { grid-area: 1 / 1; }
 .modal.pvm { background: rgba(3,5,12,.10); -webkit-backdrop-filter: none; backdrop-filter: none; align-items: end; }
+/* Fon ustida yozuvlar va tugmalar o'qilsin */
+body.has-bg .g-label span { background: rgba(8,10,22,.72); padding: 5px 12px; border-radius: 999px; color: #cdd6f0; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+body.has-bg .back { background: rgba(8,10,22,.75); color: #fff; border-color: rgba(255,255,255,.25); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+body.has-bg .pf-empty { background: rgba(8,10,22,.62); border-radius: 18px; padding: 24px 12px; }
+body.has-bg .pf-info h2 { text-shadow: 0 2px 10px rgba(0,0,0,.95); }
+/* Reyting jadvali: klub logotipi chapda, klub nomi va egasi yonida */
+.pl-in { display: flex; align-items: center; gap: 10px; text-align: left; }
+.pl-in .r-crest { flex: none; width: 40px; margin: 0; }
+.pl-txt { min-width: 0; } .pl-txt small { color: var(--cyan); }
+/* Kubok narxi */
+.sell-price { color: var(--muted); } .sell-price b { color: #ffd166; } .sell-for { color: var(--muted); } .sell-for b { color: #ffd166; font: 700 22px 'Rajdhani', sans-serif; }
+.lot-user { color: var(--cyan) !important; }
+.ad-cup { display: flex; align-items: center; gap: 8px; padding: 12px; flex-wrap: wrap; }
+.ad-cup-n { flex: 1 1 100%; display: flex; flex-direction: column; } .ad-cup-n small { color: var(--muted); font-size: 13px; }
+.ad-cup input { flex: 1; min-width: 0; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.15); background: #0e1226; color: #fff; font: 700 18px 'Rajdhani', sans-serif; text-align: center; }

@@ -8,7 +8,7 @@ window.ShopView = (() => {
       prevTitle: "Profilingizda shunday ko'rinadi", prevHint: "Boshqalarini ko'rish uchun ‹ › ni bosing. Sotib olmaguncha hech narsa o'zgarmaydi.", notReg: "Ro'yxatdan o'tmagan",
       auction: 'Auksion', empty: "Hozircha auksionda klub yo'q", aBuy: 'Sotib olish', cancel: 'Auksiondan olish', games: "o'yin",
       sellIntro: "Yutgan kubogingizni adminga soting: «Sotish» ni bosing va karta raqamingizni yuboring. Pul 24 soat ichida kartangizga o'tkaziladi, shundan so'ng kubok ro'yxatingizdan chiqariladi.",
-      sellEmpty: "Sotadigan kubok yo'q. Ligada g'olib bo'lsangiz, kubok shu yerda paydo bo'ladi.", sell: 'Sotish', sellWait: "⏳ Admin pulni o'tkazishini kutmoqda (24 soat ichida)", season: 'Mavsum',
+      sellPrice: 'Narx', noPrice: 'Narx hali belgilanmagan', sellFor: 'Sotish narxi', sellEmpty: "Sotadigan kubok yo'q. Ligada g'olib bo'lsangiz, kubok shu yerda paydo bo'ladi.", sell: 'Sotish', sellWait: "⏳ Admin pulni o'tkazishini kutmoqda (24 soat ichida)", season: 'Mavsum',
       sellTitle: 'Kubokni adminga sotish', sellLabel: "Admin pulni qaysi kartaga tashlasin? Karta raqamini kiriting", sellSend: 'Adminga yuborish', sellNote: "Karta raqami adminga yuboriladi. Pul 24 soat ichida o'tkazib beriladi." },
     en: { title: 'Shop', balance: 'Your balance', tabs: { coins: 'Coins', cosmetics: 'Cosmetics', auction: 'Auction', sell: 'Sell' }, packs: 'Packages',
       transfer: (a) => `Transfer <b>${a}</b> UZS to the card`, holder: 'Card holder', copy: 'Copy', step2: 'Send a photo of the payment receipt', send: 'Send receipt photo',
@@ -17,7 +17,7 @@ window.ShopView = (() => {
       prevTitle: 'How it looks on your profile', prevHint: 'Use ‹ › to try others. Nothing changes until you buy.', notReg: 'Not registered',
       auction: 'Auction', empty: 'No clubs on auction yet', aBuy: 'Buy', cancel: 'Take off auction', games: 'games',
       sellIntro: 'Sell the trophy you won to the admin: tap “Sell” and send your card number. The money is sent to your card within 24 hours, then the trophy is removed from your list.',
-      sellEmpty: 'No trophies to sell. If you win a league, the trophy appears here.', sell: 'Sell', sellWait: '⏳ Waiting for the admin to send the money (within 24 hours)', season: 'Season',
+      sellPrice: 'Price', noPrice: 'Price not set yet', sellFor: 'Selling price', sellEmpty: 'No trophies to sell. If you win a league, the trophy appears here.', sell: 'Sell', sellWait: '⏳ Waiting for the admin to send the money (within 24 hours)', season: 'Season',
       sellTitle: 'Sell the trophy to the admin', sellLabel: 'Which card should the admin send the money to? Enter the card number', sellSend: 'Send to admin', sellNote: 'Your card number goes to the admin. The money is sent within 24 hours.' },
     ru: { title: 'Магазин', balance: 'Ваш баланс', tabs: { coins: 'Coins', cosmetics: 'Косметика', auction: 'Аукцион', sell: 'Sell' }, packs: 'Пакеты',
       transfer: (a) => `Переведите <b>${a}</b> UZS на карту`, holder: 'Владелец карты', copy: 'Копия', step2: 'Отправьте фото чека об оплате', send: 'Отправить фото чека',
@@ -26,7 +26,7 @@ window.ShopView = (() => {
       prevTitle: 'Так это выглядит в вашем профиле', prevHint: 'Листайте ‹ ›, чтобы посмотреть другие. Пока не купите — ничего не меняется.', notReg: 'Не зарегистрирован',
       auction: 'Аукцион', empty: 'Пока нет клубов на аукционе', aBuy: 'Купить', cancel: 'Снять с аукциона', games: 'игр',
       sellIntro: 'Продайте выигранный кубок админу: нажмите «Продать» и отправьте номер карты. Деньги придут на карту в течение 24 часов, после чего кубок исчезнет из вашего списка.',
-      sellEmpty: 'Нет кубков для продажи. Если вы выиграете лигу, кубок появится здесь.', sell: 'Продать', sellWait: '⏳ Ждём, пока админ переведёт деньги (в течение 24 часов)', season: 'Сезон',
+      sellPrice: 'Цена', noPrice: 'Цена пока не назначена', sellFor: 'Цена продажи', sellEmpty: 'Нет кубков для продажи. Если вы выиграете лигу, кубок появится здесь.', sell: 'Продать', sellWait: '⏳ Ждём, пока админ переведёт деньги (в течение 24 часов)', season: 'Сезон',
       sellTitle: 'Продать кубок админу', sellLabel: 'На какую карту админу перевести деньги? Введите номер карты', sellSend: 'Отправить админу', sellNote: 'Номер карты уйдёт админу. Деньги переводятся в течение 24 часов.' },
   };
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -50,10 +50,10 @@ window.ShopView = (() => {
 
   // ——— Kosmetika ———
   const cosCard = (kind, it, st, lang, t) => {
-    const own = (st.owned || []).includes(it.id), on = st.equipped?.[kind] === it.id;
+    const slot = kind === 'bg' && it.player ? 'pbg' : kind, own = (st.owned || []).includes(it.id), on = st.equipped?.[slot] === it.id;
     const vis = kind === 'frame' ? `<span class="cos-av"><span class="pf-ava fr-${it.id}">${avatar()}</span></span>` : `<span class="cos-bg bg-${it.id}${it.player ? ' tall' : ''}"></span>`;
     const btn = own
-      ? `<button class="cos-btn ${on ? 'on' : 'eq'}" data-act="equip" data-kind="${kind}" data-id="${on ? '' : it.id}">${on ? '✓ ' + t.equipped : t.equip}</button>`
+      ? `<button class="cos-btn ${on ? 'on' : 'eq'}" data-act="equip" data-kind="${slot}" data-id="${on ? '' : it.id}">${on ? '✓ ' + t.equipped : t.equip}</button>`
       : `<button class="cos-btn buy" data-act="preview" data-kind="${kind}" data-id="${it.id}">${coin('sm')} ${fmt(it.price)}</button>`;
     return `<div class="cos${on ? ' on' : ''}">${vis}<b>${esc(itemName(it, lang))}</b>${btn}${own ? '' : `<button class="cos-prev" data-act="preview" data-kind="${kind}" data-id="${it.id}">👁 ${t.preview}</button>`}</div>`;
   };
@@ -71,7 +71,7 @@ window.ShopView = (() => {
     const lots = (st.lots || []).map((l) => {
       const name = EFL.clubName(l.league, l.club), lg = EFL.byId[l.league]?.name || '';
       const btn = l.mine ? `<button class="lot-btn" data-act="unauction" data-key="${esc(l.league + '|' + l.club)}">${t.cancel}</button>` : `<button class="lot-btn buy" data-act="buy">${t.aBuy}</button>`;
-      return `<div class="lot">${EFL.crest(l.league, l.club, name)}<span class="lot-info"><b>${esc(name)}</b><small>${esc(lg)} · ${l.games} ${t.games}</small></span><span class="lot-side"><i class="lot-price">${esc(l.price)} ${coin('sm')}</i>${btn}</span></div>`;
+      return `<div class="lot">${EFL.crest(l.league, l.club, name)}<span class="lot-info"><b>${esc(name)}</b><small>${esc(lg)} · ${l.games} ${t.games}</small>${l.user ? `<small class="lot-user">👤 ${esc(l.user)}</small>` : ''}</span><span class="lot-side"><i class="lot-price">${esc(l.price)} ${coin('sm')}</i>${btn}</span></div>`;
     }).join('');
     return lots || `<div class="pf-empty"><span>🔨</span><p>${t.empty}</p></div>`;
   }
@@ -81,8 +81,9 @@ window.ShopView = (() => {
     const EFL = window.EFL;
     const rows = (st.trophies || []).map((x) => {
       const name = EFL.byId[x.league]?.name || x.league;
-      const act = x.status === 'selling' ? `<p class="sell-wait">${t.sellWait}</p>` : `<button class="sell-btn" data-act="sell" data-tid="${esc(x.id)}">💸 ${t.sell}</button>`;
-      return `<div class="sell-item"><span class="sell-img">${cupImg(x.league)}</span><span class="sell-info"><b>${esc(name)}</b><small>${t.season} ${esc(x.season)}</small>${x.status === 'selling' ? act : ''}</span>${x.status === 'selling' ? '' : act}</div>`;
+      const act = x.status === 'selling' ? `<p class="sell-wait">${t.sellWait}</p>` : x.price ? `<button class="sell-btn" data-act="sell" data-tid="${esc(x.id)}">💸 ${t.sell}</button>` : `<p class="sell-wait">${t.noPrice}</p>`;
+      const price = x.price ? `<small class="sell-price">💰 ${t.sellPrice}: <b>${fmt(x.price)} UZS</b></small>` : '';
+      return `<div class="sell-item"><span class="sell-img">${cupImg(x.league)}</span><span class="sell-info"><b>${esc(name)}</b><small>${t.season} ${esc(x.season)}</small>${price}${x.status === 'selling' || !x.price ? act : ''}</span>${x.status === 'selling' || !x.price ? '' : act}</div>`;
     }).join('');
     return `<p class="shop-note">${t.sellIntro}</p>${rows || `<div class="pf-empty"><span>🏆</span><p>${t.sellEmpty}</p></div>`}`;
   }
@@ -117,7 +118,7 @@ window.ShopView = (() => {
   function previewModal(lang, prev, st) {
     const t = T[lang], S = window.SHOP, list = prev.kind === 'frame' ? S.FRAMES : S.BACKGROUNDS, it = list[prev.idx];
     const u = window.Telegram?.WebApp?.initDataUnsafe?.user || {};
-    const frame = prev.kind === 'frame' ? it.id : st.equipped?.frame, bg = prev.kind === 'bg' ? it.id : st.equipped?.bg;
+    const frame = prev.kind === 'frame' ? it.id : st.equipped?.frame, bg = prev.kind === 'bg' && !it.player ? it.id : st.equipped?.bg;
     const own = (st.owned || []).includes(it.id);
     return modal(`<h3 class="pv-title">${t.prevTitle}</h3>
       <div class="pf-card pv-card ${bgClass(bg)}"><div class="pf-ava ${frame ? 'fr-' + frame : ''}">${avatar()}</div><div class="pf-info"><h2>${esc(u.first_name || '')}</h2><p>${t.notReg}</p></div></div>
@@ -129,6 +130,7 @@ window.ShopView = (() => {
   function sellModal(lang, tr) {
     const t = T[lang], name = window.EFL.byId[tr.league]?.name || tr.league;
     return modal(`<span class="tu-ico sell-img">${cupImg(tr.league)}</span><h3>${t.sellTitle}</h3><p class="shop-note">${esc(name)} · ${t.season} ${esc(tr.season)}</p>
+      ${tr.price ? `<p class="sell-for">${t.sellFor}: <b>${fmt(tr.price)} UZS</b></p>` : ''}
       <label>${t.sellLabel}</label><input id="sellCard" type="text" inputmode="numeric" autocomplete="off" maxlength="19" placeholder="0000 0000 0000 0000">
       <small class="tu-note">${t.sellNote}</small>
       <button class="tu-send" data-act="sellgo" data-tid="${esc(tr.id)}">${t.sellSend}</button>

@@ -7,7 +7,7 @@ window.AdminView = (() => {
   const ERR = { drawn: "Qura allaqachon o'tkazilgan", few: 'Kamida 2 ishtirokchi kerak', played: "Hisoblar kiritilgan — qayta qura qilib bo'lmaydi", nouser: "Foydalanuvchi topilmadi (botga /start bosgan bo'lishi kerak)", already: "U shu mavsumda allaqachon ro'yxatda", taken: 'Bu klub band', full: "Liga to'lgan", badScore: "Hisobni to'g'ri kiriting (0–99)", gone: "Topilmadi yoki holati o'zgargan", forbidden: "Ruxsat yo'q", fail: "Xatolik, qayta urinib ko'ring" };
   const ST = { scheduled: 'Kutilmoqda', pending: 'Raqib tasdig\'i kutilmoqda', disputed: '⚠️ Bahsli (yolg\'on)', confirmed: 'Tasdiqlangan' };
 
-  let el, toast, tab = 'results', tours = null, ov = null, mt = { league: '', status: 'action', list: [], total: 0 }, pl = { league: '', data: null };
+  let el, toast, tab = 'results', tours = null, ov = null, mt = { league: '', status: 'action', list: [], total: 0 }, pl = { league: '', data: null }, cups = null;
 
   const fmtLocal = (d) => { const x = new Date(d), p = (n) => String(n).padStart(2, '0'); return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}T${p(x.getHours())}:${p(x.getMinutes())}`; };
   const fmtShow = (d) => new Date(d).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -15,7 +15,7 @@ window.AdminView = (() => {
 
   function tabsHtml() {
     const n = ov?.action || 0;
-    return `<div class="ad-tabs">${[['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar']].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
+    return `<div class="ad-tabs">${[['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar'], ['cups', 'Kubok narxi']].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
   }
 
   // ——— Natijalar ———
@@ -74,9 +74,18 @@ window.AdminView = (() => {
   }
   async function loadTours() { const r = await api('/api/admin/tournaments'); if (r.ok) { tours = r.list; if (tab === 'tour') render(); } }
 
+  // ——— Kubok narxlari: foydalanuvchilar kubokni shu narxda (UZS) adminga sotadi ———
+  const money = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  function cupsHtml() {
+    if (!cups) return '<p class="ad-hint">Yuklanmoqda…</p>';
+    const block = (g, title) => `<div class="g-label"><span>${title}</span></div>${cups.filter((c) => String(c.group) === String(g)).map((c) => `<div class="g-card ad-cup" data-cup="${c.id}"><span class="ad-cup-n"><b>${esc(c.name)}</b><small>${c.price ? '💰 ' + money(c.price) + ' UZS' : 'Narx belgilanmagan — sotib bo\'lmaydi'}</small></span><input type="number" inputmode="numeric" min="0" step="1000" placeholder="UZS" value="${c.price || ''}" data-price><button class="ad-btn ok" data-act="cupsave">Saqlash</button></div>`).join('')}`;
+    return `<p class="ad-hint">Har bir liga kubogining narxini so'mda kiriting. Foydalanuvchi kubokni sotganda shu narx adminga xabarda ko'rinadi va pul shu summada o'tkaziladi. Bo'sh yoki 0 — narx yo'q, kubokni sotib bo'lmaydi.</p>${block('1', '1-ligalar')}${block('2', '2-ligalar')}`;
+  }
+  async function loadCups() { const r = await api('/api/admin/cup-prices'); if (r.ok) { cups = r.cups; if (tab === 'cups') render(); } }
+
   function render() {
     if (!ov) { el.innerHTML = '<div class="page"><p class="ad-hint">Yuklanmoqda…</p></div>'; return; }
-    const body = tab === 'results' ? resultsHtml() : tab === 'draw' ? drawHtml() : tab === 'tour' ? toursHtml() : playersHtml();
+    const body = tab === 'results' ? resultsHtml() : tab === 'draw' ? drawHtml() : tab === 'tour' ? toursHtml() : tab === 'cups' ? cupsHtml() : playersHtml();
     el.innerHTML = `<div class="page ad-page"><button class="back" data-back><span>‹</span> Bo'limlar</button><h1 class="section-title">🛠 Admin panel</h1>${tabsHtml()}${body}</div>`;
   }
 
@@ -89,9 +98,18 @@ window.AdminView = (() => {
 
   async function onClick(e) {
     const t = e.target.closest('[data-tab]'), a = e.target.closest('[data-act]');
-    if (t) { tab = t.dataset.tab; render(); if (tab === 'results') loadMatches(); if (tab === 'players') loadPlayers(); if (tab === 'tour') loadTours(); loadOverview(); return; }
+    if (t) { tab = t.dataset.tab; render(); if (tab === 'results') loadMatches(); if (tab === 'players') loadPlayers(); if (tab === 'tour') loadTours(); if (tab === 'cups') loadCups(); loadOverview(); return; }
     if (!a) return;
     const act = a.dataset.act, lg = a.dataset.lg;
+    if (act === 'cupsave') {
+      const box = a.closest('[data-cup]'), price = Math.round(Number(box.querySelector('[data-price]').value || 0));
+      if (!(price >= 0 && price <= 1e9)) return toast("Narxni to'g'ri kiriting");
+      const r = await post('/api/admin/cup-prices', { league: box.dataset.cup, price });
+      if (!r.ok) return toast(ERR.fail);
+      const c = cups.find((x) => x.id === box.dataset.cup); if (c) c.price = price;
+      tg?.HapticFeedback?.notificationOccurred('success'); toast(price ? 'Narx saqlandi ✅' : "Narx o'chirildi");
+      return render();
+    }
     if (act === 'tour-open') { location.hash = '#unofficial/' + a.dataset.tid; return; }
     if (act === 'result') {
       const box = a.closest('[data-mid]'), hg = parseInt(box.querySelector('[data-hg]').value, 10), ag = parseInt(box.querySelector('[data-ag]').value, 10);

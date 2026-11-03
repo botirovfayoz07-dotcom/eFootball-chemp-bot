@@ -13,6 +13,7 @@ const FX = require('./fixtures');
 const EFL = require('./webapp/league-data');
 const SHOP = require('./webapp/shop-data');
 const Trophy = require('./models/Trophy');
+const CupPrice = require('./models/CupPrice');
 const TopUp = require('./models/TopUp');
 
 
@@ -81,8 +82,15 @@ function tgUser(req) {
   try { return JSON.parse(p.get('user')); } catch { return null; }
 }
 const season = EFL.season;
+// Yoqilgan kosmetika: frame (ramka) · bg (karta foni: oddiy fonlar) · pbg (butun ekran foni: futbolchi fonlari). Eski ma'lumot: bg ichida futbolchi bo'lsa — pbg deb olinadi
+const eqOf = (me) => {
+  const e = me?.equipped || {}, it = e.bg && SHOP.itemOf('bg', e.bg);
+  return { frame: e.frame || null, bg: it && !it.player ? e.bg : null, pbg: e.pbg || (it?.player ? e.bg : null) };
+};
 const rankSort = (a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf;
 
+// Ilovani ochgan har bir foydalanuvchining ismi/username/avatari saqlanadi (jadvalda klub egasi ko'rinishi uchun)
+const touchUser = (u) => User.updateOne({ telegramId: u.id }, { $set: { firstName: u.first_name || '', username: u.username || '', photoUrl: u.photo_url || '' } }, { upsert: true }).catch(() => {});
 // Async marshrutlarda xato chiqsa server qulab tushmasligi uchun
 const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch((e) => { console.error(e); res.status(500).json({ error: 'fail' }); });
 const adminOnly = (req, res, next) => {
@@ -193,6 +201,7 @@ async function performDraw(leagueId, rounds) {
 app.get('/api/leagues', async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
+  touchUser(u);
   const regs = await Registration.find({ season }).lean();
   const mine = regs.find((r) => r.telegramId === u.id);
   res.json({
@@ -241,7 +250,7 @@ app.get('/api/profile', ah(async (req, res) => {
     ...trs.map((x) => ({ kind: 'trophy', cup: x.league, season: x.season, selling: x.status === 'selling' })),
     ...(me?.cosmetics || []).map((id) => ({ kind: 'item', id })),
   ];
-  res.json({ clubs, collection, equipped: { frame: me?.equipped?.frame || null, bg: me?.equipped?.bg || null } });
+  res.json({ clubs, collection, equipped: eqOf(me) });
 }));
 
 // Boshqa ishtirokchi profili (faqat ko'rish): reyting jadvalidagi klub bo'yicha egasi topiladi (Telegram ID oshkor qilinmaydi)
@@ -258,7 +267,7 @@ app.get('/api/profile/view', ah(async (req, res) => {
     clubs.push({ league: r.league, club: r.club, pos: regs.findIndex((x) => x.telegramId === r.telegramId) + 1 });
   }
   res.json({
-    name: usr?.firstName || '', username: usr?.username || '', photo: usr?.photoUrl || '', equipped: { frame: usr?.equipped?.frame || null, bg: usr?.equipped?.bg || null },
+    name: usr?.firstName || '', username: usr?.username || '', photo: usr?.photoUrl || '', equipped: eqOf(usr),
     collection: [...trs.map((x) => ({ kind: 'trophy', cup: x.league, season: x.season })), ...(usr?.cosmetics || []).map((id) => ({ kind: 'item', id }))],
     clubs,
   });
@@ -283,6 +292,7 @@ app.post('/api/leagues/:league/register', async (req, res) => {
   if (!u) return res.status(401).json({ error: 'auth' });
   const league = EFL.byId[req.params.league], club = req.body?.club;
   if (!league || !league.clubs.some((c) => c.id === club)) return res.status(400).json({ error: 'fail' });
+  await touchUser(u);
   if (await Registration.exists({ season, telegramId: u.id })) return res.status(409).json({ error: 'already' });
   if ((await Registration.countDocuments({ season, league: league.id })) >= league.max) return res.status(409).json({ error: 'full' });
   try {
@@ -332,7 +342,9 @@ app.get('/api/auctions', async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const regs = await Registration.find({ season, 'auction.price': { $gt: 0 } }).sort({ 'auction.at': -1 }).lean();
-  res.json({ lots: regs.map((r) => ({ league: r.league, club: r.club, price: r.auction.price, games: r.w + r.d + r.l, mine: r.telegramId === u.id })) });
+  const users = await User.find({ telegramId: { $in: regs.map((r) => r.telegramId) } }).lean();
+  const names = new Map(users.map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
+  res.json({ lots: regs.map((r) => ({ league: r.league, club: r.club, price: r.auction.price, games: r.w + r.d + r.l, mine: r.telegramId === u.id, user: names.get(r.telegramId) || '' })) });
 });
 // ——— Do'kon: Coins, kosmetika, kubok sotish (Sell) ———
 const PAY_CARD = process.env.PAY_CARD || '9860190109195155', PAY_HOLDER = process.env.PAY_HOLDER || 'Fayozbek Botirov'; // .env da PAY_CARD / PAY_HOLDER bilan almashtirish mumkin
@@ -358,11 +370,12 @@ async function toAdmins(send) {
 app.get('/api/shop', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
-  const [me, trs] = await Promise.all([User.findOne({ telegramId: u.id }).lean(), Trophy.find({ telegramId: u.id, status: { $ne: 'sold' } }).sort({ createdAt: -1 }).lean()]);
+  const [me, trs, cps] = await Promise.all([User.findOne({ telegramId: u.id }).lean(), Trophy.find({ telegramId: u.id, status: { $ne: 'sold' } }).sort({ createdAt: -1 }).lean(), CupPrice.find().lean()]);
+  const cup = new Map(cps.map((x) => [x.league, x.price]));
   res.json({
-    coins: me?.coins || 0, owned: me?.cosmetics || [], equipped: { frame: me?.equipped?.frame || null, bg: me?.equipped?.bg || null },
+    coins: me?.coins || 0, owned: me?.cosmetics || [], equipped: eqOf(me),
     card: PAY_CARD, holder: PAY_HOLDER,
-    trophies: trs.map((x) => ({ id: String(x._id), league: x.league, season: x.season, status: x.status })),
+    trophies: trs.map((x) => ({ id: String(x._id), league: x.league, season: x.season, status: x.status, price: (x.status === 'selling' && x.sell?.price) || cup.get(x.league) || 0 })),
   });
 }));
 
@@ -391,7 +404,7 @@ app.post('/api/shop/buy', ah(async (req, res) => {
   if (!item) return res.status(400).json({ error: 'fail' });
   const r = await User.findOneAndUpdate(
     { telegramId: u.id, coins: { $gte: item.price }, cosmetics: { $ne: item.id } },
-    { $inc: { coins: -item.price }, $addToSet: { cosmetics: item.id }, $set: { ['equipped.' + item.kind]: item.id } }, { new: true }).lean();
+    { $inc: { coins: -item.price }, $addToSet: { cosmetics: item.id }, $set: { ['equipped.' + (item.kind === 'bg' && item.player ? 'pbg' : item.kind)]: item.id } }, { new: true }).lean();
   if (!r) { const me = await User.findOne({ telegramId: u.id }).lean(); return res.status(409).json({ error: me?.cosmetics?.includes(item.id) ? 'owned' : 'noCoins' }); }
   res.json({ ok: true, coins: r.coins });
 }));
@@ -399,9 +412,11 @@ app.post('/api/shop/equip', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const { kind, id } = req.body || {};
-  if (kind !== 'frame' && kind !== 'bg') return res.status(400).json({ error: 'fail' });
-  if (id && !(SHOP.itemOf(kind, id) && (await User.exists({ telegramId: u.id, cosmetics: id })))) return res.status(400).json({ error: 'fail' });
-  await User.updateOne({ telegramId: u.id }, { $set: { ['equipped.' + kind]: id || null } });
+  if (kind !== 'frame' && kind !== 'bg' && kind !== 'pbg') return res.status(400).json({ error: 'fail' });
+  const it = id && SHOP.itemOf(kind === 'frame' ? 'frame' : 'bg', id);
+  if (id && !(it && (await User.exists({ telegramId: u.id, cosmetics: id })))) return res.status(400).json({ error: 'fail' });
+  const slot = kind === 'frame' ? 'frame' : (it ? (it.player ? 'pbg' : 'bg') : kind);   // futbolchi fonlari pbg ga, oddiylari bg ga tushadi
+  await User.updateOne({ telegramId: u.id }, { $set: { ['equipped.' + slot]: id || null } });
   res.json({ ok: true });
 }));
 
@@ -413,9 +428,13 @@ app.post('/api/shop/sell', ah(async (req, res) => {
   if (!validId(tid)) return res.status(400).json({ error: 'fail' });
   if (card.length !== 16 || !luhn(card)) return res.status(400).json({ error: 'badCard' });
   if (!ADMINS.length) return res.status(503).json({ error: 'fail' });
-  const tr = await Trophy.findOneAndUpdate({ _id: tid, telegramId: u.id, status: 'owned' }, { $set: { status: 'selling', 'sell.cardLast4': card.slice(-4), 'sell.at': new Date() } }, { new: true }).lean();
+  const t0 = await Trophy.findOne({ _id: tid, telegramId: u.id, status: 'owned' }).lean();
+  if (!t0) return res.status(409).json({ error: 'gone' });
+  const price = (await CupPrice.findOne({ league: t0.league }).lean())?.price || 0;   // admin belgilagan narx; belgilanmagan bo'lsa sotib bo'lmaydi
+  if (!price) return res.status(409).json({ error: 'noPrice' });
+  const tr = await Trophy.findOneAndUpdate({ _id: tid, telegramId: u.id, status: 'owned' }, { $set: { status: 'selling', 'sell.cardLast4': card.slice(-4), 'sell.price': price, 'sell.at': new Date() } }, { new: true }).lean();
   if (!tr) return res.status(409).json({ error: 'gone' });
-  const text = `💸 Kubok sotish so'rovi\n🏆 ${EFL.byId[tr.league]?.name || tr.league} (mavsum ${tr.season})\n👤 ${who(u)} (id ${u.id})\n💳 Karta: ${cardFmt(card)}\n\nPulni 24 soat ichida o'tkazib bering. O'tkazgach «To'lab berildi» ni bosing — kubok foydalanuvchi ro'yxatidan o'chiriladi.`;
+  const text = `💸 Kubok sotish so'rovi\n🏆 ${EFL.byId[tr.league]?.name || tr.league} (mavsum ${tr.season})\n💰 Narx: ${money(price)} UZS\n👤 ${who(u)} (id ${u.id})\n💳 Karta: ${cardFmt(card)}\n\nPulni 24 soat ichida o'tkazib bering. O'tkazgach «To'lab berildi» ni bosing — kubok foydalanuvchi ro'yxatidan o'chiriladi.`;
   const sent = await toAdmins((id) => bot.telegram.sendMessage(id, text, adminKb('sl_ok_' + tr._id, 'sl_no_' + tr._id, "✅ To'lab berildi", '❌ Rad etish')));
   if (!sent) { await Trophy.updateOne({ _id: tr._id }, { $set: { status: 'owned' }, $unset: { sell: 1 } }); return res.status(502).json({ error: 'fail' }); }
   res.json({ ok: true });
@@ -468,7 +487,7 @@ bot.action(/^sl_(ok|no)_([a-f0-9]{24})$/, adminCb(async (ctx, ok, id) => {
   await markDone(ctx, ok ? "✅ To'lab berildi" : '❌ Rad etildi');
   const name = EFL.byId[tr.league]?.name || tr.league;
   say(tr.telegramId, ok
-    ? { uz: `✅ ${name} kubogi uchun pul kartangizga o'tkazildi. Kubok ro'yxatingizdan chiqarildi.`, en: `✅ The payment for the ${name} trophy was sent to your card. The trophy was removed from your list.`, ru: `✅ Деньги за кубок ${name} переведены на вашу карту. Кубок удалён из вашего списка.` }
+    ? { uz: `✅ ${name} kubogi uchun ${money(tr.sell?.price || 0)} UZS kartangizga o'tkazildi. Kubok ro'yxatingizdan chiqarildi.`, en: `✅ ${money(tr.sell?.price || 0)} UZS for the ${name} trophy was sent to your card. The trophy was removed from your list.`, ru: `✅ ${money(tr.sell?.price || 0)} UZS за кубок ${name} переведены на вашу карту. Кубок удалён из вашего списка.` }
     : { uz: `❌ ${name} kubogini sotish so'rovi rad etildi. Kubok ro'yxatingizda qoldi.`, en: `❌ The request to sell the ${name} trophy was declined. The trophy stays in your list.`, ru: `❌ Заявка на продажу кубка ${name} отклонена. Кубок остался в вашем списке.` }, 'me');
 }));
 
@@ -533,11 +552,25 @@ app.get('/api/me', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   // Ilova ochilganda ism/username/avatarni yangilab qo'yamiz va yoqilgan fonni qaytaramiz
-  const me = await User.findOneAndUpdate({ telegramId: u.id }, { $set: { firstName: u.first_name || '', username: u.username || '', photoUrl: u.photo_url || '' } }, { new: true }).lean();
-  res.json({ admin: ADMINS.includes(u.id), bg: me?.equipped?.bg || null });
+  await touchUser(u);
+  const me = await User.findOne({ telegramId: u.id }).lean();
+  res.json({ admin: ADMINS.includes(u.id), bg: eqOf(me).pbg });
 }));
 
 // Ligalar: ishtirokchilar, qura vaqti/holati, o'yinlar soni
+// Admin: har bir liga kubogining narxi (UZS). 0 yoki bo'sh — narx yo'q, sotib bo'lmaydi
+app.get('/api/admin/cup-prices', adminOnly, ah(async (req, res) => {
+  const cps = await CupPrice.find().lean(), cup = new Map(cps.map((x) => [x.league, x.price]));
+  res.json({ cups: EFL.LEAGUES.map((l) => ({ id: l.id, name: l.name, group: l.group, price: cup.get(l.id) || 0 })) });
+}));
+app.post('/api/admin/cup-prices', adminOnly, ah(async (req, res) => {
+  const league = String(req.body?.league || ''), price = Number(req.body?.price || 0);
+  if (!EFL.byId[league] || !Number.isInteger(price) || price < 0 || price > 1e9) return res.status(400).json({ error: 'badPrice' });
+  if (price === 0) await CupPrice.deleteOne({ league });
+  else await CupPrice.updateOne({ league }, { $set: { price, updatedAt: new Date() } }, { upsert: true });
+  res.json({ ok: true, price });
+}));
+
 app.get('/api/admin/overview', adminOnly, ah(async (req, res) => {
   const [regs, cfgs, groups] = await Promise.all([
     Registration.find({ season }).select('league').lean(),

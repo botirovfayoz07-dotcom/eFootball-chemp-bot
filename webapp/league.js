@@ -30,9 +30,9 @@ window.LeagueView = (() => {
   };
   // Do'kon xabarlari (toast)
   const ST = {
-    uz: { coinSent: "Chek adminga yuborildi ✅ Tasdiqlangach Coins qo'shiladi", badImage: "Rasm noto'g'ri yoki juda katta", tooMany: "Tasdiqlanmagan to'lovlar ko'p, biroz kuting", noCoins: "Coins yetarli emas — avval Coins sotib oling", owned: 'Bu allaqachon sizda', bought: 'Sotib olindi ✅', copied: 'Karta raqami nusxalandi', sellOk: "So'rov adminga yuborildi. 24 soat ichida pulni tashlab beramiz ✅", badCard: "Karta raqami noto'g'ri (16 ta raqam)", gone: "Kubok holati o'zgargan", fail: "Xatolik, qayta urinib ko'ring" },
-    en: { coinSent: 'Receipt sent to the admin ✅ Coins are added once it is confirmed', badImage: 'The image is invalid or too large', tooMany: 'Too many unconfirmed payments, please wait', noCoins: 'Not enough Coins — buy Coins first', owned: 'You already own this', bought: 'Purchased ✅', copied: 'Card number copied', sellOk: 'Request sent to the admin. We will send the money within 24 hours ✅', badCard: 'Invalid card number (16 digits)', gone: 'The trophy status has changed', fail: 'Error, please try again' },
-    ru: { coinSent: 'Чек отправлен админу ✅ Coins добавятся после подтверждения', badImage: 'Неверное или слишком большое изображение', tooMany: 'Слишком много неподтверждённых платежей, подождите', noCoins: 'Недостаточно Coins — сначала купите Coins', owned: 'Это уже у вас есть', bought: 'Куплено ✅', copied: 'Номер карты скопирован', sellOk: 'Заявка отправлена админу. Переведём деньги в течение 24 часов ✅', badCard: 'Неверный номер карты (16 цифр)', gone: 'Статус кубка изменился', fail: 'Ошибка, попробуйте ещё раз' },
+    uz: { coinSent: "Chek adminga yuborildi ✅ Tasdiqlangach Coins qo'shiladi", badImage: "Rasm noto'g'ri yoki juda katta", tooMany: "Tasdiqlanmagan to'lovlar ko'p, biroz kuting", noCoins: "Coins yetarli emas — avval Coins sotib oling", owned: 'Bu allaqachon sizda', bought: 'Sotib olindi ✅', copied: 'Karta raqami nusxalandi', sellOk: "So'rov adminga yuborildi. 24 soat ichida pulni tashlab beramiz ✅", badCard: "Karta raqami noto'g'ri (16 ta raqam)", gone: "Kubok holati o'zgargan", noPrice: "Bu kubok uchun narx hali belgilanmagan", fail: "Xatolik, qayta urinib ko'ring" },
+    en: { coinSent: 'Receipt sent to the admin ✅ Coins are added once it is confirmed', badImage: 'The image is invalid or too large', tooMany: 'Too many unconfirmed payments, please wait', noCoins: 'Not enough Coins — buy Coins first', owned: 'You already own this', bought: 'Purchased ✅', copied: 'Card number copied', sellOk: 'Request sent to the admin. We will send the money within 24 hours ✅', badCard: 'Invalid card number (16 digits)', gone: 'The trophy status has changed', noPrice: 'The price for this trophy is not set yet', fail: 'Error, please try again' },
+    ru: { coinSent: 'Чек отправлен админу ✅ Coins добавятся после подтверждения', badImage: 'Неверное или слишком большое изображение', tooMany: 'Слишком много неподтверждённых платежей, подождите', noCoins: 'Недостаточно Coins — сначала купите Coins', owned: 'Это уже у вас есть', bought: 'Куплено ✅', copied: 'Номер карты скопирован', sellOk: 'Заявка отправлена админу. Переведём деньги в течение 24 часов ✅', badCard: 'Неверный номер карты (16 цифр)', gone: 'Статус кубка изменился', noPrice: 'Цена за этот кубок пока не назначена', fail: 'Ошибка, попробуйте ещё раз' },
   };
   const tg = window.Telegram?.WebApp;
   const EFL = window.EFL;
@@ -104,11 +104,11 @@ window.LeagueView = (() => {
   // ——— Me va Do'kon ———
   const renderMe = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { clubs: prof.clubs, collection: prof.collection, equipped: prof.equipped, sel: meSel, openGame })}</div>${nav(T[lang], 1)}`; };
   const renderShop = () => { el.innerHTML = `<div class="page l-page">${window.ShopView.html(lang, { ...shop, lots })}</div>${nav(T[lang], 2)}`; };
-  async function loadProfile() { const r = await api('/api/profile'); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {} }; window.AppBg.setOwn(prof.equipped.bg); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me') render(); } }
+  async function loadProfile() { const r = await api('/api/profile'); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {} }; window.AppBg.setOwn(prof.equipped.pbg); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me') render(); } }
   async function loadLots() { const r = await api('/api/auctions'); if (r.ok) { lots = r.lots || []; if (tab === 'shop' && !modalOpen()) render(); } }
 
   // ——— Do'kon: Coins sotib olish, kosmetika, Sell (kubokni adminga sotish) ———
-  const syncBg = () => { const B = window.AppBg; if (pview) B.preview(pview.equipped?.bg); else if (tab === 'me') B.show(); else B.hide(); };   // futbolchi foni faqat Me bo'limida
+  const syncBg = () => { const B = window.AppBg; if (pview) B.preview(pview.equipped?.pbg); else if (tab === 'me') B.show(); else B.hide(); };   // futbolchi foni faqat Me bo'limida
   const modalOpen = () => !!el.querySelector('#shopModal');
   const closeShop = () => { el.querySelector('#shopModal')?.remove(); syncBg(); };
   const showModal = (inner, cls = '') => { closeShop(); el.insertAdjacentHTML('beforeend', `<div class="modal${cls ? ' ' + cls : ''}" id="shopModal">${inner}</div>`); };
@@ -117,7 +117,7 @@ window.LeagueView = (() => {
   async function loadShop() {
     const r = await api('/api/shop');
     if (!r.ok) return;
-    shop = { ...shop, coins: r.coins, owned: r.owned || [], equipped: r.equipped || {}, card: r.card || '', holder: r.holder || '', trophies: r.trophies || [] }; if (!modalOpen()) window.AppBg.setOwn(shop.equipped.bg);
+    shop = { ...shop, coins: r.coins, owned: r.owned || [], equipped: r.equipped || {}, card: r.card || '', holder: r.holder || '', trophies: r.trophies || [] }; if (!modalOpen()) window.AppBg.setOwn(shop.equipped.pbg);
     if (tab === 'shop' && !modalOpen()) render();
   }
   function compress(file) {              // chek rasmini kichraytirib JPEG qiladi (serverga base64 ketadi)
