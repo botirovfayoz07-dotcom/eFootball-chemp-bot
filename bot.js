@@ -38,6 +38,12 @@ bot.start(async (ctx) => {
     { firstName: first_name, username },
     { upsert: true, new: true }
   );
+  // Turnirga taklif havolasi: t.me/<bot>?start=t_KOD → to'g'ridan-to'g'ri turnirga qo'shilish oynasini ochadi
+  const m = /^t_([A-Za-z0-9]{4,12})$/.exec(ctx.startPayload || '');
+  if (m) {
+    const u = await User.findOne({ telegramId: id }).lean(), lang = u?.lang || 'uz';
+    return ctx.reply('🏆', Markup.inlineKeyboard([[Markup.button.webApp(t[lang].open, `${MINI_APP_URL}?lang=${lang}&open=join/${m[1].toUpperCase()}`)]]));
+  }
   await ctx.reply('Tilni tanlang / Choose a language / Выберите язык:', langKeyboard);
 });
 
@@ -464,6 +470,11 @@ app.post('/api/admin/league/:id/add', adminOnly, ah(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// Norasmiy turnirlar (unofficial.js)
+let botUser = null;
+const botName = async () => { if (!botUser) { try { botUser = (await bot.telegram.getMe()).username; } catch (_) {} } return botUser; };
+const ut = require('./unofficial')(app, { tgUser, ah, bot, User, ADMINS, Markup, t, MINI_APP_URL, adminOnly, botName });
+
 app.listen(process.env.PORT || 3000, () => console.log('Mini app serveri ishga tushdi'));
 
 (async () => {
@@ -478,6 +489,7 @@ app.listen(process.env.PORT || 3000, () => console.log('Mini app serveri ishga t
         if (r.ok) notifyAdmins(`🎲 ${name}: qura avtomatik o'tkazildi (${r.matches} ta o'yin).`);
         else { await LeagueConfig.updateOne({ _id: c._id }, { $set: { drawAt: null } }); notifyAdmins(`⚠️ ${name}: qura o'tkazilmadi (${r.error === 'few' ? 'kamida 2 ishtirokchi kerak' : r.error}). Vaqtni qayta belgilang.`); }
       }
+      await ut.runDue(); // norasmiy turnirlar quralari
     } catch (e) { console.error('Qura rejalashtiruvchisi:', e); }
   }, 60 * 1000);
   await bot.launch();

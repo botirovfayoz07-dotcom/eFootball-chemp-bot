@@ -42,8 +42,17 @@ Liga va klub ro'yxati: `webapp/league-data.js` (brauzer ham, server ham shu fayl
 
 Eslatma: MongoDB'da eski `league+season+telegramId` indeksi qolgan bo'lsa, yangi `season+telegramId` indeksi bilan birga ishlayveradi (xalaqit bermaydi).
 
-## Norasmiy turnirlar
-Bosh sahifadagi "Yopiq turnirlar" kartasi nomi "Norasmiy turnirlar" ga almashtirildi (uz/en/ru, `webapp/i18n.js`). Faqat nomi o'zgargan.
+## Norasmiy turnirlar (videodagi bo'lim)
+Bosh sahifadagi "Yopiq turnirlar" kartasi "Norasmiy turnirlar" deb nomlandi va videodagidek to'liq bo'lim qilindi (to'lovsiz). Kod: `unofficial.js` (server), `webapp/unofficial.js` (ilova), modellar `Tournament`, `TMatch`.
+- **Tuzish:** nom, o'yinchilar soni (4–64), liga turlari soni, play-off (yo'q / top 4 / 8 / 16), tur davomiyligi (1–7 kun). Bir foydalanuvchi ko'pi bilan 3 ta faol turnir tuza oladi (adminlarga cheklov yo'q).
+- **Qo'shilish:** taklif havolasi `t.me/<bot>?start=t_KOD` (ilovada "Ulashish" tugmasi) yoki kodni kiritish. Jamoa nomi ixtiyoriy.
+- **Qura:** tashkilotchi vaqt belgilaydi (bot o'zi qura qiladi) yoki "Hozir qura qilish". Har bir o'yinchi turlar soni qadar turli raqib bilan o'ynaydi. Tur muddati — har tur oxirgi kuni 23:59 (Toshkent).
+- **Tablar:** Asosiy (sizning o'yiningiz, taklif, raqib/tashkilotchiga yozish, qoidalar), Reyting (Jadval · Setka · Joriy tur · To'p urarlar), Profil (barcha o'yinlarim), Sovrinlar (Oltin butsa, Oltin to'p, kubok), Boshqaruv (faqat tashkilotchi va adminlar).
+- **Play-off:** liga tugagach tashkilotchi "Play-offni boshlash" ni bosadi (top N urug'lanib setka tuziladi, har tur tugaganda keyingisi avtomatik yaratiladi, final g'olibi chempion). Play-offda durang yo'q.
+- **Katta hisob:** biror tomon 6+ gol urgan bo'lsa, raqib tasdiqlagandan keyin ham hisob tashkilotchi/admin tasdig'ini kutadi (videodagi "Big score").
+- **Xona ID:** o'yin kartasidagi 💬 tugmasi — raqibga bot orqali xona ID yuborish yoki unga Telegramda yozish.
+- **Admin panel → Turnirlar:** admin barcha turnirlarni ko'radi va istalganini tashkilotchi sifatida boshqara oladi.
+- Videodagi ilovaga ichki chat qo'shilmadi: "Chat" o'rniga Telegramdagi shaxsiy yozishma ochiladi.
 
 ## O'yin hisobi (tasdiqlash mantig'i)
 Profil → *Mening o'yinlarim*. Qura o'tkazilgach har bir o'yinchida o'z o'yinlari chiqadi:

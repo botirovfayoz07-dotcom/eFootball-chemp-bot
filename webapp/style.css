@@ -336,7 +336,7 @@ body {
 /* ——— Admin panel ——— */
 .admin-btn { border-color: rgba(251,191,36,.45); }
 .ad-page { gap: 14px; }
-.ad-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px; border-radius: 18px; background: #12152a; border: 1px solid rgba(255,255,255,.08); }
+.ad-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 6px; border-radius: 18px; background: #12152a; border: 1px solid rgba(255,255,255,.08); }
 .ad-tabs button { padding: 12px 0; border: 0; border-radius: 12px; background: transparent; color: var(--muted); font: 600 16px 'Rajdhani', sans-serif; cursor: pointer; }
 .ad-tabs button.on { color: #fff; background: linear-gradient(90deg, #7c5cff, #38b6ff); }
 .ad-tabs i { font-style: normal; background: #ef4444; color: #fff; border-radius: 999px; padding: 1px 7px; font-size: 13px; margin-left: 4px; }
@@ -358,3 +358,32 @@ body {
 .ad-btn.ok { background: linear-gradient(90deg, #059669, #10b981); } .ad-btn.bad { background: linear-gradient(90deg, #b91c1c, #ef4444); padding: 10px 12px; }
 .ad-btn.ghost { background: transparent; border: 1px solid rgba(255,255,255,.15); color: var(--muted); }
 .ad-pl { display: flex; justify-content: space-between; align-items: center; gap: 10px; } .ad-pl b { display: block; } .ad-pl small { color: var(--muted); font-size: 13px; }
+
+/* ——— Norasmiy turnirlar ——— */
+.ut-hero { padding: 22px 18px; border-radius: 22px; border: 1px solid rgba(16,185,129,.45); background: radial-gradient(120% 120% at 0% 0%, rgba(16,185,129,.22), transparent 60%), #0c1a18; box-shadow: 0 0 26px rgba(16,185,129,.15); }
+.ut-hero h2 { font: 700 28px 'Rajdhani', sans-serif; } .ut-hero p { color: #9fb3ad; margin: 8px 0 4px; line-height: 1.45; }
+.ut-hero .l-reg { background: linear-gradient(90deg, #059669, #10b981); }
+.ut-row { display: flex; gap: 8px; } .ut-row input, .ut-form input, .ut-form select, .ad-add input { flex: 1; width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.15); background: #0e1226; color: #fff; font: 500 15px 'Inter', sans-serif; text-transform: none; }
+.ut-form { display: flex; flex-direction: column; gap: 12px; } .ut-form label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 13px; }
+.ut-card { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer; color: var(--text); font-family: inherit; }
+.ut-card b { display: block; font-size: 17px; } .ut-card small { color: var(--muted); font-size: 13px; }
+.ut-st { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.08); color: var(--muted); white-space: nowrap; }
+.ut-st.open { background: rgba(34,211,238,.15); color: var(--cyan); } .ut-st.league { background: rgba(52,211,153,.15); color: #34d399; } .ut-st.playoff { background: rgba(251,191,36,.18); color: #fbbf24; } .ut-st.finished { background: rgba(167,139,250,.18); color: #a78bfa; }
+.ut-top { padding: 18px; border-radius: 22px; border: 1px solid rgba(34,211,238,.3); background: linear-gradient(135deg, #0d1b3a, #130f33); display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.ut-top h2 { font: 700 30px 'Rajdhani', sans-serif; } .ut-top .l-stats { width: 100%; } .ut-dl { width: 100%; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.05); color: #cbd5e1; font-size: 14px; }
+.ut-link { background: none; border: 0; color: var(--cyan); font: 600 16px 'Rajdhani', sans-serif; text-align: left; cursor: pointer; padding: 4px 0; }
+.ut-seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 5px; border-radius: 18px; background: #12152a; border: 1px solid rgba(255,255,255,.08); }
+.ut-seg button { padding: 11px 2px; border: 0; border-radius: 13px; background: transparent; color: var(--muted); font: 600 14px 'Rajdhani', sans-serif; cursor: pointer; }
+.ut-seg button.on { color: #fff; background: linear-gradient(90deg, #059669, #10b981); }
+.ut-m { display: flex; flex-direction: column; gap: 8px; } .ut-m.done { opacity: .92; } .ut-m.disputed { border-color: rgba(251,146,60,.5); } .ut-m.review { border-color: rgba(251,191,36,.5); }
+.ut-tag { color: var(--muted); font: 600 12px 'Rajdhani', sans-serif; letter-spacing: 2px; text-transform: uppercase; }
+.ut-line { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; }
+.ut-side { display: flex; flex-direction: column; min-width: 0; font-weight: 600; font-size: 15px; word-break: break-word; } .ut-side.r { text-align: right; } .ut-side small { color: var(--muted); font-weight: 400; font-size: 12px; }
+.ut-score { font: 700 24px 'Rajdhani', sans-serif; color: var(--cyan); white-space: nowrap; } .ut-score.wait { color: #fbbf24; }
+.ut-pls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .ut-pl { padding: 10px 12px; border-radius: 14px; background: #14172b; border: 1px solid rgba(255,255,255,.08); display: flex; flex-direction: column; min-width: 0; } .ut-pl small { color: var(--muted); font-size: 12px; }
+.ut-inv p { margin-bottom: 10px; } .ut-inv b { color: var(--cyan); letter-spacing: 2px; font-size: 20px; }
+.ut-br { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; } .ut-col { min-width: 190px; display: flex; flex-direction: column; justify-content: space-around; gap: 10px; } .ut-col h4 { font: 700 15px 'Rajdhani', sans-serif; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+.ut-bm { padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; } .ut-bm div { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 14px; } .ut-bm div.w { color: #fff; font-weight: 700; } .ut-bm b { color: var(--cyan); }
+.ut-prize { display: flex; gap: 14px; align-items: center; } .ut-prize.gold { border-color: rgba(251,191,36,.4); background: linear-gradient(135deg, rgba(251,191,36,.1), #14172b); } .ut-prize.cup { border-color: rgba(34,211,238,.4); }
+.ut-ico { font-size: 40px; } .ut-prize b { display: block; font: 700 20px 'Rajdhani', sans-serif; } .ut-prize small { color: var(--muted); display: block; } .ut-prize p { margin-top: 6px; color: var(--cyan); font-weight: 600; } .ut-prize em { color: var(--muted); font-style: normal; font-weight: 400; }
+.r-table tr.gold .pos { background: rgba(251,191,36,.25); } 

@@ -7,7 +7,7 @@ window.AdminView = (() => {
   const ERR = { drawn: "Qura allaqachon o'tkazilgan", few: 'Kamida 2 ishtirokchi kerak', played: "Hisoblar kiritilgan — qayta qura qilib bo'lmaydi", nouser: "Foydalanuvchi topilmadi (botga /start bosgan bo'lishi kerak)", already: "U shu mavsumda allaqachon ro'yxatda", taken: 'Bu klub band', full: "Liga to'lgan", badScore: "Hisobni to'g'ri kiriting (0–99)", gone: "Topilmadi yoki holati o'zgargan", forbidden: "Ruxsat yo'q", fail: "Xatolik, qayta urinib ko'ring" };
   const ST = { scheduled: 'Kutilmoqda', pending: 'Raqib tasdig\'i kutilmoqda', disputed: '⚠️ Bahsli (yolg\'on)', confirmed: 'Tasdiqlangan' };
 
-  let el, toast, tab = 'results', ov = null, mt = { league: '', status: 'action', list: [], total: 0 }, pl = { league: '', data: null };
+  let el, toast, tab = 'results', tours = null, ov = null, mt = { league: '', status: 'action', list: [], total: 0 }, pl = { league: '', data: null };
 
   const fmtLocal = (d) => { const x = new Date(d), p = (n) => String(n).padStart(2, '0'); return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}T${p(x.getHours())}:${p(x.getMinutes())}`; };
   const fmtShow = (d) => new Date(d).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -15,7 +15,7 @@ window.AdminView = (() => {
 
   function tabsHtml() {
     const n = ov?.action || 0;
-    return `<div class="ad-tabs">${[['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['players', 'Ishtirokchilar']].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
+    return `<div class="ad-tabs">${[['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar']].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
   }
 
   // ——— Natijalar ———
@@ -66,9 +66,17 @@ window.AdminView = (() => {
   }
   async function loadOverview() { const r = await api('/api/admin/overview'); if (r.ok) { ov = r; if (!pl.league) pl.league = r.leagues[0].id; render(); } else if (r.error === 'forbidden') el.innerHTML = '<div class="page"><p>Ruxsat yo\'q</p></div>'; }
 
+  // ——— Norasmiy turnirlar ———
+  function toursHtml() {
+    const SB = { open: 'Qabul ochiq', league: 'Davom etmoqda', playoff: 'Play-off', finished: 'Yakunlangan' };
+    if (!tours) return '<p class="ad-hint">Yuklanmoqda…</p>';
+    return tours.map((x) => `<button class="g-card ut-card" data-act="tour-open" data-tid="${x.id}"><span><b>${esc(x.name)}</b><small>${esc(x.owner)} · ${x.players}/${x.max} · ${SB[x.status]}${x.action ? ` · <i style="color:#fb923c;font-style:normal">⚠️ ${x.action}</i>` : ''}</small></span><span class="chev">›</span></button>`).join('') || '<div class="pf-empty"><span>🏆</span><p>Turnir yo\'q</p></div>';
+  }
+  async function loadTours() { const r = await api('/api/admin/tournaments'); if (r.ok) { tours = r.list; if (tab === 'tour') render(); } }
+
   function render() {
     if (!ov) { el.innerHTML = '<div class="page"><p class="ad-hint">Yuklanmoqda…</p></div>'; return; }
-    const body = tab === 'results' ? resultsHtml() : tab === 'draw' ? drawHtml() : playersHtml();
+    const body = tab === 'results' ? resultsHtml() : tab === 'draw' ? drawHtml() : tab === 'tour' ? toursHtml() : playersHtml();
     el.innerHTML = `<div class="page ad-page"><button class="back" data-back><span>‹</span> Bo'limlar</button><h1 class="section-title">🛠 Admin panel</h1>${tabsHtml()}${body}</div>`;
   }
 
@@ -81,9 +89,10 @@ window.AdminView = (() => {
 
   async function onClick(e) {
     const t = e.target.closest('[data-tab]'), a = e.target.closest('[data-act]');
-    if (t) { tab = t.dataset.tab; render(); if (tab === 'results') loadMatches(); if (tab === 'players') loadPlayers(); loadOverview(); return; }
+    if (t) { tab = t.dataset.tab; render(); if (tab === 'results') loadMatches(); if (tab === 'players') loadPlayers(); if (tab === 'tour') loadTours(); loadOverview(); return; }
     if (!a) return;
     const act = a.dataset.act, lg = a.dataset.lg;
+    if (act === 'tour-open') { location.hash = '#unofficial/' + a.dataset.tid; return; }
     if (act === 'result') {
       const box = a.closest('[data-mid]'), hg = parseInt(box.querySelector('[data-hg]').value, 10), ag = parseInt(box.querySelector('[data-ag]').value, 10);
       if (!(hg >= 0 && hg <= 99 && ag >= 0 && ag <= 99)) return toast(ERR.badScore);

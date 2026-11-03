@@ -52,4 +52,20 @@ function computeStats(matches) {
   return st;
 }
 
-module.exports = { shuffle, roundRobin, fixturesForNewcomer, computeStats };
+// Play-off setkasi uchun urug'lar tartibi: p=8 → [1,8,4,5,2,7,3,6] (ketma-ket juftlar o'ynaydi)
+function seedOrder(p) {
+  let o = [1];
+  while (o.length < p) { const m = o.length * 2 + 1; o = o.flatMap((x) => [x, m - x]); }
+  return o;
+}
+// Tur muddati: boshlanish kunidan `round * days` kun keyin, Toshkent vaqti (UTC+5) bilan 23:59
+const TZ = 5 * 3600 * 1000;
+function roundDeadline(startedAt, round, days) {
+  const b = new Date(new Date(startedAt).getTime() + TZ);
+  return new Date(Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate() + round * days, 23, 59) - TZ);
+}
+// Katta hisob: biror tomon 6 va undan ko'p gol urgan bo'lsa, tashkilotchi/admin tasdiqlaydi
+const BIG_SCORE = 6;
+const isBig = (hg, ag) => hg >= BIG_SCORE || ag >= BIG_SCORE;
+
+module.exports = { shuffle, roundRobin, fixturesForNewcomer, computeStats, seedOrder, roundDeadline, isBig, BIG_SCORE };
