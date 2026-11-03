@@ -244,6 +244,26 @@ app.get('/api/profile', ah(async (req, res) => {
   res.json({ clubs, collection, equipped: { frame: me?.equipped?.frame || null, bg: me?.equipped?.bg || null } });
 }));
 
+// Boshqa ishtirokchi profili (faqat ko'rish): reyting jadvalidagi klub bo'yicha egasi topiladi (Telegram ID oshkor qilinmaydi)
+app.get('/api/profile/view', ah(async (req, res) => {
+  if (!tgUser(req)) return res.status(401).json({ error: 'auth' });
+  const league = String(req.query.league || ''), club = String(req.query.club || '');
+  if (!EFL.byId[league]) return res.status(400).json({ error: 'fail' });
+  const reg = await Registration.findOne({ season, league, club }).lean();
+  if (!reg) return res.status(404).json({ error: 'gone' });
+  const [usr, trs, mine] = await Promise.all([User.findOne({ telegramId: reg.telegramId }).lean(), Trophy.find({ telegramId: reg.telegramId, status: { $in: ['owned', 'selling'] } }).sort({ createdAt: -1 }).lean(), Registration.find({ season, telegramId: reg.telegramId }).lean()]);
+  const clubs = [];
+  for (const r of mine) {
+    const regs = (await Registration.find({ season, league: r.league }).lean()).sort(rankSort);
+    clubs.push({ league: r.league, club: r.club, pos: regs.findIndex((x) => x.telegramId === r.telegramId) + 1 });
+  }
+  res.json({
+    name: usr?.firstName || '', username: usr?.username || '', equipped: { frame: usr?.equipped?.frame || null, bg: usr?.equipped?.bg || null },
+    collection: [...trs.map((x) => ({ kind: 'trophy', cup: x.league, season: x.season })), ...(usr?.cosmetics || []).map((id) => ({ kind: 'item', id }))],
+    clubs,
+  });
+}));
+
 app.get('/api/rankings/:league', async (req, res) => {
   if (!tgUser(req)) return res.status(401).json({ error: 'auth' });
   const league = req.params.league;

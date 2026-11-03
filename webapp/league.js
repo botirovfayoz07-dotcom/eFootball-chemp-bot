@@ -48,7 +48,7 @@ window.LeagueView = (() => {
 
   // tab: home (davlat -> ro'yxatdan o'tish; faqat ro'yxatdan o'tmaganlar) | info | me | shop (ro'yxatdan o'tgach)
   let tab = 'home', view = 'geo', country = null, cont = 'europe', loaded = false, meSel = null, openGame = null, pendingTab = null, autoClub = false,
-    prof = { clubs: [], collection: [], equipped: {} }, lots = [], shop = { tab: 'coins', coins: 0, owned: [], equipped: {}, card: '', holder: '', trophies: [] }, prev = null, rcptPack = null, rank = { league: null, chip: null, group: '1', rows: [], single: true },
+    prof = { clubs: [], collection: [], equipped: {} }, lots = [], shop = { tab: 'coins', coins: 0, owned: [], equipped: {}, card: '', holder: '', trophies: [] }, prev = null, rcptPack = null, pview = null, rank = { league: null, chip: null, group: '1', rows: [], single: true },
     data = { mine: null, stats: {} }, // stats: { [ligaId]: { players, taken[] } }
     cur = null, selected = null, el, lang = 'uz', toast, settle;
 
@@ -193,8 +193,15 @@ window.LeagueView = (() => {
     if (tg?.openTelegramLink) tg.openTelegramLink(u); else window.open(u, '_blank');
   }
 
+  // Boshqa ishtirokchi profili: reyting jadvalidagi qatorni bosganda (liga|klub bo'yicha egasi topiladi)
+  async function openPv(key) {
+    const [league, club] = key.split('|');
+    const r = await api('/api/profile/view?' + new URLSearchParams({ league, club }));
+    if (!r.ok) return toast(T[lang].fail);
+    pview = r; window.scrollTo(0, 0); render();
+  }
   function setTab(n) {
-    tab = n; meSel = null; window.scrollTo(0, 0); render();
+    tab = n; meSel = null; pview = null; window.scrollTo(0, 0); render();
     if (n === 'info') loadRank(); else if (n === 'me') loadProfile(); else if (n === 'shop') { loadShop(); loadLots(); }
   }
 
@@ -319,6 +326,7 @@ window.LeagueView = (() => {
   // Telegram/ilova "orqaga": ichki sahifadan bir qadam orqaga. Boshqa joyda false qaytaradi.
   function back() {
     if (tab === 'home' && view === 'country') { view = 'geo'; selected = null; window.scrollTo(0, 0); render(); return true; }
+    if (pview) { pview = null; window.scrollTo(0, 0); render(); return true; }
     if (tab === 'me' && meSel) { meSel = null; window.scrollTo(0, 0); render(); return true; }
     return false;
   }
@@ -326,7 +334,8 @@ window.LeagueView = (() => {
   function render() {
     if (!loaded) { el.innerHTML = '<div class="page l-page"><div class="pf-empty"><span>⏳</span></div></div>'; return; }
     if (data.mine && tab === 'home') tab = 'info';       // ro'yxatdan o'tgan -> Ma'lumotlar
-    if (!data.mine && tab !== 'home') { tab = 'home'; meSel = null; }
+    if (!data.mine && tab !== 'home') { tab = 'home'; meSel = null; pview = null; }
+    if (pview) { el.innerHTML = `<div class="page l-page">${window.ProfileView.publicHtml(lang, pview)}</div>${nav(T[lang], 0)}`; return; }
     if (tab === 'info') { el.innerHTML = infoHtml(); return; }
     if (tab === 'me') return renderMe();
     if (tab === 'shop') return renderShop();
@@ -381,10 +390,12 @@ window.LeagueView = (() => {
       el.addEventListener('input', (e) => { if (e.target.id === 'sellCard') e.target.value = e.target.value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim(); });
       el.addEventListener('click', (e) => {
         if (e.target.id === 'shopModal') return closeShop();
-        const q = (s) => e.target.closest(s), ct = q('[data-cont]'), cn = q('[data-country]'), lg = q('[data-lg]'), c = q('[data-club]'), mc = q('[data-mc]'), btn = q('[data-act]'), a = btn?.dataset.act;
+        const q = (s) => e.target.closest(s), ct = q('[data-cont]'), cn = q('[data-country]'), lg = q('[data-lg]'), c = q('[data-club]'), mc = q('[data-mc]'), pv = q('[data-pv]'), btn = q('[data-act]'), a = btn?.dataset.act;
         if (ct) { const k = EFL.CONTINENTS.find((x) => x.id === ct.dataset.cont); if (k?.open) { cont = k.id; render(); } else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
         else if (cn) { const k = EFL.countryById[cn.dataset.country]; if (k?.open) enterCountry(k.id); else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
         else if (mc) { meSel = mc.dataset.mc; openGame = null; window.scrollTo(0, 0); render(); }
+        else if (pv) openPv(pv.dataset.pv);
+        else if (a === 'pvback') { pview = null; render(); }
         else if (lg && lg.dataset.lg !== cur) centerOn(lg.dataset.lg, true);
         else if (c && !c.disabled) { selected = c.dataset.club; tg?.HapticFeedback?.selectionChanged(); updHero(); updBelow(); }
         else if (a === 'g-open') { const id = btn.dataset.gid; openGame = openGame === id ? null : id; render(); }

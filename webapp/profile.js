@@ -61,12 +61,34 @@ window.ProfileView = (() => {
       return `<button class="mc" data-mc="${esc(key(c))}">${EFL.crest(c.league, c.club, name)}<b>${esc(name)}</b><small>${esc(EFL.byId[c.league]?.name || '')}</small>${c.auction ? '<em>🔨</em>' : ''}</button>`;
     }).join('');
     return `<button class="back" data-act="back"><span>‹</span> ${t.back}</button>
-      <div class="pf-card${eq.bg ? ' bg-' + eq.bg : ''}"><div class="pf-ava${eq.frame ? ' fr-' + eq.frame : ''}">${avatar}</div>
+      <div class="pf-card ${window.ShopView.bgClass(eq.bg)}"><div class="pf-ava${eq.frame ? ' fr-' + eq.frame : ''}">${avatar}</div>
         <div class="pf-info"><h2>${esc(u.first_name || '')}</h2>${u.username ? `<a>@${esc(u.username)}</a>` : ''}</div></div>
       <div class="g-label"><span>${t.collection}</span></div>
       ${coll ? `<div class="coll">${coll}</div>` : `<div class="pf-empty"><span>🏆</span><p>${t.collEmpty}</p></div>`}
       <div class="g-label"><span>${t.clubs}</span></div>
       ${tiles ? `<div class="myclubs">${tiles}</div>` : `<div class="pf-empty"><span>⚽</span><p>${t.noClubs}</p></div>`}`;
   }
-  return { html, T };
+
+  // Boshqa ishtirokchi profili (faqat ko'rish): kolleksiya va klublar
+  // d: { name, username, equipped, collection, clubs }
+  function publicHtml(lang, d) {
+    const t = T[lang], EFL = window.EFL, eq = d.equipped || {};
+    const coll = (d.collection || []).map((c) => {
+      if (c.kind === 'trophy') return `<div class="coll-item trophy"><span class="coll-img">${window.ShopView.cupImg(c.cup)}</span><b>${esc(EFL.byId[c.cup]?.name || c.cup)}</b><small>${t.season} ${esc(c.season)}</small></div>`;
+      const it = window.SHOP.findItem(c.id);
+      return it ? `<div class="coll-item"><span>${it.kind === 'frame' ? '⭕' : '🌌'}</span><b>${esc(it.name[lang] || it.name.uz)}</b></div>` : '';
+    }).join('');
+    const tiles = (d.clubs || []).map((c) => {
+      const name = EFL.clubName(c.league, c.club);
+      return `<div class="mc">${EFL.crest(c.league, c.club, name)}<b>${esc(name)}</b><small>${esc(EFL.byId[c.league]?.name || '')}${c.pos ? ' · #' + c.pos : ''}</small></div>`;
+    }).join('');
+    return `<button class="back" data-act="pvback"><span>‹</span> ${t.back}</button>
+      <div class="pf-card ${window.ShopView.bgClass(eq.bg)}"><div class="pf-ava${eq.frame ? ' fr-' + eq.frame : ''}"><b>${esc((d.name || d.username || '?')[0])}</b></div>
+        <div class="pf-info"><h2>${esc(d.name || '')}</h2>${d.username ? `<a>@${esc(d.username)}</a>` : ''}</div></div>
+      <div class="g-label"><span>${t.collection}</span></div>
+      ${coll ? `<div class="coll">${coll}</div>` : `<div class="pf-empty"><span>🏆</span><p>${t.collEmpty}</p></div>`}
+      <div class="g-label"><span>${t.clubs}</span></div>
+      ${tiles ? `<div class="myclubs">${tiles}</div>` : `<div class="pf-empty"><span>⚽</span><p>${t.noClubs}</p></div>`}`;
+  }
+  return { html, publicHtml, T };
 })();

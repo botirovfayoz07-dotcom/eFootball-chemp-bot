@@ -475,3 +475,15 @@ body {
 .bg-sunset { background: linear-gradient(135deg, #4c1d95, #be185d 50%, #f97316); }
 .bg-ocean { background: linear-gradient(135deg, #031b34, #075985 55%, #22d3ee); }
 .bg-carbon { background: repeating-linear-gradient(45deg, #151515 0 4px, #1f1f1f 4px 8px); }
+
+/* Futbolchi fonlari: rasm webapp/cards/players/<id>.jpg yoki .png (bo'lmasa gradient ko'rinadi) */
+.bg-neymar { background: linear-gradient(0deg, rgba(7,10,20,.85), transparent 60%), url('cards/players/neymar.jpg') center 12% / cover, url('cards/players/neymar.png') center 12% / cover, linear-gradient(135deg, #facc15, #0b6b3a 60%, #1e3a8a); }
+.bg-ronaldo { background: linear-gradient(0deg, rgba(7,10,20,.85), transparent 60%), url('cards/players/ronaldo.jpg') center 12% / cover, url('cards/players/ronaldo.png') center 12% / cover, linear-gradient(135deg, #b91c1c, #166534); }
+.bg-messi { background: linear-gradient(0deg, rgba(7,10,20,.85), transparent 60%), url('cards/players/messi.jpg') center 12% / cover, url('cards/players/messi.png') center 12% / cover, linear-gradient(135deg, #38bdf8, #e5e7eb 55%, #0ea5e9); }
+.bg-shevchenko { background: linear-gradient(0deg, rgba(7,10,20,.85), transparent 60%), url('cards/players/shevchenko.jpg') center 12% / cover, url('cards/players/shevchenko.png') center 12% / cover, linear-gradient(135deg, #1d4ed8, #facc15); }
+.bg-gullit { background: linear-gradient(0deg, rgba(7,10,20,.85), transparent 60%), url('cards/players/gullit.jpg') center 12% / cover, url('cards/players/gullit.png') center 12% / cover, linear-gradient(135deg, #b91c1c, #111827); }
+.bg-ramos { background: linear-gradient(0deg, rgba(7,10,20,.85), transparent 60%), url('cards/players/ramos.jpg') center 12% / cover, url('cards/players/ramos.png') center 12% / cover, linear-gradient(135deg, #f8fafc, #6d28d9); }
+.pf-card.photo { min-height: 240px; align-items: flex-end; border-color: rgba(255,255,255,.25); }
+.pf-card.photo .pf-info h2, .pf-card.photo .pf-info p, .pf-card.photo .pf-info a { text-shadow: 0 2px 8px rgba(0,0,0,.9); }
+.cos-bg.tall { height: 96px; }
+.pvrow { cursor: pointer; } .pvrow:active { background: rgba(255,255,255,.05); }

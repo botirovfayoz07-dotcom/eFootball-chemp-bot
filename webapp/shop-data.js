@@ -20,6 +20,13 @@
     { id: 'sunset', name: { uz: 'Quyosh botishi', en: 'Sunset', ru: 'Закат' }, price: 300 },
     { id: 'ocean', name: { uz: 'Okean', en: 'Ocean', ru: 'Океан' }, price: 300 },
     { id: 'carbon', name: { uz: 'Karbon', en: 'Carbon', ru: 'Карбон' }, price: 250 },
+    // Futbolchi fonlari: rasm webapp/cards/players/<id>.jpg (yoki .png) — rasm bo'lmasa gradient ko'rinadi
+    { id: 'neymar', player: true, name: { uz: 'Neymar Jr', en: 'Neymar Jr', ru: 'Неймар' }, price: 800 },
+    { id: 'ronaldo', player: true, name: { uz: 'Ronaldo', en: 'Ronaldo', ru: 'Роналду' }, price: 800 },
+    { id: 'messi', player: true, name: { uz: 'Messi', en: 'Messi', ru: 'Месси' }, price: 800 },
+    { id: 'shevchenko', player: true, name: { uz: 'Shevchenko', en: 'Shevchenko', ru: 'Шевченко' }, price: 800 },
+    { id: 'gullit', player: true, name: { uz: 'Gullit', en: 'Gullit', ru: 'Гуллит' }, price: 800 },
+    { id: 'ramos', player: true, name: { uz: 'Ramos', en: 'Ramos', ru: 'Рамос' }, price: 800 },
   ];
   const itemOf = (kind, id) => (kind === 'frame' ? FRAMES : kind === 'bg' ? BACKGROUNDS : []).find((x) => x.id === id) || null;
   const findItem = (id) => { const f = itemOf('frame', id); if (f) return { kind: 'frame', ...f }; const b = itemOf('bg', id); return b ? { kind: 'bg', ...b } : null; };

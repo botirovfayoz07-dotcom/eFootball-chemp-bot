@@ -4,7 +4,7 @@ window.ShopView = (() => {
     uz: { title: "Do'kon", balance: 'Balansingiz', tabs: { coins: 'Coins', cosmetics: 'Kosmetika', auction: 'Auksion', sell: 'Sell' }, packs: 'Paketlar',
       transfer: (a) => `Kartaga <b>${a}</b> UZS o'tkazing`, holder: 'Karta egasi', copy: 'Nusxa', step2: "To'lov chekining rasmini yuboring", send: 'Chek rasmini yuborish',
       note: "Admin chekni tekshiradi, odatda bir necha soat ichida. Bot sizga xabar beradi.", cant: 'Chek yubora olmayman', close: 'Yopish', noCard: "Karta raqami hali kiritilmagan — admin bilan bog'laning",
-      cosIntro: "Kosmetika faqat ko'rinish uchun: avatar ramkasi va profil foni. Sotib olishdan oldin «Ko'rish» ni bosing.", frames: 'Ramkalar', bgs: 'Fonlar', preview: "Ko'rish", buy: 'Sotib olish', equip: 'Yoqish', equipped: 'Yoqilgan', unequip: "O'chirish",
+      cosIntro: "Kosmetika faqat ko'rinish uchun: avatar ramkasi va profil foni. Sotib olishdan oldin «Ko'rish» ni bosing.", frames: 'Ramkalar', bgs: 'Fonlar', players: 'Futbolchi fonlari', preview: "Ko'rish", buy: 'Sotib olish', equip: 'Yoqish', equipped: 'Yoqilgan', unequip: "O'chirish",
       prevTitle: "Profilingizda shunday ko'rinadi", prevHint: "Boshqalarini ko'rish uchun ‹ › ni bosing. Sotib olmaguncha hech narsa o'zgarmaydi.", notReg: "Ro'yxatdan o'tmagan",
       auction: 'Auksion', empty: "Hozircha auksionda klub yo'q", aBuy: 'Sotib olish', cancel: 'Auksiondan olish', games: "o'yin",
       sellIntro: "Yutgan kubogingizni adminga soting: «Sotish» ni bosing va karta raqamingizni yuboring. Pul 24 soat ichida kartangizga o'tkaziladi, shundan so'ng kubok ro'yxatingizdan chiqariladi.",
@@ -13,7 +13,7 @@ window.ShopView = (() => {
     en: { title: 'Shop', balance: 'Your balance', tabs: { coins: 'Coins', cosmetics: 'Cosmetics', auction: 'Auction', sell: 'Sell' }, packs: 'Packages',
       transfer: (a) => `Transfer <b>${a}</b> UZS to the card`, holder: 'Card holder', copy: 'Copy', step2: 'Send a photo of the payment receipt', send: 'Send receipt photo',
       note: 'The admin checks the receipt, usually within a few hours. The bot will notify you.', cant: "I can't send the receipt", close: 'Close', noCard: 'The card number is not set yet — contact the admin',
-      cosIntro: 'Cosmetics are for looks only: an avatar frame and a profile background. Tap “Preview” before you buy.', frames: 'Frames', bgs: 'Backgrounds', preview: 'Preview', buy: 'Buy', equip: 'Equip', equipped: 'Equipped', unequip: 'Remove',
+      cosIntro: 'Cosmetics are for looks only: an avatar frame and a profile background. Tap “Preview” before you buy.', frames: 'Frames', bgs: 'Backgrounds', players: 'Footballer backgrounds', preview: 'Preview', buy: 'Buy', equip: 'Equip', equipped: 'Equipped', unequip: 'Remove',
       prevTitle: 'How it looks on your profile', prevHint: 'Use ‹ › to try others. Nothing changes until you buy.', notReg: 'Not registered',
       auction: 'Auction', empty: 'No clubs on auction yet', aBuy: 'Buy', cancel: 'Take off auction', games: 'games',
       sellIntro: 'Sell the trophy you won to the admin: tap “Sell” and send your card number. The money is sent to your card within 24 hours, then the trophy is removed from your list.',
@@ -22,7 +22,7 @@ window.ShopView = (() => {
     ru: { title: 'Магазин', balance: 'Ваш баланс', tabs: { coins: 'Coins', cosmetics: 'Косметика', auction: 'Аукцион', sell: 'Sell' }, packs: 'Пакеты',
       transfer: (a) => `Переведите <b>${a}</b> UZS на карту`, holder: 'Владелец карты', copy: 'Копия', step2: 'Отправьте фото чека об оплате', send: 'Отправить фото чека',
       note: 'Админ проверит чек, обычно в течение нескольких часов. Бот сообщит вам.', cant: 'Не могу отправить чек', close: 'Закрыть', noCard: 'Номер карты ещё не указан — свяжитесь с админом',
-      cosIntro: 'Косметика только для вида: рамка аватара и фон профиля. Перед покупкой нажмите «Просмотр».', frames: 'Рамки', bgs: 'Фоны', preview: 'Просмотр', buy: 'Купить', equip: 'Надеть', equipped: 'Надето', unequip: 'Снять',
+      cosIntro: 'Косметика только для вида: рамка аватара и фон профиля. Перед покупкой нажмите «Просмотр».', frames: 'Рамки', bgs: 'Фоны', players: 'Фоны с футболистами', preview: 'Просмотр', buy: 'Купить', equip: 'Надеть', equipped: 'Надето', unequip: 'Снять',
       prevTitle: 'Так это выглядит в вашем профиле', prevHint: 'Листайте ‹ ›, чтобы посмотреть другие. Пока не купите — ничего не меняется.', notReg: 'Не зарегистрирован',
       auction: 'Аукцион', empty: 'Пока нет клубов на аукционе', aBuy: 'Купить', cancel: 'Снять с аукциона', games: 'игр',
       sellIntro: 'Продайте выигранный кубок админу: нажмите «Продать» и отправьте номер карты. Деньги придут на карту в течение 24 часов, после чего кубок исчезнет из вашего списка.',
@@ -39,6 +39,7 @@ window.ShopView = (() => {
   const FB = `var f=(this.dataset.f||'').split('|').filter(Boolean);if(f.length){this.dataset.f=f.slice(1).join('|');this.src=f[0];}else{this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🏆'}))}`;
   const cupImg = (id, cls = '') => { const s = window.EFL.cupSrcs(id); return `<img class="${cls}" src="${esc(s[0])}" data-f="${esc(s.slice(1).join('|'))}" alt="" loading="lazy" onerror="${FB}">`; };
 
+  const bgClass = (id) => (id ? 'bg-' + id + (window.SHOP.itemOf('bg', id)?.player ? ' photo' : '') : '');   // futbolchi fonida karta balandroq
   const avatar = () => { const u = window.Telegram?.WebApp?.initDataUnsafe?.user || {}; return u.photo_url ? `<img src="${esc(u.photo_url)}" alt="">` : `<b>${esc((u.first_name || '?')[0])}</b>`; };
 
   // ——— Coins paketlari ———
@@ -50,7 +51,7 @@ window.ShopView = (() => {
   // ——— Kosmetika ———
   const cosCard = (kind, it, st, lang, t) => {
     const own = (st.owned || []).includes(it.id), on = st.equipped?.[kind] === it.id;
-    const vis = kind === 'frame' ? `<span class="cos-av"><span class="pf-ava fr-${it.id}">${avatar()}</span></span>` : `<span class="cos-bg bg-${it.id}"></span>`;
+    const vis = kind === 'frame' ? `<span class="cos-av"><span class="pf-ava fr-${it.id}">${avatar()}</span></span>` : `<span class="cos-bg bg-${it.id}${it.player ? ' tall' : ''}"></span>`;
     const btn = own
       ? `<button class="cos-btn ${on ? 'on' : 'eq'}" data-act="equip" data-kind="${kind}" data-id="${on ? '' : it.id}">${on ? '✓ ' + t.equipped : t.equip}</button>`
       : `<button class="cos-btn buy" data-act="preview" data-kind="${kind}" data-id="${it.id}">${coin('sm')} ${fmt(it.price)}</button>`;
@@ -60,7 +61,8 @@ window.ShopView = (() => {
     const S = window.SHOP;
     return `<p class="shop-note">${t.cosIntro}</p>
       <div class="g-label"><span>${t.frames}</span></div><div class="cos-grid">${S.FRAMES.map((x) => cosCard('frame', x, st, lang, t)).join('')}</div>
-      <div class="g-label"><span>${t.bgs}</span></div><div class="cos-grid two">${S.BACKGROUNDS.map((x) => cosCard('bg', x, st, lang, t)).join('')}</div>`;
+      <div class="g-label"><span>${t.bgs}</span></div><div class="cos-grid two">${S.BACKGROUNDS.filter((x) => !x.player).map((x) => cosCard('bg', x, st, lang, t)).join('')}</div>
+      <div class="g-label"><span>${t.players}</span></div><div class="cos-grid two">${S.BACKGROUNDS.filter((x) => x.player).map((x) => cosCard('bg', x, st, lang, t)).join('')}</div>`;
   }
 
   // ——— Auksion (foydalanuvchilar qo'ygan klublar) ———
@@ -118,7 +120,7 @@ window.ShopView = (() => {
     const frame = prev.kind === 'frame' ? it.id : st.equipped?.frame, bg = prev.kind === 'bg' ? it.id : st.equipped?.bg;
     const own = (st.owned || []).includes(it.id);
     return modal(`<h3 class="pv-title">${t.prevTitle}</h3>
-      <div class="pf-card pv-card ${bg ? 'bg-' + bg : ''}"><div class="pf-ava ${frame ? 'fr-' + frame : ''}">${avatar()}</div><div class="pf-info"><h2>${esc(u.first_name || '')}</h2><p>${t.notReg}</p></div></div>
+      <div class="pf-card pv-card ${bgClass(bg)}"><div class="pf-ava ${frame ? 'fr-' + frame : ''}">${avatar()}</div><div class="pf-info"><h2>${esc(u.first_name || '')}</h2><p>${t.notReg}</p></div></div>
       <div class="pv-nav"><button data-act="pvnav" data-d="-1">‹</button><span><b>${esc(itemName(it, lang))}</b><small>${prev.kind === 'frame' ? t.frames : t.bgs} · ${prev.idx + 1}/${list.length}</small></span><button data-act="pvnav" data-d="1">›</button></div>
       <p class="pv-hint">${t.prevHint}</p>
       ${own ? `<button class="tu-send" disabled>✓ ${t.equipped}</button>` : `<button class="tu-send" data-act="pvbuy" data-id="${it.id}">${t.buy} · ${coin('sm')} ${fmt(it.price)}</button>`}
@@ -132,5 +134,5 @@ window.ShopView = (() => {
       <button class="tu-send" data-act="sellgo" data-tid="${esc(tr.id)}">${t.sellSend}</button>
       <button class="tu-close" data-act="mclose">${t.close}</button>`);
   }
-  return { html, coin, fmt, T, cupImg, topupModal, previewModal, sellModal };
+  return { html, coin, fmt, T, cupImg, bgClass, topupModal, previewModal, sellModal };
 })();

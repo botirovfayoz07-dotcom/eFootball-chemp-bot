@@ -25,7 +25,7 @@ window.RatingView = (() => {
       const who = `<td class="pl">${crest(st.league, r.club)}<b>${esc(clubName(st.league, r.club))}</b>${r.user ? `<small>${esc(r.user)}</small>` : ''}</td>`;
       const line = !isScorers && r.pos === max - 2 ? ' relegation' : '';
       const nums = isScorers ? `<td class="hl">${r.gf}</td>` : `<td class="hl">${r.pts}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf}</td><td>${r.ga}</td><td>${r.gd}</td>`;
-      return `<tr class="${medal(r.pos).trim()}${line}"><td class="ps"><span class="pos ${isScorers ? '' : posCls(r.pos)}">${r.pos}</span></td>${who}${nums}</tr>`;
+      return `<tr class="${medal(r.pos).trim()}${line} pvrow" data-pv="${st.league}|${esc(r.club)}"><td class="ps"><span class="pos ${isScorers ? '' : posCls(r.pos)}">${r.pos}</span></td>${who}${nums}</tr>`;
     }).join('');
     const head = isScorers ? `<th>${t.goals}</th>` : '<th>B</th><th>G</th><th>D</th><th>M</th><th>GF</th><th>GA</th><th>GD</th>';
     const legend = isScorers ? '' : `<div class="legend"><p><i class="pos cl">1</i>${t.legend[0]}</p><p><i class="pos el">7</i>${t.legend[1]}</p><p><i class="pos p6">6</i>${t.legend[2]}</p><p><i class="pos p11">11</i>${t.legend[3]}</p><p><i class="rline"></i>${t.legend[4]}</p></div>`;
