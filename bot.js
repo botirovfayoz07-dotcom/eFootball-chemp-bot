@@ -124,9 +124,9 @@ const MSG = {
     ru: (lg, club) => `✅ Админ добавил вас в лигу ${lg} (${club}).`,
   },
   drawn: {
-    uz: (lg) => `🎲 ${lg}: qura o'tkazildi! O'yinlaringiz: Profil → Mening o'yinlarim.`,
-    en: (lg) => `🎲 ${lg}: the draw is done! Your games: Profile → My games.`,
-    ru: (lg) => `🎲 ${lg}: жеребьёвка проведена! Ваши игры: Профиль → Мои игры.`,
+    uz: (lg) => `🎲 ${lg}: qura o'tkazildi! O'yinlaringiz: Me → klubingiz → Mening o'yinlarim.`,
+    en: (lg) => `🎲 ${lg}: the draw is done! Your games: Me → your club → My games.`,
+    ru: (lg) => `🎲 ${lg}: жеребьёвка проведена! Ваши игры: Я → ваш клуб → Мои игры.`,
   },
 };
 async function notify(telegramId, key, ...args) {
@@ -195,8 +195,6 @@ app.get('/api/leagues', async (req, res) => {
   res.json({
     season,
     mine: mine ? { league: mine.league, club: mine.club } : null,
-    // Klubini topshirayotganlar (o'zingnikidan tashqari)
-    releasing: regs.filter((r) => r.releasing && r.telegramId !== u.id).map((r) => ({ league: r.league, club: r.club, games: r.w + r.d + r.l })),
     leagues: EFL.LEAGUES.map((l) => {
       const rs = regs.filter((r) => r.league === l.id);
       return { id: l.id, max: l.max, players: rs.length, taken: rs.map((r) => r.club) };
@@ -204,27 +202,38 @@ app.get('/api/leagues', async (req, res) => {
   });
 });
 
-app.get('/api/profile', ah(async (req, res) => {
-  const u = tgUser(req);
-  if (!u) return res.status(401).json({ error: 'auth' });
-  const me = await Registration.findOne({ season, telegramId: u.id }).lean();
-  if (!me) return res.json({ league: null, club: null, releasing: false, pos: null, w: 0, d: 0, l: 0, games: [] });
-  const regs = (await Registration.find({ season, league: me.league }).lean()).sort(rankSort);
-  // Mening o'yinlarim (bekor qilinganlardan tashqari), tur bo'yicha
-  const ms = await Match.find({ season, league: me.league, status: { $ne: 'cancelled' }, $or: [{ home: u.id }, { away: u.id }] }).sort({ round: 1 }).lean();
-  const oppId = (m) => (m.home === u.id ? m.away : m.home);
+// Klub o'yinlari (bekor qilinganlardan tashqari), tur bo'yicha — hisob kiritish/tasdiqlash uchun
+async function gamesOf(uid, league, regs) {
+  const ms = await Match.find({ season, league, status: { $ne: 'cancelled' }, $or: [{ home: uid }, { away: uid }] }).sort({ round: 1 }).lean();
+  const oppId = (m) => (m.home === uid ? m.away : m.home);
   const users = await User.find({ telegramId: { $in: ms.map(oppId) } }).lean();
   const uname = new Map(users.map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
   const clubOf = new Map(regs.map((r) => [r.telegramId, r.club]));
-  const games = ms.map((m) => {
-    const mine = m.home === u.id, hasScore = m.hg != null && m.ag != null;
+  return ms.map((m) => {
+    const mine = m.home === uid, hasScore = m.hg != null && m.ag != null;
     return {
-      id: String(m._id), round: m.round, status: m.status, byMe: m.reportedBy === u.id,
-      opponent: clubOf.has(oppId(m)) ? EFL.clubName(me.league, clubOf.get(oppId(m))) : '', user: uname.get(oppId(m)) || '',
+      id: String(m._id), round: m.round, status: m.status, byMe: m.reportedBy === uid,
+      opponent: clubOf.has(oppId(m)) ? EFL.clubName(league, clubOf.get(oppId(m))) : '', user: uname.get(oppId(m)) || '',
       score: hasScore ? `${mine ? m.hg : m.ag}:${mine ? m.ag : m.hg}` : null, // men:raqib
     };
   });
-  res.json({ league: me.league, club: me.club, releasing: !!me.releasing, pos: regs.findIndex((r) => r.telegramId === u.id) + 1, w: me.w, d: me.d, l: me.l, games });
+}
+
+// Me bo'limi: foydalanuvchining klublari (o'rni, statistikasi, auksion holati, o'yinlari) va kolleksiya
+app.get('/api/profile', ah(async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const mine = await Registration.find({ season, telegramId: u.id }).lean();
+  const clubs = [];
+  for (const r of mine) {
+    const regs = (await Registration.find({ season, league: r.league }).lean()).sort(rankSort);
+    clubs.push({
+      league: r.league, club: r.club, pos: regs.findIndex((x) => x.telegramId === u.id && x.club === r.club) + 1,
+      w: r.w, d: r.d, l: r.l, pts: r.pts, auction: r.auction?.price ? { price: r.auction.price } : null,
+      games: await gamesOf(u.id, r.league, regs),
+    });
+  }
+  res.json({ clubs, collection: [] }); // collection: yutilgan kubok / sotib olingan narsalar (keyingi bosqich)
 }));
 
 app.get('/api/rankings/:league', async (req, res) => {
@@ -258,40 +267,44 @@ app.post('/api/leagues/:league/register', async (req, res) => {
   }
 });
 
-// "Klubimni topshiraman" — yoqilsa klub bosh sahifadagi ro'yxatga chiqadi, o'chirilsa qaytib oladi
-app.post('/api/profile/release', async (req, res) => {
-  const u = tgUser(req);
-  if (!u) return res.status(401).json({ error: 'auth' });
-  const me = await Registration.findOneAndUpdate({ season, telegramId: u.id }, { releasing: !!req.body?.on }, { new: true }).lean();
-  if (!me) return res.status(404).json({ error: 'fail' });
-  res.json({ ok: true, releasing: me.releasing });
-});
-
-// Topshirilayotgan klubni olish: jadval va natijalari bilan birga yangi egasiga o'tadi, eski egasi ligadan chiqadi
-const GONE = {
-  uz: (n) => `ℹ️ Klubingiz (${n}) boshqa o'yinchiga o'tdi. Siz ligadan chiqdingiz.`,
-  en: (n) => `ℹ️ Your club (${n}) was taken by another player. You have left the league.`,
-  ru: (n) => `ℹ️ Ваш клуб (${n}) перешёл другому игроку. Вы вышли из лиги.`,
-};
-app.post('/api/claim', async (req, res) => {
+// "Klubdan hoziroq voz kechaman": klub egasidan olinadi va yana ro'yxatdan o'tish ro'yxatiga qaytadi
+app.post('/api/leave', async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const { league, club } = req.body || {};
-  if (!EFL.byId[league] || typeof club !== 'string') return res.status(400).json({ error: 'fail' });
-  if (await Registration.exists({ season, telegramId: u.id })) return res.status(409).json({ error: 'already' });
-  try {
-    // Bitta atomik amal: faqat hali topshirilayotgan klubni olish mumkin
-    const old = await Registration.findOneAndUpdate({ season, league, club, releasing: true }, { telegramId: u.id, releasing: false }, { new: false }).lean();
-    if (!old) return res.status(409).json({ error: 'gone' });
-    // Klub o'yinlari ham yangi egasiga o'tadi (jadval va natijalar saqlanadi)
-    const q = { season, league };
-    await Promise.all(['home', 'away', 'reportedBy'].map((f) => Match.updateMany({ ...q, [f]: old.telegramId }, { $set: { [f]: u.id } })));
-    const owner = await User.findOne({ telegramId: old.telegramId }).lean();
-    bot.telegram.sendMessage(old.telegramId, (GONE[owner?.lang] || GONE.uz)(EFL.clubName(league, club))).catch(() => {});
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(e.code === 11000 ? 409 : 500).json({ error: e.code === 11000 ? 'already' : 'fail' });
-  }
+  const del = await Registration.findOneAndDelete({ season, telegramId: u.id, league, club }).lean();
+  if (!del) return res.status(404).json({ error: 'fail' });
+  // Klub o'yinlari bekor qilinadi (admin "chiqarish" bilan bir xil), jadval qayta hisoblanadi
+  await Match.updateMany({ season, league, status: { $ne: 'cancelled' }, $or: [{ home: u.id }, { away: u.id }] }, { $set: { status: 'cancelled', updatedAt: new Date() } });
+  await recalc(league);
+  res.json({ ok: true });
+});
+
+// Klubni auksionga qo'yish (narx bilan) va auksiondan olish
+app.post('/api/auction', async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const { league, club } = req.body || {};
+  const price = Math.floor(Number(req.body?.price));
+  if (!(price >= 1 && price <= 1e9)) return res.status(400).json({ error: 'badPrice' });
+  const r = await Registration.findOneAndUpdate({ season, telegramId: u.id, league, club }, { auction: { price, at: new Date() } }, { new: true }).lean();
+  if (!r) return res.status(404).json({ error: 'fail' });
+  res.json({ ok: true });
+});
+app.post('/api/auction/cancel', async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const { league, club } = req.body || {};
+  const r = await Registration.findOneAndUpdate({ season, telegramId: u.id, league, club }, { $unset: { auction: 1 } }, { new: true }).lean();
+  if (!r) return res.status(404).json({ error: 'fail' });
+  res.json({ ok: true });
+});
+// Do'kon -> Auksion: hamma lotlar (yangilari birinchi)
+app.get('/api/auctions', async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const regs = await Registration.find({ season, 'auction.price': { $gt: 0 } }).sort({ 'auction.at': -1 }).lean();
+  res.json({ lots: regs.map((r) => ({ league: r.league, club: r.club, price: r.auction.price, games: r.w + r.d + r.l, mine: r.telegramId === u.id })) });
 });
 // ——— O'yin hisobi: biri kiritadi, raqib tasdiqlaydi yoki "Yolg'on" deydi ———
 app.post('/api/matches/:id/report', ah(async (req, res) => {

@@ -72,8 +72,8 @@ body {
   background-image: url('cards/official.jpg'), linear-gradient(135deg, #2a2a6b, #3b5a7a 60%, #1c2b3f); }
 .card-private { border-color: rgba(34, 211, 238, .55); box-shadow: 0 0 24px rgba(34, 211, 238, .22);
   background-image: url('cards/private.jpg'), linear-gradient(135deg, #0b3a4a, #0c1f2e 60%, #071420); }
-.card-team { min-height: 190px; border-color: rgba(255, 120, 70, .5); box-shadow: 0 0 24px rgba(255, 90, 50, .22);
-  background-image: url('cards/team.jpg'), linear-gradient(90deg, #0b1220 0%, #123a8a 45%, #8a1c14 100%); }
+.card-division { min-height: 190px; border-color: rgba(255, 120, 70, .5); box-shadow: 0 0 24px rgba(255, 90, 50, .22);
+  background-image: url('cards/division.jpg'), linear-gradient(90deg, #0b1220 0%, #123a8a 45%, #8a1c14 100%); }
 
 /* Guide */
 .guide {
@@ -140,7 +140,7 @@ body {
 .m-cl .rb-in { background: linear-gradient(180deg, #0b2a8f, #07123a); }
 .m-el .rb-in { background: linear-gradient(135deg, #e8531a, #1a1a1a); }
 .m-afc .rb-in { background: linear-gradient(180deg, #1646e8, #0a2a9a); }
-.m-div .rb-in { background: linear-gradient(180deg, #14301f, #08111f); }
+.m-conf .rb-in { background: linear-gradient(180deg, #0f6b3a, #07201a); }
 
 /* Rejimlar: yon tomonga suriladigan slayder */
 .mode-slider { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
@@ -257,7 +257,7 @@ body {
 .carousel::-webkit-scrollbar { display: none; }
 .carousel > .card { flex: 0 0 86%; min-height: 240px; scroll-snap-align: start; }
 .carousel > .card h2 { font-size: 30px; } .carousel > .card p { font-size: 16px; }
-.card-team { min-height: 210px; }
+.card-division { min-height: 210px; }
 .dots { display: flex; justify-content: center; gap: 8px; margin-top: -4px; }
 .dots i { width: 8px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.2); transition: all .25s ease; }
 .dots i.on { width: 24px; background: var(--cyan); box-shadow: 0 0 10px rgba(34,211,238,.6); }
@@ -308,13 +308,47 @@ body {
 .ct-flag { font-size: 34px; line-height: 1; }
 .ct-head h2 { font: 700 30px 'Rajdhani', sans-serif; letter-spacing: 2px; }
 .lc-cup { font-size: 54px; line-height: 64px; }
-.cups { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.cups { display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 10px; }
 .cup { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; padding: 12px 4px 10px; border-radius: 16px; background: #12152a; border: 1px solid rgba(255,255,255,.08); }
 .cup-img { height: 56px; width: 100%; display: grid; place-items: center; }
 .cup-img img { max-height: 56px; max-width: 90%; object-fit: contain; }
 .cup .lc-cup { font-size: 40px; line-height: 56px; }
 .cup b { font: 600 13px 'Rajdhani', sans-serif; letter-spacing: .5px; line-height: 1.1; }
 .cup small { color: var(--muted); font-size: 11px; }
+
+/* ——— Ma'lumotlar / Me / Do'kon ——— */
+.coll { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.coll-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 6px; border-radius: 16px; text-align: center; background: #12152a; border: 1px solid rgba(255,255,255,.08); }
+.coll-item span { font-size: 30px; line-height: 1; } .coll-item b { font: 600 13px 'Rajdhani', sans-serif; line-height: 1.1; }
+.myclubs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.mc { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border-radius: 16px; cursor: pointer; color: #fff; background: #12152a; border: 1px solid rgba(255,255,255,.1); }
+.mc:active { transform: scale(.97); border-color: #22d3ee; }
+.mc .crest { width: 64px; height: 64px; } .mc .crest img { width: 48px; height: 48px; }
+.mc b { font: 600 14px 'Rajdhani', sans-serif; line-height: 1.1; text-align: center; } .mc small { color: var(--muted); font-size: 11px; }
+.mc em { position: absolute; top: 6px; right: 8px; font-style: normal; font-size: 14px; }
+.cl-top { display: flex; justify-content: space-between; gap: 10px; }
+.cl-btn { flex: 1; min-height: 46px; padding: 8px 10px; border-radius: 14px; cursor: pointer; color: #fff; font: 600 14px 'Rajdhani', sans-serif; letter-spacing: .3px; background: #12152a; border: 1px solid rgba(255,255,255,.14); }
+.cl-btn.leave { border-color: rgba(255,90,90,.55); color: #ff9a9a; }
+.cl-btn.auc { border-color: rgba(34,211,238,.55); color: #7fe7f7; } .cl-btn.auc.on { background: rgba(34,211,238,.15); }
+.inf-league { display: flex; align-items: center; gap: 14px; }
+.inf-logo img { width: 64px; height: 64px; object-fit: contain; }
+.inf-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.inf-txt b { font: 700 22px 'Rajdhani', sans-serif; letter-spacing: 1px; } .inf-txt small { color: var(--muted); }
+.inf-club { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.inf-club .crest { width: 32px; height: 32px; } .inf-club .crest img { width: 24px; height: 24px; } .inf-club i { font-style: normal; font-size: 15px; }
+.inf-pos { text-align: center; } .inf-pos b { display: block; font: 700 28px 'Rajdhani', sans-serif; color: #22d3ee; } .inf-pos small { color: var(--muted); font-size: 12px; }
+.lot { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 10px; border-radius: 18px; background: #12152a; border: 1px solid rgba(255,255,255,.1); }
+.lot-info { flex: 1; min-width: 0; display: flex; flex-direction: column; } .lot-info b { font: 600 17px 'Rajdhani', sans-serif; } .lot-info small { color: var(--muted); font-size: 12px; }
+.lot-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.lot-price { font: 700 16px 'Rajdhani', sans-serif; font-style: normal; color: #ffd166; }
+.lot-btn { border: 0; border-radius: 12px; padding: 7px 12px; cursor: pointer; color: #fff; font: 600 13px 'Rajdhani', sans-serif; background: linear-gradient(135deg, #6d28d9, #3b82f6); } .lot-btn.buy { opacity: .55; }
+.modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: rgba(3,5,12,.7); backdrop-filter: blur(6px); }
+.modal-box { width: 100%; max-width: 360px; padding: 20px; border-radius: 22px; display: flex; flex-direction: column; gap: 10px; background: #14172b; border: 1px solid rgba(255,255,255,.14); }
+.modal-box h3 { font: 700 22px 'Rajdhani', sans-serif; } .modal-box label { color: var(--muted); font-size: 13px; }
+.modal-box input { width: 100%; padding: 12px 14px; border-radius: 14px; color: #fff; font: 600 20px 'Rajdhani', sans-serif; background: #0b0f20; border: 1px solid rgba(255,255,255,.18); }
+.modal-btns { display: flex; gap: 10px; margin-top: 6px; }
+.modal-btns button { flex: 1; min-height: 46px; border: 0; border-radius: 14px; cursor: pointer; color: #fff; font: 600 16px 'Rajdhani', sans-serif; }
+.mb-no { background: #242a44; } .mb-ok { background: linear-gradient(135deg, #6d28d9, #3b82f6); }
 
 /* ——— O'yin hisobi (profil) ——— */
 .gm { flex-direction: column; align-items: stretch; gap: 10px; }

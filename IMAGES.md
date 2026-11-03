@@ -42,3 +42,11 @@ Davlat sahifasining tepasida 4 ta kubok yonma-yon turadi (bosilmaydi), tagida no
 - **France:** `ligue-1.png`, `ligue-2.png`, `coupe-de-france.png`, `trophee-des-champions.png`
 
 Turnir tanlash kartalari (Premier League, Championship) uchun esa 3-bo'limdagi `webapp/cards/leagues/premier-league.png`, `championship.png` ishlatiladi.
+
+## 7. Yuklangan rasmlar (joriy holat)
+Klub va liga logotiplari `webapp/cards/Yevropa/<Davlat>/<id>_<Nom>.png` va `webapp/cards/Yevropa/League/` da turadi; ular `webapp/img-map.js` orqali ulangan (klub nomi bo'yicha avtomatik moslashtirilgan). Yangi rasm qo'shsangiz: faylni papkaga tashlang va `img-map.js` ga qatorini qo'shing yoki fayl nomini `cards/clubs/<klub-id>.png` qilib `cards/clubs/` ga qo'ying (zaxira yo'l).
+
+**Kubok rasmlari** (`cards/kubok/<id>.png`, 6-bo'lim): rasmiy kubok suratlari internet orqali yuklab olinmadi. Hozircha kubok o'rnida liga logotipi (FA Cup va KNVB Beker uchun ularning logotipi) chiqadi, u ham bo'lmasa 🏆. `cards/kubok/` ga fayl qo'ysangiz, u birinchi bo'lib ishlatiladi.
+
+**Rasmi topilmagan klublar** (logotip fayli yuklanmagan): Alcorcón, Amorebieta, Andorra, Villarreal B, Birmingham City, Huddersfield, Rotherham, Hansa Rostock, Osnabrück, Wehen Wiesbaden, Ascoli, FeralpiSalò, Lecco, Ternana, Bordeaux, Concarneau, Quevilly-Rouen, Amarante, Lusitânia Lourosa, Sporting CP B (+ Osiyo ligalari klublari).
+**Yuklangan, lekin ligalarda ishlatilmagan:** Oxford United, Portsmouth, Derby (Angliya); Córdoba, Deportivo, Málaga, Castellón (Ispaniya); Juve Stabia, Mantova, Cesena, Carrarese (Italiya); Jahn Regensburg, Saarbrücken, Ulm, Preußen Münster (Germaniya); Red Star, Martigues, Boulogne, Ajaccio (Fransiya); Mafra, Alverca, Belenenses, Oliveirense (Portugaliya).

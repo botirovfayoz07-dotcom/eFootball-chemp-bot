@@ -23,11 +23,6 @@ Rasm qo'yilmasa, ilova buzilmaydi: gradient yoki bo'sh joy ko'rinadi.
 
 ## Hozir ishlaydigan qismlar
 /start → til tanlash → Kirish (ilova ichida yuklanish ekrani) → bosh sahifa → Rasmiy turnirlar → **Rasmiy turnirlar** (avvalgi "Ligalar") → qit'a → davlat:
-- **Qit'alar:** tepada Europe | Asia | Africa, uchalasi ochiq. Europe tanlangan holda ochiladi.
-- **Davlatlar:** har bir qit'ada 12 ta davlat, 6 qator × 2 ustun, bayroq + nom (`league-data.js` → `COUNTRIES`). Hozircha faqat 5 tasi ochiq (Angliya, Ispaniya, Italiya, Germaniya, Fransiya); qolganlari 🔒 (bosilsa "Tez orada"). Davlatni ochish: `open: true` qo'ying. Asia va Africa davlatlarining hammasi hozircha yopiq.
-- **Davlat sahifasi (tartib):** davlat nomi → 4 ta kubok (bosilmaydi, tagida nomi/turi; rasm `cards/kubok/`) → **turnir tanlash** karuseli (Angliyada Premier League va Championship, rasm `cards/leagues/`) → «Ro'yxatdan o'tish» → klublar ro'yxati → turnir formati (tanlangan liga + kuboklar qoidalari). Klubni tanlab «Ro'yxatdan o'tish» bosiladi.
-- **Turnir formatlari** (`FORMATS` ichida) hozircha faqat Angliya uchun: Premier League, Championship, FA Cup, Community Shield. Boshqa davlatlarda kubok rasmlari chiqadi, format matni keyin qo'shiladi. Kuboklarning o'zi (FA Cup, Community Shield) hali o'ynalmaydi — ular hozircha ma'lumot sifatida ko'rsatiladi.
-- **Pastki menyu (Asosiy · Reyting · Profil · Sovrinlar · Do'kon)** faqat ro'yxatdan o'tgandan keyin ochiladi (`league.js` ichidagi `nav` funksiyasi; har doim ko'rsatish uchun `data.mine ?` shartini olib tashlang). Reyting va Profil avvalgidek.
 - Liga ↔ davlat bog'lanishi: `COUNTRY_OF` (league-data.js). Superliga, Saudi, UAE va J1 ligalari Osiyo davlatlariga bog'langan; bu davlatlar yopiq bo'lgani uchun ular hozircha ko'rinmaydi.
 
 Liga ichidagi imkoniyatlar:
@@ -42,6 +37,18 @@ Liga va klub ro'yxati: `webapp/league-data.js` (brauzer ham, server ham shu fayl
 
 Eslatma: MongoDB'da eski `league+season+telegramId` indeksi qolgan bo'lsa, yangi `season+telegramId` indeksi bilan birga ishlayveradi (xalaqit bermaydi).
 
+## Rasmiy turnirlar (joriy tuzilma)
+- **Bosh sahifa:** Rasmiy turnirlar · Shaxsiy turnirlar · **Divizion** (avval "Teamlar jangi"; Divizion hozircha "Tez orada").
+- **Rasmiy turnirlar → rejimlar:** Rasmiy turnirlar (avval "Ligalar") · Jahon chempionati · CL · EL · **Konferensiya ligasi** · AFC. Divizion bu yerdan olib tashlandi.
+- **Rasmiy turnirlar rejimi:** Europe | Asia | Africa tablari. Yevropaning 12 davlati ochiq (Angliya, Ispaniya, Italiya, Germaniya, Fransiya, Portugaliya, Turkiya, Niderlandiya, Belgiya, Avstriya, Daniya, Shveytsariya), 6 qator × 2 ustun. Asia va Africa davlatlari hozircha yopiq (🔒). Davlatni ochish: `league-data.js` → `COUNTRIES` da `open: true`.
+- **Davlat sahifasi:** kuboklar (bosilmaydi) → turnir tanlash karuseli → «Ro'yxatdan o'tish» → klublar → turnir formati. Faqat ro'yxatdan o'tmaganlarga ko'rinadi.
+- **Ro'yxatdan o'tgach pastki menyu:** **Ma'lumotlar · Me · Do'kon** (Reyting va Sovrinlar olib tashlandi).
+  - **Ma'lumotlar:** tepada kuboklar, undan pastda qaysi ligadaligingiz + liga reytingi (jadval), eng pastda turnir formati va qoidalar.
+  - **Me:** profil → **Kolleksiya** (yutilgan kubok / sotib olingan narsalar; hozircha bo'sh) → klublarim (logotiplar). Klub ichida: chapda «Klubdan voz kechaman» (klub ro'yxatdan o'tish ro'yxatiga qaytadi), o'ngda «Auksionga qo'yaman» (narx kiritiladi, lot Do'kon → Auksionga tushadi), pastda «Mening o'yinlarim».
+  - **Do'kon → Auksion:** auksionga qo'yilgan klublar ro'yxati. O'z lotini olib qo'yish mumkin; «Sotib olish» valyuta tizimi tayyor bo'lgach ishga tushadi.
+- **API (bot.js):** `/api/profile`, `/api/leave`, `/api/auction`, `/api/auction/cancel`, `/api/auctions`. Eski `/api/claim` va "topshiraman" olib tashlandi; `Registration.releasing` o'rniga `auction { price, at }`.
+- **Rasmlar:** `webapp/img-map.js` yuklangan `cards/Yevropa/...` fayllarini liga va klublarga bog'laydi (fayl nomi bo'yicha). Rasm topilmasa klub nomining bosh harfi chiqadi.
+
 ## Norasmiy turnirlar (videodagi bo'lim)
 Bosh sahifadagi "Yopiq turnirlar" kartasi "Norasmiy turnirlar" deb nomlandi va videodagidek to'liq bo'lim qilindi (to'lovsiz). Kod: `unofficial.js` (server), `webapp/unofficial.js` (ilova), modellar `Tournament`, `TMatch`.
 - **Tuzish:** nom, o'yinchilar soni (4–64), liga turlari soni, play-off (yo'q / top 4 / 8 / 16), tur davomiyligi (1–7 kun). Bir foydalanuvchi ko'pi bilan 3 ta faol turnir tuza oladi (adminlarga cheklov yo'q).
@@ -55,7 +62,7 @@ Bosh sahifadagi "Yopiq turnirlar" kartasi "Norasmiy turnirlar" deb nomlandi va v
 - Videodagi ilovaga ichki chat qo'shilmadi: "Chat" o'rniga Telegramdagi shaxsiy yozishma ochiladi.
 
 ## O'yin hisobi (tasdiqlash mantig'i)
-Profil → *Mening o'yinlarim*. Qura o'tkazilgach har bir o'yinchida o'z o'yinlari chiqadi:
+Me → klub → *Mening o'yinlarim*. Qura o'tkazilgach har bir o'yinchida o'z o'yinlari chiqadi:
 1. Biri **Hisob kiritish** ni bosib hisobni yuboradi (o'yin `pending` bo'ladi, raqibga botdan xabar boradi). Raqib tasdiqlamaguncha kiritgan odam hisobni o'zgartira oladi.
 2. Raqib **Tasdiqlash** ni bossa — hisob avtomatik reyting jadvaliga o'tadi (`confirmed`).
 3. Raqib **Yolg'on** ni bossa — kiritilgan hisob bekor qilinadi (`disputed`, jadvalga o'tmaydi), adminlarga xabar boradi va natijani admin panelda kiritadi.
