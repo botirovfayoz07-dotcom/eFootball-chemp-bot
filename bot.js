@@ -89,6 +89,11 @@ const eqOf = (me) => {
 };
 const rankSort = (a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf;
 
+// Eski ma'lumot: equipped.bg ichida futbolchi foni turgan bo'lsa, uni pbg ga ko'chiradi (aks holda oddiy fon yoqilganda futbolchi foni o'chib ketardi)
+async function migrateEq(id) {
+  const e = (await User.findOne({ telegramId: id }).select('equipped').lean())?.equipped, it = e?.bg && SHOP.itemOf('bg', e.bg);
+  if (it?.player) await User.updateOne({ telegramId: id }, { $set: { 'equipped.pbg': e.pbg || e.bg, 'equipped.bg': null } });
+}
 // Ilovani ochgan har bir foydalanuvchining ismi/username/avatari saqlanadi (jadvalda klub egasi ko'rinishi uchun)
 const touchUser = (u) => User.updateOne({ telegramId: u.id }, { $set: { firstName: u.first_name || '', username: u.username || '', photoUrl: u.photo_url || '' } }, { upsert: true }).catch(() => {});
 // Async marshrutlarda xato chiqsa server qulab tushmasligi uchun
@@ -402,6 +407,7 @@ app.post('/api/shop/buy', ah(async (req, res) => {
   if (!u) return res.status(401).json({ error: 'auth' });
   const item = SHOP.findItem(req.body?.id);
   if (!item) return res.status(400).json({ error: 'fail' });
+  await migrateEq(u.id);
   const r = await User.findOneAndUpdate(
     { telegramId: u.id, coins: { $gte: item.price }, cosmetics: { $ne: item.id } },
     { $inc: { coins: -item.price }, $addToSet: { cosmetics: item.id }, $set: { ['equipped.' + (item.kind === 'bg' && item.player ? 'pbg' : item.kind)]: item.id } }, { new: true }).lean();
@@ -412,6 +418,7 @@ app.post('/api/shop/equip', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const { kind, id } = req.body || {};
+  await migrateEq(u.id);
   if (kind !== 'frame' && kind !== 'bg' && kind !== 'pbg') return res.status(400).json({ error: 'fail' });
   const it = id && SHOP.itemOf(kind === 'frame' ? 'frame' : 'bg', id);
   if (id && !(it && (await User.exists({ telegramId: u.id, cosmetics: id })))) return res.status(400).json({ error: 'fail' });
@@ -553,6 +560,7 @@ app.get('/api/me', ah(async (req, res) => {
   if (!u) return res.status(401).json({ error: 'auth' });
   // Ilova ochilganda ism/username/avatarni yangilab qo'yamiz va yoqilgan fonni qaytaramiz
   await touchUser(u);
+  await migrateEq(u.id);
   const me = await User.findOne({ telegramId: u.id }).lean();
   res.json({ admin: ADMINS.includes(u.id), bg: eqOf(me).pbg });
 }));
