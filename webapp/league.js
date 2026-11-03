@@ -2,7 +2,7 @@ window.LeagueView = (() => {
   const T = {
     uz: { continents: { europe: 'Europe', asia: 'Asia', africa: 'Africa' }, pickCountry: 'Davlatni tanlang', cups: 'Turnir tanlash', cupsLabel: 'Kuboklar', format: 'Turnir formati', cupTypes: { league: 'Liga', league2: '2-liga', cup: 'Kubok', supercup: 'Superkubok' }, noLeagues: "Bu davlatning turnirlari tez orada qo'shiladi", back: 'Ortga', full: "TO'LIQ", open: 'OCHIQ', players: "O'yinchilar", max: 'Maksimal', season: 'Mavsum', register: "Ro'yxatdan o'tish", pick: 'Klubni tanlang',
       clubs: 'Ligadagi klublar', rules: 'Qoidalar', notice: "E'lon", details: 'Batafsil', prize: 'Sovrin', yourLeague: 'Siz qatnashayotgan liga', place: "O'rin",
-      nav: ["Ma'lumotlar", 'Me', "Do'kon"], soon: 'Tez orada', ok: "Ro'yxatdan o'tdingiz ✅", taken: 'Bu klub band', already: "Siz allaqachon ro'yxatdan o'tgansiz", fail: "Xatolik, qayta urinib ko'ring", fullErr: "Liga to'lgan",
+      nav: ["Ma'lumotlar", 'Me', "Do'kon"], soon: 'Tez orada', ok: "Ro'yxatdan o'tdingiz ✅", taken: 'Bu klub band', already: "Siz allaqachon ro'yxatdan o'tgansiz", fail: "Xatolik, qayta urinib ko'ring", fullErr: "Liga to'lgan", closed: 'YOPIQ 🔒', closedErr: "Bu liga hozircha yopiq",
       aucTitle: "Klubni auksionga qo'yish", aucPrice: 'Narxni kiriting', aucConfirm: 'Tasdiqlash', aucCancel: 'Bekor qilish', aucOk: "Klub auksionga qo'yildi ✅", aucOff: 'Klub auksiondan olindi', badPrice: "Narx noto'g'ri",
       leaveConfirm: "Klubdan voz kechasizmi? Klub yana ro'yxatdan o'tish bo'limiga qaytadi.", leftOk: 'Klubdan voz kechdingiz',
       rulesList: ["O'yin **8 daqiqa** davom etadi.", 'Ikkitalik himoya yoqish **mumkin emas**.', `O'yinchilar holati **"Excellent"** bo'lishi kerak.`, 'Extra time va penalti **yo\'q**.', 'Dedline har kuni tungi soat **23:30** da.', "Agar raqib javob bermasa yoki hisobni noto'g'ri kiritsa — **rasm yoki video bilan adminga murojaat qiling**."],
@@ -11,7 +11,7 @@ window.LeagueView = (() => {
       prizeText: 'Sovrinlar masalasida homiylarga mutanosib ravishda pul ham beriladi.' },
     en: { continents: { europe: 'Europe', asia: 'Asia', africa: 'Africa' }, pickCountry: 'Choose a country', cups: 'Choose a tournament', cupsLabel: 'Cups', format: 'Tournament format', cupTypes: { league: 'League', league2: '2nd tier', cup: 'Cup', supercup: 'Super Cup' }, noLeagues: "This country's tournaments are coming soon", back: 'Back', full: 'FULL', open: 'OPEN', players: 'Players', max: 'Maximum', season: 'Season', register: 'Sign up', pick: 'Pick a club',
       clubs: 'Clubs in the league', rules: 'Rules', notice: 'Notice', details: 'Details', prize: 'Prize', yourLeague: 'Your league', place: 'Place',
-      nav: ['Info', 'Me', 'Shop'], soon: 'Coming soon', ok: 'You are signed up ✅', taken: 'This club is taken', already: 'You are already signed up', fail: 'Error, please try again', fullErr: 'League is full',
+      nav: ['Info', 'Me', 'Shop'], soon: 'Coming soon', ok: 'You are signed up ✅', taken: 'This club is taken', already: 'You are already signed up', fail: 'Error, please try again', fullErr: 'League is full', closed: 'CLOSED 🔒', closedErr: 'This league is closed for now',
       aucTitle: 'Put the club up for auction', aucPrice: 'Enter the price', aucConfirm: 'Confirm', aucCancel: 'Cancel', aucOk: 'The club is on auction ✅', aucOff: 'The club was taken off auction', badPrice: 'Invalid price',
       leaveConfirm: 'Give up the club? It will go back to the sign-up list.', leftOk: 'You gave up the club',
       rulesList: ['A match lasts **8 minutes**.', 'Double defence is **not allowed**.', 'Player condition must be **"Excellent"**.', 'No extra time or penalties.', 'The deadline is every day at **23:30**.', "If your opponent doesn't respond or enters the score wrongly — **contact the admin with a photo or video**."],
@@ -20,7 +20,7 @@ window.LeagueView = (() => {
       prizeText: 'Prize money is also paid out in proportion to sponsor funding.' },
     ru: { continents: { europe: 'Европа', asia: 'Азия', africa: 'Африка' }, pickCountry: 'Выберите страну', cups: 'Выбор турнира', cupsLabel: 'Кубки', format: 'Формат турнира', cupTypes: { league: 'Лига', league2: '2-я лига', cup: 'Кубок', supercup: 'Суперкубок' }, noLeagues: 'Турниры этой страны скоро появятся', back: 'Назад', full: 'ЗАПОЛНЕНА', open: 'ОТКРЫТА', players: 'Игроки', max: 'Максимум', season: 'Сезон', register: 'Записаться', pick: 'Выберите клуб',
       clubs: 'Клубы лиги', rules: 'Правила', notice: 'Объявление', details: 'Подробнее', prize: 'Призы', yourLeague: 'Ваша лига', place: 'Место',
-      nav: ['Инфо', 'Я', 'Магазин'], soon: 'Скоро', ok: 'Вы записаны ✅', taken: 'Этот клуб занят', already: 'Вы уже записаны', fail: 'Ошибка, попробуйте ещё раз', fullErr: 'Лига заполнена',
+      nav: ['Инфо', 'Я', 'Магазин'], soon: 'Скоро', ok: 'Вы записаны ✅', taken: 'Этот клуб занят', already: 'Вы уже записаны', fail: 'Ошибка, попробуйте ещё раз', fullErr: 'Лига заполнена', closed: 'ЗАКРЫТА 🔒', closedErr: 'Эта лига пока закрыта',
       aucTitle: 'Выставить клуб на аукцион', aucPrice: 'Укажите цену', aucConfirm: 'Подтвердить', aucCancel: 'Отмена', aucOk: 'Клуб выставлен на аукцион ✅', aucOff: 'Клуб снят с аукциона', badPrice: 'Неверная цена',
       leaveConfirm: 'Отказаться от клуба? Он вернётся в список для записи.', leftOk: 'Вы отказались от клуба',
       rulesList: ['Матч длится **8 минут**.', 'Двойную защиту включать **нельзя**.', 'Состояние игроков должно быть **«Excellent»**.', 'Дополнительного времени и пенальти **нет**.', 'Дедлайн каждый день в **23:30**.', 'Если соперник не отвечает или неверно вводит счёт — **обратитесь к админу с фото или видео**.'],
@@ -54,6 +54,8 @@ window.LeagueView = (() => {
 
   const stat = (id) => data.stats[id] || { players: 0, taken: [] };
   const isFull = (l) => stat(l.id).players >= l.max;
+  const isShut = (l) => !!stat(l.id).closed || isFull(l);   // yopiq yoki to'lgan — ro'yxatdan o'tib bo'lmaydi
+  const badge = (t, l) => (stat(l.id).closed ? `<span class="l-badge full">${t.closed}</span>` : `<span class="l-badge ${isFull(l) ? 'full' : 'open'}">${isFull(l) ? t.full : t.open}</span>`);
 
   // Pastki menyu: Ma'lumotlar · Me · Do'kon — faqat ro'yxatdan o'tgandan keyin
   const navHtml = (t, active) => `<nav class="l-nav">${['ℹ️', '👤', '🛒'].map((i, k) => `<button class="${k === active ? 'on' : ''}" data-act="${['info', 'me', 'shop'][k]}"><span>${i}</span><small>${t.nav[k]}</small></button>`).join('')}</nav>`;
@@ -247,18 +249,18 @@ window.LeagueView = (() => {
 
   // ——— Ro'yxatdan o'tish: liga karuseli, klublar ———
   function heroHtml() {
-    const t = T[lang], l = EFL.byId[cur], s = stat(cur), full = isFull(l), canReg = !full && selected;
-    return `<span class="l-badge ${full ? 'full' : 'open'}">${full ? t.full : t.open}</span>
+    const t = T[lang], l = EFL.byId[cur], s = stat(cur), full = isShut(l), canReg = !full && selected;
+    return `${badge(t, l)}
       <div class="l-title"><img src="${esc(EFL.leagueSrc(l.id))}" alt="" onerror="this.remove()"><h2>${esc(l.name.toUpperCase())}</h2></div>
       <div class="l-stats"><div><b>${s.players}</b><small>${t.players}</small></div><div><b>${l.max}</b><small>${t.max}</small></div><div><b>${EFL.season}</b><small>${t.season}</small></div></div>
-      <button class="l-reg" data-act="register" ${canReg ? '' : 'disabled'}>${full ? t.full : selected ? t.register : t.pick}</button>`;
+      <button class="l-reg" data-act="register" ${canReg ? '' : 'disabled'}>${s.closed ? t.closed : full ? t.full : selected ? t.register : t.pick}</button>`;
   }
   const cardHtml = (l) => {
-    const t = T[lang], s = stat(l.id), full = isFull(l);
-    return `<button class="lc${l.id === cur ? ' on' : ''}" data-lg="${l.id}">${chain([EFL.leagueSrc(l.id)])}<b>${esc(l.name)}</b><small>${s.players}/${l.max} ${t.players}</small><span class="l-badge ${full ? 'full' : 'open'}">${full ? t.full : t.open}</span></button>`;
+    const t = T[lang], s = stat(l.id);
+    return `<button class="lc${l.id === cur ? ' on' : ''}" data-lg="${l.id}">${chain([EFL.leagueSrc(l.id)])}<b>${esc(l.name)}</b><small>${s.players}/${l.max} ${t.players}</small>${badge(t, l)}</button>`;
   };
   function belowHtml() {
-    const t = T[lang], l = EFL.byId[cur], taken = stat(cur).taken, full = isFull(l);
+    const t = T[lang], l = EFL.byId[cur], taken = stat(cur).taken, full = isShut(l);
     const clubs = l.clubs.map((c) => {
       const off = taken.includes(c.id) || full;
       return `<button class="club${selected === c.id ? ' sel' : ''}${off ? ' taken' : ''}" data-club="${c.id}" ${off ? 'disabled' : ''}>${EFL.crest(l.id, c.id, c.name)}<span>${esc(c.name)}</span></button>`;
@@ -353,7 +355,7 @@ window.LeagueView = (() => {
   async function load() {
     const r = await api('/api/leagues');
     loaded = true;
-    if (r.ok) data = { mine: r.mine, stats: Object.fromEntries(r.leagues.map((l) => [l.id, { players: l.players, taken: l.taken }])) };
+    if (r.ok) data = { mine: r.mine, stats: Object.fromEntries(r.leagues.map((l) => [l.id, { players: l.players, taken: l.taken, closed: !!l.closed }])) };
     selected = null;
     render();
     if (tab === 'info') loadRank(); else if (tab === 'me') loadProfile();
@@ -380,7 +382,7 @@ window.LeagueView = (() => {
   async function register() {
     const t = T[lang], r = await post(`/api/leagues/${cur}/register`, { club: selected });
     if (r.ok) { tg?.HapticFeedback?.notificationOccurred('success'); toast(t.ok); window.scrollTo(0, 0); }
-    else toast(t[r.error === 'full' ? 'fullErr' : r.error] || t.fail);
+    else toast(t[r.error === 'full' ? 'fullErr' : r.error === 'closed' ? 'closedErr' : r.error] || t.fail);
     await load();
   }
 

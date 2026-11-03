@@ -209,12 +209,13 @@ app.get('/api/leagues', async (req, res) => {
   touchUser(u);
   const regs = await Registration.find({ season }).lean();
   const mine = regs.find((r) => r.telegramId === u.id);
+  const closedSet = new Set((await LeagueConfig.find({ season, closed: true }).select('league').lean()).map((c) => c.league));
   res.json({
     season,
     mine: mine ? { league: mine.league, club: mine.club } : null,
     leagues: EFL.LEAGUES.map((l) => {
       const rs = regs.filter((r) => r.league === l.id);
-      return { id: l.id, max: l.max, players: rs.length, taken: rs.map((r) => r.club) };
+      return { id: l.id, max: l.max, players: rs.length, taken: rs.map((r) => r.club), closed: closedSet.has(l.id) };
     }),
   });
 });
@@ -297,6 +298,7 @@ app.post('/api/leagues/:league/register', async (req, res) => {
   if (!u) return res.status(401).json({ error: 'auth' });
   const league = EFL.byId[req.params.league], club = req.body?.club;
   if (!league || !league.clubs.some((c) => c.id === club)) return res.status(400).json({ error: 'fail' });
+  if (await LeagueConfig.exists({ season, league: league.id, closed: true })) return res.status(409).json({ error: 'closed' });   // admin yopib qo'ygan liga
   await touchUser(u);
   if (await Registration.exists({ season, telegramId: u.id })) return res.status(409).json({ error: 'already' });
   if ((await Registration.countDocuments({ season, league: league.id })) >= league.max) return res.status(409).json({ error: 'full' });
@@ -590,7 +592,7 @@ app.get('/api/admin/overview', adminOnly, ah(async (req, res) => {
   groups.forEach((g) => { const c = (cnt[g._id.league] ||= { total: 0, confirmed: 0, action: 0 }); c.total += g.n; if (g._id.status === 'confirmed') c.confirmed += g.n; if (g._id.status === 'pending' || g._id.status === 'disputed') c.action += g.n; });
   const leagues = EFL.LEAGUES.map((l) => {
     const c = cfg.get(l.id), n = cnt[l.id] || { total: 0, confirmed: 0, action: 0 };
-    return { id: l.id, name: l.name, group: l.group, max: l.max, players: regs.filter((r) => r.league === l.id).length, drawAt: c?.drawAt || null, drawnAt: c?.drawnAt || null, rounds: c?.rounds || 2, ...n };
+    return { id: l.id, name: l.name, group: l.group, max: l.max, closed: !!c?.closed, players: regs.filter((r) => r.league === l.id).length, drawAt: c?.drawAt || null, drawnAt: c?.drawnAt || null, rounds: c?.rounds || 2, ...n };
   });
   res.json({ leagues, action: leagues.reduce((s, l) => s + l.action, 0) });
 }));
@@ -620,6 +622,13 @@ app.post('/api/admin/matches/:id/result', adminOnly, ah(async (req, res) => {
 }));
 
 // Qura vaqtini belgilash (vaqti kelganda bot o'zi qura qiladi)
+// Admin: ligani ochiq/yopiq qilish (yopiq ligaga yangi ishtirokchi ro'yxatdan o'ta olmaydi; mavjudlar o'ynashda davom etadi)
+app.post('/api/admin/league/:id/closed', adminOnly, ah(async (req, res) => {
+  const league = EFL.byId[req.params.id];
+  if (!league || typeof req.body?.closed !== 'boolean') return res.status(400).json({ error: 'fail' });
+  await LeagueConfig.updateOne({ season, league: league.id }, { $set: { closed: req.body.closed } }, { upsert: true });
+  res.json({ ok: true, closed: req.body.closed });
+}));
 app.post('/api/admin/league/:id/draw-time', adminOnly, ah(async (req, res) => {
   const league = EFL.byId[req.params.id];
   if (!league) return res.status(400).json({ error: 'fail' });

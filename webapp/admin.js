@@ -15,7 +15,7 @@ window.AdminView = (() => {
 
   function tabsHtml() {
     const n = ov?.action || 0;
-    return `<div class="ad-tabs">${[['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar'], ['cups', 'Kubok narxi']].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
+    return `<div class="ad-tabs">${[['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar'], ['cups', 'Kubok narxi'], ['open', 'Ligalar holati']].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
   }
 
   // ——— Natijalar ———
@@ -74,6 +74,13 @@ window.AdminView = (() => {
   }
   async function loadTours() { const r = await api('/api/admin/tournaments'); if (r.ok) { tours = r.list; if (tab === 'tour') render(); } }
 
+  // ——— Ligalar holati: ochiq (ro'yxatdan o'tish mumkin) / yopiq ———
+  function openHtml() {
+    const row = (l) => `<div class="g-card ad-open"><span class="ad-cup-n"><b>${esc(l.name)}</b><small>${l.players}/${l.max} ishtirokchi · ${l.closed ? '🔒 Yopiq' : '🟢 Ochiq'}</small></span><button class="ad-btn ${l.closed ? 'ok' : 'bad'}" data-act="toggleopen" data-lg="${l.id}" data-closed="${l.closed ? '' : '1'}">${l.closed ? '🔓 Ochish' : '🔒 Yopish'}</button></div>`;
+    const grp = (g, title) => `<div class="g-label"><span>${title}</span></div>${(ov?.leagues || []).filter((l) => String(l.group) === String(g)).map(row).join('')}`;
+    return `<p class="ad-hint">Yopiq ligaga yangi ishtirokchi ro'yxatdan o'ta olmaydi (foydalanuvchida «Yopiq» belgisi chiqadi). Ligadagi mavjud ishtirokchilar va o'yinlarga ta'sir qilmaydi. Admin o'zi «Ishtirokchilar» bo'limidan baribir qo'sha oladi.</p>${grp('1', '1-ligalar')}${grp('2', '2-ligalar')}`;
+  }
+
   // ——— Kubok narxlari: foydalanuvchilar kubokni shu narxda (UZS) adminga sotadi ———
   const money = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   function cupsHtml() {
@@ -85,7 +92,7 @@ window.AdminView = (() => {
 
   function render() {
     if (!ov) { el.innerHTML = '<div class="page"><p class="ad-hint">Yuklanmoqda…</p></div>'; return; }
-    const body = tab === 'results' ? resultsHtml() : tab === 'draw' ? drawHtml() : tab === 'tour' ? toursHtml() : tab === 'cups' ? cupsHtml() : playersHtml();
+    const body = tab === 'results' ? resultsHtml() : tab === 'draw' ? drawHtml() : tab === 'tour' ? toursHtml() : tab === 'cups' ? cupsHtml() : tab === 'open' ? openHtml() : playersHtml();
     el.innerHTML = `<div class="page ad-page"><button class="back" data-back><span>‹</span> Bo'limlar</button><h1 class="section-title">🛠 Admin panel</h1>${tabsHtml()}${body}</div>`;
   }
 
@@ -109,6 +116,11 @@ window.AdminView = (() => {
       const c = cups.find((x) => x.id === box.dataset.cup); if (c) c.price = price;
       tg?.HapticFeedback?.notificationOccurred('success'); toast(price ? 'Narx saqlandi ✅' : "Narx o'chirildi");
       return render();
+    }
+    if (act === 'toggleopen') {
+      const closed = a.dataset.closed === '1';
+      if (closed && !(await confirmBox('Ligani yopamizmi? Yangi ishtirokchilar ro\'yxatdan o\'ta olmaydi.'))) return;
+      return done(await post(`/api/admin/league/${lg}/closed`, { closed }), closed ? 'Liga yopildi 🔒' : 'Liga ochildi 🔓');
     }
     if (act === 'tour-open') { location.hash = '#unofficial/' + a.dataset.tid; return; }
     if (act === 'result') {

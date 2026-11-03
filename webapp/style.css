@@ -513,3 +513,4 @@ body.has-bg .pf-info h2 { text-shadow: 0 2px 10px rgba(0,0,0,.95); }
 .ad-cup { display: flex; align-items: center; gap: 8px; padding: 12px; flex-wrap: wrap; }
 .ad-cup-n { flex: 1 1 100%; display: flex; flex-direction: column; } .ad-cup-n small { color: var(--muted); font-size: 13px; }
 .ad-cup input { flex: 1; min-width: 0; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.15); background: #0e1226; color: #fff; font: 700 18px 'Rajdhani', sans-serif; text-align: center; }
+.ad-open { display: flex; align-items: center; gap: 10px; padding: 12px; } .ad-open .ad-cup-n { flex: 1; } .ad-open .ad-btn { width: auto; padding: 10px 14px; white-space: nowrap; }
