@@ -24,26 +24,38 @@
     L('serie-b', 'Serie B', 2, 20, ['Ascoli', 'Bari', 'Brescia', 'Catanzaro', 'Cittadella', 'Como', 'Cosenza', 'Cremonese', 'FeralpiSalò', 'Lecco', 'Modena', 'Palermo', 'Parma', 'Pisa', 'Reggiana', 'Sampdoria', 'Spezia', 'Südtirol', 'Ternana', 'Venezia']),
     L('ligue-2', 'Ligue 2', 2, 18, ['Amiens', 'Angers', 'Annecy', 'Auxerre', 'Bastia', 'Bordeaux', 'Caen', 'Concarneau', 'Dunkerque', 'Grenoble', 'Guingamp', 'Laval', 'Paris FC', 'Pau', 'Quevilly-Rouen', 'Rodez', 'Saint-Étienne', 'Troyes']),
     L('liga-portugal-2', 'Liga Portugal 2', 2, 18, ['Académica', 'Amarante', 'AVS', 'Benfica B', 'Chaves', 'Farense', 'Feirense', 'Felgueiras', 'Leixões', 'Lusitânia Lourosa', 'Penafiel', 'Porto B', 'Portimonense', 'Sporting CP B', 'Tondela', 'Torreense', 'União Leiria', 'Vizela']),
+    // ——— Yangi davlatlar (yuklangan logotiplardan) ———
+    L('eredivisie', "Eredivisie", 1, 18, ["Ajax", "AZ Alkmaar", "Almere City", "Excelsior", "Feyenoord", "Fortuna Sittard", "Go Ahead Eagles", "Heerenveen", "Heracles", "NEC Nijmegen", "PEC Zwolle", "PSV", "RKC Waalwijk", "Sparta Rotterdam", "Twente", "Utrecht", "Vitesse", "Volendam"]),
+    L('eerste-divisie', "Eerste Divisie", 2, 20, ["Willem II", "ADO Den Haag", "De Graafschap", "Groningen", "NAC Breda", "VVV Venlo", "Emmen", "Dordrecht", "Jong PSV", "MVV", "Roda JC", "Jong AZ", "Cambuur", "Den Bosch", "FC Eindhoven", "TOP Oss", "Helmond Sport", "Jong Ajax", "Telstar", "Jong Utrecht"]),
+    L('pro-league', "Pro League", 1, 16, ["Anderlecht", "Antwerp", "Cercle Brugge", "Charleroi", "Club Brugge", "Genk", "Gent", "Kortrijk", "KV Mechelen", "OH Leuven", "Standard Liège", "Union Saint-Gilloise", "KVC Westerlo", "Sint-Truiden", "AS Eupen", "RWDM"]),
+    L('challenger-pro-league', "Challenger Pro League", 2, 16, ["Seraing United", "Lokeren-Temse", "Club Brugge II", "Genk II", "Anderlecht II", "Lommel United", "Beerschot VA", "Francs Borains", "RAAL La Louvière", "Zulte Waregem", "Deinze", "Dender", "Lierse", "RFC Liège", "Patro Eisden", "SK Beveren"]),
+    L('at-bundesliga', "Bundesliga (AT)", 1, 12, ["Red Bull Salzburg", "Sturm Graz", "LASK", "Rapid Wien", "Austria Wien", "Wolfsberger AC", "Hartberg", "Austria Klagenfurt", "Altach", "BW Linz", "WSG Tirol", "Austria Lustenau"]),
+    L('at-2-liga', "2. Liga", 2, 16, ["Admira Wacker", "St. Pölten", "Ried", "Floridsdorfer AC", "SV Horn", "Liefering", "Kapfenberg", "Lafnitz", "Amstetten", "Grazer AK", "First Vienna", "Stripfing", "Rapid Wien II", "Sturm Graz II", "Schwarz-Weiß Bregenz", "Voitsberg"]),
+    L('swiss-super-league', "Super League", 1, 12, ["Basel", "BSC Young Boys", "FC Lugano", "FC Sion", "FC Luzern", "Zürich", "FC ST Gallen", "Grasshoppers", "Lausanne", "Servette FC", "FC Winterthur", "Yverdon Sport"]),
+    L('challenge-league', "Challenge League", 2, 10, ["FC Vaduz", "FC Thun", "Neuchâtel Xamax", "FC Aarau", "Wil", "FC Schaffhausen", "Stade Lausanne-Ouchy", "Bellinzona", "Stade Nyonnais", "Étoile Carouge"]),
+    L('dk-superliga', "Superliga (DK)", 1, 12, ["Brøndby", "København", "FC Midtjylland", "Nordsjælland", "Silkeborg", "Viborg", "Randers FC", "AGF Aarhus", "Lyngby", "Hvidovre", "Vejle", "Odense"]),
+    L('dk-1-division', "1. Division", 2, 12, ["Sønderjyske", "Vendsyssel FF", "AaB", "Esbjerg", "AC Horsens", "Hobro", "FC Fredericia", "Køge", "Roskilde", "Kolding IF", "B 93", "Hillerød"]),
+    L('tff-1-lig', "1. Lig", 2, 20, ["Göztepe", "Gençlerbirliği", "Erzurumspor", "Adanaspor", "Boluspor", "Ümraniyespor", "Istanbulspor", "Amed", "Bodrum FK", "Bandirmaspor", "Eyüpspor", "Fatih Karagümrük", "Keçiörengücü", "Manisa FK", "Sakaryaspor", "Şanlıurfaspor", "Çorum FK", "Esenler Erokspor", "Kocaelispor", "Igdir FK"]),
   ];
 
   // ——— Qit'alar, davlatlar, kuboklar ———
-  // Qit'alar hammasi ochiq. Davlat esa `open: true` bo'lsagina ochiladi (hozircha 5 ta).
+  // Qit'alar hammasi ochiq. Davlat `open: true` bo'lsagina ochiladi: Yevropa davlatlari ochiq, Asia va Africa davlatlari yopiq.
   const CONTINENTS = [{ id: 'europe', open: true }, { id: 'asia', open: true }, { id: 'africa', open: true }];
   const K = (continent, id, flag, uz, en, ru, open) => ({ id, continent, flag, open: !!open, name: { uz, en, ru } });
   const COUNTRIES = [
-    // Europe (ochiq: Angliya, Ispaniya, Italiya, Germaniya, Fransiya)
+    // Europe (hammasi ochiq)
     K('europe', 'en', '🇬🇧', 'Angliya', 'England', 'Англия', true),
     K('europe', 'es', '🇪🇸', 'Ispaniya', 'Spain', 'Испания', true),
     K('europe', 'it', '🇮🇹', 'Italiya', 'Italy', 'Италия', true),
     K('europe', 'de', '🇩🇪', 'Germaniya', 'Germany', 'Германия', true),
     K('europe', 'fr', '🇫🇷', 'Fransiya', 'France', 'Франция', true),
-    K('europe', 'pt', '🇵🇹', 'Portugaliya', 'Portugal', 'Португалия'),
-    K('europe', 'tr', '🇹🇷', 'Turkiya', 'Turkey', 'Турция'),
-    K('europe', 'nl', '🇳🇱', 'Niderlandiya', 'Netherlands', 'Нидерланды'),
-    K('europe', 'be', '🇧🇪', 'Belgiya', 'Belgium', 'Бельгия'),
-    K('europe', 'at', '🇦🇹', 'Avstriya', 'Austria', 'Австрия'),
-    K('europe', 'gr', '🇬🇷', 'Gresiya', 'Greece', 'Греция'),
-    K('europe', 'ch', '🇨🇭', 'Shveytsariya', 'Switzerland', 'Швейцария'),
+    K('europe', 'pt', '🇵🇹', 'Portugaliya', 'Portugal', 'Португалия', true),
+    K('europe', 'tr', '🇹🇷', 'Turkiya', 'Turkey', 'Турция', true),
+    K('europe', 'nl', '🇳🇱', 'Niderlandiya', 'Netherlands', 'Нидерланды', true),
+    K('europe', 'be', '🇧🇪', 'Belgiya', 'Belgium', 'Бельгия', true),
+    K('europe', 'at', '🇦🇹', 'Avstriya', 'Austria', 'Австрия', true),
+    K('europe', 'dk', '🇩🇰', 'Daniya', 'Denmark', 'Дания', true),
+    K('europe', 'ch', '🇨🇭', 'Shveytsariya', 'Switzerland', 'Швейцария', true),
     // Asia (hammasi yopiq)
     K('asia', 'uz', '🇺🇿', "O'zbekiston", 'Uzbekistan', 'Узбекистан'),
     K('asia', 'jp', '🇯🇵', 'Yaponiya', 'Japan', 'Япония'),
@@ -80,21 +92,31 @@
     bundesliga: 'de', 'bundesliga-2': 'de',
     'ligue-1': 'fr', 'ligue-2': 'fr',
     'liga-portugal': 'pt', 'liga-portugal-2': 'pt',
-    'super-lig': 'tr',
+    'super-lig': 'tr', 'tff-1-lig': 'tr',
+    eredivisie: 'nl', 'eerste-divisie': 'nl', 'pro-league': 'be', 'challenger-pro-league': 'be',
+    'at-bundesliga': 'at', 'at-2-liga': 'at', 'swiss-super-league': 'ch', 'challenge-league': 'ch',
+    'dk-superliga': 'dk', 'dk-1-division': 'dk',
+    superliga: 'uz', 'saudi-pro-league': 'sa', 'uae-pro-league': 'ae', 'j1-league': 'jp', // Asia (hozircha yopiq)
     superliga: 'uz', 'saudi-pro-league': 'sa', 'uae-pro-league': 'ae', 'j1-league': 'jp',
   };
   LEAGUES.forEach((l) => { l.country = COUNTRY_OF[l.id] || null; });
 
   // Davlat sahifasidagi kuboklar (faqat ko'rsatiladi, bosilmaydi). Rasm: webapp/cards/kubok/<id>.png
   // type: league | league2 | cup | supercup — tagiga yoziladigan tur nomi
-  // auto: true — bu kubok qo'lda ochilmaydi, ligalar bilan bir kunda avtomatik start oladi
-  const cup = (id, name, type) => ({ id, name, type, auto: type === 'cup' || type === 'supercup' });
+  const cup = (id, name, type) => ({ id, name, type });
   const CUPS = {
     en: [cup('premier-league', 'Premier League', 'league'), cup('championship', 'Championship', 'league2'), cup('fa-cup', 'FA Cup', 'cup'), cup('community-shield', 'Community Shield', 'supercup')],
     es: [cup('laliga', 'La Liga', 'league'), cup('laliga-2', 'La Liga 2', 'league2'), cup('copa-del-rey', 'Copa del Rey', 'cup'), cup('supercopa', 'Supercopa de España', 'supercup')],
     it: [cup('serie-a', 'Serie A', 'league'), cup('serie-b', 'Serie B', 'league2'), cup('coppa-italia', 'Coppa Italia', 'cup'), cup('supercoppa', 'Supercoppa Italiana', 'supercup')],
     de: [cup('bundesliga', 'Bundesliga', 'league'), cup('bundesliga-2', '2. Bundesliga', 'league2'), cup('dfb-pokal', 'DFB-Pokal', 'cup'), cup('dfl-supercup', 'DFL-Supercup', 'supercup')],
     fr: [cup('ligue-1', 'Ligue 1', 'league'), cup('ligue-2', 'Ligue 2', 'league2'), cup('coupe-de-france', 'Coupe de France', 'cup'), cup('trophee-des-champions', 'Trophée des Champions', 'supercup')],
+    pt: [cup('liga-portugal', 'Liga Portugal', 'league'), cup('liga-portugal-2', 'Liga Portugal 2', 'league2'), cup('taca-de-portugal', 'Taça de Portugal', 'cup'), cup('supertaca', 'Supertaça', 'supercup')],
+    tr: [cup('super-lig', 'Süper Lig', 'league'), cup('tff-1-lig', '1. Lig', 'league2'), cup('turkiye-kupasi', 'Türkiye Kupası', 'cup'), cup('super-kupa', 'Süper Kupa', 'supercup')],
+    nl: [cup('eredivisie', 'Eredivisie', 'league'), cup('eerste-divisie', 'Eerste Divisie', 'league2'), cup('knvb-beker', 'KNVB Beker', 'cup'), cup('johan-cruyff-schaal', 'Johan Cruyff Shield', 'supercup')],
+    be: [cup('pro-league', 'Pro League', 'league'), cup('challenger-pro-league', 'Challenger Pro League', 'league2'), cup('belgian-cup', 'Belgian Cup', 'cup'), cup('belgian-super-cup', 'Belgian Super Cup', 'supercup')],
+    at: [cup('at-bundesliga', 'Bundesliga', 'league'), cup('at-2-liga', '2. Liga', 'league2'), cup('oefb-cup', 'ÖFB-Cup', 'cup')],
+    ch: [cup('swiss-super-league', 'Super League', 'league'), cup('challenge-league', 'Challenge League', 'league2'), cup('swiss-cup', 'Swiss Cup', 'cup')],
+    dk: [cup('dk-superliga', 'Superliga', 'league'), cup('dk-1-division', '1. Division', 'league2'), cup('danish-cup', 'Danish Cup', 'cup')],
   };
   COUNTRIES.forEach((c) => { c.cups = CUPS[c.id] || []; });
 
@@ -130,111 +152,11 @@
     },
   };
 
-  // ——— MAVSUM KALENDARI ———
-  // Qoida: bitta davlatning BARCHA ligalari va kuboklari bitta vaqtda boshlanadi.
-  // Premier Liga, Championship, FA Cup va Community Shield — hammasi bitta start.
-  // Sanani o'zgartirish: SEASON_START / SEASON_END muhit o'zgaruvchilari yoki shu yer.
-  const envOf = (k) => (typeof process !== 'undefined' && process.env ? process.env[k] : null);
-  const SEASON = {
-    number: 6,
-    // Start — shanba kuni, real futboldagidek. Ro'yxatdan o'tish `openDaysBefore` kun oldin ochiladi.
-    startAt: envOf('SEASON_START') || '2026-12-19T18:00:00+05:00',
-    endAt: envOf('SEASON_END') || '2027-06-06T21:00:00+05:00',
-    openDaysBefore: 60,
-    timezone: 'Asia/Tashkent',
-  };
-
-  const DAY_MS = 86400000;
-  const toMs = (v) => {
-    const t = Date.parse(String(v || ''));
-    return Number.isFinite(t) ? t : null;
-  };
-  // Noto'g'ri sana kiritilsa — bugundan boshlab 1 yillik oyna (ilova ishlashdan to'xtamasligi uchun)
-  const NOW_FALLBACK = Date.now();
-  const SEASON_START_MS = toMs(SEASON.startAt) ?? NOW_FALLBACK;
-  const SEASON_END_MS = toMs(SEASON.endAt) ?? SEASON_START_MS + 290 * DAY_MS;
-  const SEASON_OPEN_MS = SEASON_START_MS - (Number(SEASON.openDaysBefore) || 0) * DAY_MS;
-
-  // Mavsum holati: soon → registration → live → finished
-  function seasonCalendar(nowMs) {
-    const now = Number.isFinite(nowMs) ? nowMs : Date.now();
-    let phase = 'finished';
-    if (now < SEASON_OPEN_MS) phase = 'soon';
-    else if (now < SEASON_START_MS) phase = 'registration';
-    else if (now < SEASON_END_MS) phase = 'live';
-    return {
-      number: SEASON.number,
-      phase,
-      canRegister: phase === 'registration',
-      now,
-      opensAt: new Date(SEASON_OPEN_MS).toISOString(),
-      startAt: new Date(SEASON_START_MS).toISOString(),
-      endAt: new Date(SEASON_END_MS).toISOString(),
-      timezone: SEASON.timezone,
-      msToStart: SEASON_START_MS - now,
-      msToEnd: SEASON_END_MS - now,
-    };
-  }
-
   const countryById = Object.fromEntries(COUNTRIES.map((c) => [c.id, c]));
   const leaguesOf = (countryId) => LEAGUES.filter((l) => l.country === countryId);
 
   const byId = Object.fromEntries(LEAGUES.map((l) => [l.id, l]));
   const clubName = (leagueId, clubId) => byId[leagueId]?.clubs.find((c) => c.id === clubId)?.name || clubId;
-
-  // ——— Bitta davlat = bitta "paket": ligalar + avtomatik kuboklar bitta start bilan ———
-  // Masalan Angliya: Premier Liga + Championship, ularga qo'shilib FA Cup + Community Shield.
-  const bundleOfLeague = (leagueId) => byId[leagueId]?.country || null;
-
-  function bundleInfo(countryId, nowMs) {
-    const cal = seasonCalendar(nowMs);
-    const c = countryById[countryId] || null;
-    const leagues = leaguesOf(countryId).map((l) => ({ id: l.id, name: l.name, kind: 'league', group: l.group, auto: false }));
-    const cups = ((c && c.cups) || [])
-      .filter((k) => k.auto)
-      .map((k) => ({ id: k.id, name: k.name, kind: k.type, auto: true }));
-    return {
-      country: countryId,
-      number: cal.number,
-      phase: cal.phase,
-      canRegister: cal.canRegister,
-      startAt: cal.startAt,
-      endAt: cal.endAt,
-      opensAt: cal.opensAt,
-      timezone: cal.timezone,
-      msToStart: cal.msToStart,
-      // Hamma turnir bitta sanada
-      sameStart: true,
-      tournaments: [...leagues, ...cups],
-    };
-  }
-
-  // Bitta turnirning holati (liga ham, kubok ham bir xil qoida bo'yicha)
-  function tournamentStatus(tournamentId, nowMs) {
-    const cal = seasonCalendar(nowMs);
-    const country = bundleOfLeague(tournamentId) || (() => {
-      const hit = COUNTRIES.find((x) => (x.cups || []).some((k) => k.id === tournamentId));
-      return hit ? hit.id : null;
-    })();
-    return {
-      id: tournamentId,
-      country,
-      phase: cal.phase,
-      canRegister: cal.canRegister && !!byId[tournamentId],
-      startAt: cal.startAt,
-      endAt: cal.endAt,
-      msToStart: cal.msToStart,
-    };
-  }
-
-  const data = {
-    season: SEASON.number,
-    SEASON,
-    seasonCalendar,
-    bundleInfo,
-    tournamentStatus,
-    bundleOfLeague,
-    LEAGUES, byId, clubName, CONTINENTS, COUNTRIES, FORMATS, countryById, leaguesOf,
-  };
+  const data = { season: 6, LEAGUES, byId, clubName, CONTINENTS, COUNTRIES, FORMATS, countryById, leaguesOf };
   if (typeof module !== 'undefined') module.exports = data; else root.EFL = data;
 })(this);

@@ -3,9 +3,10 @@
   if (tg) {
     tg.ready();
     tg.expand();
-    try { tg.setHeaderColor('#04060e'); tg.setBackgroundColor('#04060e'); } catch (_) {}
+    try { tg.setHeaderColor('#070a14'); tg.setBackgroundColor('#070a14'); } catch (_) {}
   }
 
+  window.AppBg.restore();   // oxirgi yoqilgan fon darrov ko'rinadi
   const SUPPORTED = ['uz', 'en', 'ru'];
   const $ = (s) => document.querySelector(s);
 
@@ -34,38 +35,34 @@
     route();
   }
 
-  // Marshrut: '' (bosh sahifa) | #guide | #official | #league | #private/<id>/<tab>
+  // Marshrut: '' (bosh sahifa) | #guide | #guide/<mavzu>
   function route() {
     const parts = location.hash.slice(1).split('/');
-    const inGuide = parts[0] === 'guide', inOfficial = parts[0] === 'official', inLeague = parts[0] === 'league',
-      inPrivate = parts[0] === 'private';
-    document.querySelector('.topbar').hidden = inGuide || inPrivate;
-    document.querySelector('main.page').hidden = inGuide || inOfficial || inLeague || inPrivate;
+    const inGuide = parts[0] === 'guide', inOfficial = parts[0] === 'official', inLeague = parts[0] === 'league', inAdmin = parts[0] === 'admin', inUn = parts[0] === 'unofficial';
+    document.querySelector('.topbar').hidden = inGuide || inAdmin;
+    document.querySelector('main.page').hidden = inGuide || inOfficial || inLeague || inAdmin || inUn;
     $('#official').hidden = !inOfficial;
     $('#league').hidden = !inLeague;
-    $('#private').hidden = !inPrivate;
     $('#guide').hidden = !inGuide;
+    $('#admin').hidden = !inAdmin;
+    $('#unofficial').hidden = !inUn;
+    if (inUn) window.UnofficialView.show($('#unofficial'), lang, toast, parts[1], parts[2]); else window.UnofficialView.leave();
+    if (inAdmin) window.AdminView.show($('#admin'), toast); else window.AdminView.leave();
     if (inLeague) window.LeagueView.show($('#league'), lang, toast); else window.LeagueView.leave();
-    if (inPrivate) window.PrivateView.show($('#private'), lang, toast, parts[1], parts[2]);
-    else window.PrivateView.leave();
     if (inGuide) window.GuideView.render($('#guide'), lang, parts[1]);
     else window.scrollTo(0, 0);
-    if (tg?.BackButton) { (inGuide || inOfficial || inLeague || inPrivate) ? tg.BackButton.show() : tg.BackButton.hide(); }
+    if (tg?.BackButton) { (inGuide || inOfficial || inLeague || inAdmin || inUn) ? tg.BackButton.show() : tg.BackButton.hide(); }
   }
   const go = (id) => { location.hash = id === '' ? '' : id === 'index' ? '#guide' : '#guide/' + id; if (id === '') history.replaceState(null, '', location.pathname + location.search); route(); };
   window.addEventListener('hashchange', route);
-  tg?.BackButton?.onClick(() => {
-    const root = location.hash.slice(1).split('/')[0];
-    if (root === 'private') return window.PrivateView.back();
-    if (location.hash === '#league') return window.LeagueView.back() || (location.hash = '#official');
-    return go(location.hash.split('/')[1] ? 'index' : '');
-  });
+  tg?.BackButton?.onClick(() => location.hash.startsWith('#unofficial') ? (window.UnofficialView.back() || go('')) : location.hash === '#league' ? (window.LeagueView.back() || (location.hash = '#official')) : go(location.hash.split('/')[1] ? 'index' : ''));
   $('#official').addEventListener('click', (e) => {
     if (e.target.closest('[data-back]')) return go('');
     const m = e.target.closest('[data-mode]');
     if (m?.dataset.mode === 'leagues') { location.hash = '#league'; return; }
     if (m) { tg?.HapticFeedback?.impactOccurred('light'); toast(window.I18N[lang].soon); } // bo'limlar keyingi qismlarda
   });
+  $('#admin').addEventListener('click', (e) => { if (e.target.closest('[data-back]')) go(''); });
   $('#guide').addEventListener('click', (e) => {
     const a = e.target.closest('a[data-admin]');
     if (a && tg?.openTelegramLink) { e.preventDefault(); tg.openTelegramLink(a.href); return; }
@@ -102,7 +99,8 @@
     tg?.HapticFeedback?.impactOccurred('light');
     if (name === 'guide') return go('index');
     if (name === 'official') { location.hash = '#official'; return; }
-    if (name === 'private') { location.hash = '#private'; return; }
+    if (name === 'admin') { location.hash = '#admin'; return; }
+    if (name === 'private') { location.hash = '#unofficial'; return; }
     // TODO: har bir bo'lim sahifasi keyingi qismlarda qo'shiladi
     toast(window.I18N[lang].soon);
   }
@@ -130,21 +128,23 @@
   const first = tg?.initDataUnsafe?.user?.first_name;
   if (first) $('#uname').textContent = first;
 
-  // ?open=guide / ?open=private — botdagi tugmalar
-  const open = new URLSearchParams(location.search).get('open');
-  if (open === 'guide' && !location.hash) history.replaceState(null, '', '#guide');
-  if (open === 'private' && !location.hash) history.replaceState(null, '', '#private');
+  // ?open=guide — botdagi "Qo'llanma" tugmasi
+  if (new URLSearchParams(location.search).get('open') === 'guide' && !location.hash) history.replaceState(null, '', '#guide');
 
-  // Har bir bosishda yengil haptik javob — Telegram'da sezilarli farq beradi
-  let hapticAt = 0;
-  document.addEventListener('pointerdown', (e) => {
-    if (!e.target?.closest) return;
-    if (!e.target.closest('button, .card, .guide, .flag, .lc, .chip')) return;
-    const now = Date.now();
-    if (now - hapticAt < 90) return;
-    hapticAt = now;
-    tg?.HapticFeedback?.impactOccurred('light');
-  }, { passive: true });
+  // ?open=games — o'yin hisobi xabaridagi tugma (Profil → Mening o'yinlarim); ?open=admin — /admin tugmasi
+  const openParam = new URLSearchParams(location.search).get('open');
+  if (openParam === 'games' && !location.hash) { window.LeagueView.preset('profile'); history.replaceState(null, '', '#league'); }
+  if (openParam === 'support' && !location.hash) { window.LeagueView.preset('support'); history.replaceState(null, '', '#league'); }
+  if (openParam === 'admin' && !location.hash) history.replaceState(null, '', '#admin');
+  // ?open=ut/<id> — turnirni ochish; ?open=join/<KOD> — taklif kodi bo'yicha turnirga qo'shilish
+  if (openParam && !location.hash) {
+    const [k, v] = openParam.split('/');
+    if (k === 'ut' && v) history.replaceState(null, '', '#unofficial/' + v);
+    if (k === 'join' && v) history.replaceState(null, '', '#unofficial/code/' + v);
+  }
+
+  // Admin tugmasi faqat adminlarga ko'rinadi
+  if (tg?.initData) fetch('/api/me', { headers: { 'x-init-data': tg.initData } }).then((r) => r.json()).then((d) => { if (d.admin) $('#adminBtn').hidden = false; if ('bg' in d) window.AppBg.setOwn(d.bg); }).catch(() => {});
 
   applyLang(lang);
 

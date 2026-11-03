@@ -6,46 +6,12 @@
    - `MONGO_URI` — MongoDB Atlas ulanish manzili
    - `MINI_APP_URL` — botni qo'yadigan HTTPS domen (masalan `https://sizning-domen.uz`)
    - `PORT` — 3000
-   - `ADMIN_IDS` — global adminlarning Telegram ID'lari, vergul bilan (masalan `123456789,987654321`)
+   - `ADMIN_IDS` — adminlarning Telegram ID lari, vergul bilan (masalan `123456789,987654321`)
 2. `npm install`
 3. `npm start`
 
-Adminlar botda **/admin** buyrug'i bilan ham panelni ochishi mumkin. Turnir yaratgan foydalanuvchi avtomatik o'sha turnirning tashkilotchisi bo'ladi va unga ham admin panel ko'rinadi.
-
 Bot mini app fayllarini (`webapp/`) o'zi beradi, shuning uchun `MINI_APP_URL` shu server turgan HTTPS domen bo'lishi kerak.
 Mahalliy sinov uchun: `ngrok http 3000` va chiqqan https manzilni `MINI_APP_URL` ga qo'ying.
-
-## Norasmiy turnirlar va admin panel
-
-Bosh sahifadagi **Norasmiy turnirlar** kartasi `#private` bo'limini ochadi. Eski «Yopiq turnirlar» nomi hamma joyda **«Norasmiy turnirlar»**ga almashtirilgan (uz/en/ru).
-
-### Turnir yaratish
-- **+ Yangi turnir** → nom va ishtirokchilar soni (2–32).
-- Turnirni yaratgan foydalanuvchi avtomatik ishtirokchi va tashkilotchi bo'ladi.
-- `ADMIN_IDS` dagi global adminlar istalgan turnirni boshqara oladi.
-- Ro'yxatda turnir holati, ishtirokchilar soni, o'yinlar soni va admin uchun tasdiq kutayotgan natijalar soni ko'rinadi.
-
-### Admin panel
-Turnir sahifasidagi **🛡 Admin** tabida:
-1. **Natijalar** — raqib tasdiqlamagan (`pending`) yoki bekor qilingan (`disputed`) natijalar. Admin tasdiqlaydi, boshqa hisob kiritadi yoki rad etadi.
-2. **Qur'a va vaqtlar** — bir davrali qur'a (har kim har kim bilan bir marta), turlar orasidagi interval, har bir o'yin vaqtini qo'lda o'zgartirish, qo'lda o'yin qo'shish.
-3. **Ishtirokchilar** — @username yoki Telegram ID bo'yicha qo'shish; topilmasa ismni qo'lda yozish; o'yindan chiqarish (u bilan bog'liq o'yinlar ham o'chadi).
-4. **Sozlamalar** — turnir nomi, turnirni tugatish / qayta ochish.
-
-### Natija kiritish logikasi
-1. O'yinchi o'z o'yini kartasida **Natija kiritish**ni bosadi va hisobni yuboradi → holat `pending`.
-2. Raqib **Tasdiqlash**ni bossa → holat `confirmed`, hisob **avtomatik jadvalga** tushadi.
-3. Raqib **Yolg'on**ni bossa → kiritilgan hisob bekor qilinadi (`disputed`), jadval o'zgarmaydi va admin panelda «Hisob kiritish» paydo bo'ladi.
-4. Admin kiritgan/tasdiqlagan natija darhol jadvalga tushadi (`resultSource: admin`).
-5. Faqat `confirmed` o'yinlar jadvalda hisoblanadi. O'z hisobini o'zi tasdiqlash taqiqlangan.
-
-Natijalar haqida raqibga Telegram xabari yuboriladi; nizo bo'lsa tashkilotchi va global adminlarga ham xabar boradi.
-
-### Sinov
-```bash
-npm test                 # qur'a/jadval sof logikasi
-node test/api.e2e.js     # to'liq API oqimi (lokal MongoDB kerak)
-```
 
 ## Rasmlar (o'zingiz qo'yasiz)
 - `webapp/cards/official.jpg`, `private.jpg`, `team.jpg` — bosh sahifa kartalari
@@ -57,11 +23,6 @@ Rasm qo'yilmasa, ilova buzilmaydi: gradient yoki bo'sh joy ko'rinadi.
 
 ## Hozir ishlaydigan qismlar
 /start → til tanlash → Kirish (ilova ichida yuklanish ekrani) → bosh sahifa → Rasmiy turnirlar → **Rasmiy turnirlar** (avvalgi "Ligalar") → qit'a → davlat:
-- **Qit'alar:** tepada Europe | Asia | Africa, uchalasi ochiq. Europe tanlangan holda ochiladi.
-- **Davlatlar:** har bir qit'ada 12 ta davlat, 6 qator × 2 ustun, bayroq + nom (`league-data.js` → `COUNTRIES`). Hozircha faqat 5 tasi ochiq (Angliya, Ispaniya, Italiya, Germaniya, Fransiya); qolganlari 🔒 (bosilsa "Tez orada"). Davlatni ochish: `open: true` qo'ying. Asia va Africa davlatlarining hammasi hozircha yopiq.
-- **Davlat sahifasi (tartib):** davlat nomi → 4 ta kubok (bosilmaydi, tagida nomi/turi; rasm `cards/kubok/`) → **turnir tanlash** karuseli (Angliyada Premier League va Championship, rasm `cards/leagues/`) → «Ro'yxatdan o'tish» → klublar ro'yxati → turnir formati (tanlangan liga + kuboklar qoidalari). Klubni tanlab «Ro'yxatdan o'tish» bosiladi.
-- **Turnir formatlari** (`FORMATS` ichida) hozircha faqat Angliya uchun: Premier League, Championship, FA Cup, Community Shield. Boshqa davlatlarda kubok rasmlari chiqadi, format matni keyin qo'shiladi. Kuboklarning o'zi (FA Cup, Community Shield) hali o'ynalmaydi — ular hozircha ma'lumot sifatida ko'rsatiladi.
-- **Pastki menyu (Asosiy · Reyting · Profil · Sovrinlar · Do'kon)** faqat ro'yxatdan o'tgandan keyin ochiladi (`league.js` ichidagi `nav` funksiyasi; har doim ko'rsatish uchun `data.mine ?` shartini olib tashlang). Reyting va Profil avvalgidek.
 - Liga ↔ davlat bog'lanishi: `COUNTRY_OF` (league-data.js). Superliga, Saudi, UAE va J1 ligalari Osiyo davlatlariga bog'langan; bu davlatlar yopiq bo'lgani uchun ular hozircha ko'rinmaydi.
 
 Liga ichidagi imkoniyatlar:
@@ -75,3 +36,54 @@ Liga ichidagi imkoniyatlar:
 Liga va klub ro'yxati: `webapp/league-data.js` (brauzer ham, server ham shu faylni ishlatadi). Maksimal o'yinchilar soni videodagi sonlar bo'yicha; klub nomlari qoralama — o'yindagi ro'yxatga qarab tekshiring.
 
 Eslatma: MongoDB'da eski `league+season+telegramId` indeksi qolgan bo'lsa, yangi `season+telegramId` indeksi bilan birga ishlayveradi (xalaqit bermaydi).
+
+## Rasmiy turnirlar (joriy tuzilma)
+- **Bosh sahifa:** Rasmiy turnirlar · Shaxsiy turnirlar · **Divizion** (avval "Teamlar jangi"; Divizion hozircha "Tez orada").
+- **Rasmiy turnirlar → rejimlar:** Rasmiy turnirlar (avval "Ligalar") · Jahon chempionati · CL · EL · **Konferensiya ligasi** · AFC. Divizion bu yerdan olib tashlandi.
+- **Rasmiy turnirlar rejimi:** Europe | Asia | Africa tablari. Yevropaning 12 davlati ochiq (Angliya, Ispaniya, Italiya, Germaniya, Fransiya, Portugaliya, Turkiya, Niderlandiya, Belgiya, Avstriya, Daniya, Shveytsariya), 6 qator × 2 ustun. Asia va Africa davlatlari hozircha yopiq (🔒). Davlatni ochish: `league-data.js` → `COUNTRIES` da `open: true`.
+- **Davlat sahifasi:** kuboklar (bosilmaydi) → turnir tanlash karuseli → «Ro'yxatdan o'tish» → klublar → turnir formati. Faqat ro'yxatdan o'tmaganlarga ko'rinadi.
+- **Ro'yxatdan o'tgach pastki menyu:** **Ma'lumotlar · Me · Do'kon** (Reyting va Sovrinlar olib tashlandi).
+  - **Ma'lumotlar:** tepada kuboklar, undan pastda qaysi ligadaligingiz + liga reytingi (jadval), eng pastda turnir formati va qoidalar.
+  - **Me:** profil → **Kolleksiya** (yutilgan kubok / sotib olingan narsalar; hozircha bo'sh) → klublarim (logotiplar). Klub ichida: chapda «Klubdan voz kechaman» (klub ro'yxatdan o'tish ro'yxatiga qaytadi), o'ngda «Auksionga qo'yaman» (narx kiritiladi, lot Do'kon → Auksionga tushadi), pastda «Mening o'yinlarim».
+  - **Do'kon → Auksion:** auksionga qo'yilgan klublar ro'yxati. O'z lotini olib qo'yish mumkin; «Sotib olish» valyuta tizimi tayyor bo'lgach ishga tushadi.
+- **API (bot.js):** `/api/profile`, `/api/leave`, `/api/auction`, `/api/auction/cancel`, `/api/auctions`. Eski `/api/claim` va "topshiraman" olib tashlandi; `Registration.releasing` o'rniga `auction { price, at }`.
+- **Rasmlar:** `webapp/img-map.js` yuklangan `cards/Yevropa/...` fayllarini liga va klublarga bog'laydi (fayl nomi bo'yicha). Rasm topilmasa klub nomining bosh harfi chiqadi.
+
+## Norasmiy turnirlar (videodagi bo'lim)
+Bosh sahifadagi "Yopiq turnirlar" kartasi "Norasmiy turnirlar" deb nomlandi va videodagidek to'liq bo'lim qilindi (to'lovsiz). Kod: `unofficial.js` (server), `webapp/unofficial.js` (ilova), modellar `Tournament`, `TMatch`.
+- **Tuzish:** nom, o'yinchilar soni (4–64), liga turlari soni, play-off (yo'q / top 4 / 8 / 16), tur davomiyligi (1–7 kun). Bir foydalanuvchi ko'pi bilan 3 ta faol turnir tuza oladi (adminlarga cheklov yo'q).
+- **Qo'shilish:** taklif havolasi `t.me/<bot>?start=t_KOD` (ilovada "Ulashish" tugmasi) yoki kodni kiritish. Jamoa nomi ixtiyoriy.
+- **Qura:** tashkilotchi vaqt belgilaydi (bot o'zi qura qiladi) yoki "Hozir qura qilish". Har bir o'yinchi turlar soni qadar turli raqib bilan o'ynaydi. Tur muddati — har tur oxirgi kuni 23:59 (Toshkent).
+- **Tablar:** Asosiy (sizning o'yiningiz, taklif, raqib/tashkilotchiga yozish, qoidalar), Reyting (Jadval · Setka · Joriy tur · To'p urarlar), Profil (barcha o'yinlarim), Sovrinlar (Oltin butsa, Oltin to'p, kubok), Boshqaruv (faqat tashkilotchi va adminlar).
+- **Play-off:** liga tugagach tashkilotchi "Play-offni boshlash" ni bosadi (top N urug'lanib setka tuziladi, har tur tugaganda keyingisi avtomatik yaratiladi, final g'olibi chempion). Play-offda durang yo'q.
+- **Katta hisob:** biror tomon 6+ gol urgan bo'lsa, raqib tasdiqlagandan keyin ham hisob tashkilotchi/admin tasdig'ini kutadi (videodagi "Big score").
+- **Xona ID:** o'yin kartasidagi 💬 tugmasi — raqibga bot orqali xona ID yuborish yoki unga Telegramda yozish.
+- **Admin panel → Turnirlar:** admin barcha turnirlarni ko'radi va istalganini tashkilotchi sifatida boshqara oladi.
+- Videodagi ilovaga ichki chat qo'shilmadi: "Chat" o'rniga Telegramdagi shaxsiy yozishma ochiladi.
+
+## O'yin hisobi (tasdiqlash mantig'i)
+Me → klub → *Mening o'yinlarim*. Qura o'tkazilgach har bir o'yinchida o'z o'yinlari chiqadi:
+1. Biri **Hisob kiritish** ni bosib hisobni yuboradi (o'yin `pending` bo'ladi, raqibga botdan xabar boradi). Raqib tasdiqlamaguncha kiritgan odam hisobni o'zgartira oladi.
+2. Raqib **Tasdiqlash** ni bossa — hisob avtomatik reyting jadvaliga o'tadi (`confirmed`).
+3. Raqib **Yolg'on** ni bossa — kiritilgan hisob bekor qilinadi (`disputed`, jadvalga o'tmaydi), adminlarga xabar boradi va natijani admin panelda kiritadi.
+
+## Admin panel
+`.env` dagi `ADMIN_IDS` dagi foydalanuvchilarga bosh sahifada "Admin panel" tugmasi chiqadi (yoki botda `/admin`).
+- **Natijalar** — kutayotgan/bahsli o'yinlar; admin hisobni kiritadi yoki tasdiqlaydi (tasdiqlangan natijani ham o'zgartirish mumkin). Ikkala o'yinchiga xabar boradi.
+- **Qura** — har bir liga uchun qura vaqtini belgilash (vaqti kelganda bot o'zi qura qiladi, har daqiqada tekshiradi), "Hozir qura qilish", 1 yoki 2 davra tanlash, hisob kiritilmagan bo'lsa qayta qura.
+- **Ishtirokchilar** — ishtirokchini ligadan chiqarish (uning o'yinlari bekor, natijalari jadvaldan olib tashlanadi) va qo'shish (@username yoki Telegram ID; qura o'tgan bo'lsa unga qolganlar bilan o'yinlar qo'shiladi).
+
+Yangi fayllar: `models/Match.js`, `models/LeagueConfig.js`, `fixtures.js` (qura va jadval hisobi), `webapp/admin.js`. Jadval (`pts, w, d, l, gf, ga`) har safar tasdiqlangan o'yinlardan qayta hisoblanadi. Klub "topshirilsa", uning o'yinlari ham yangi egasiga o'tadi.
+
+## Do'kon: Coins, kosmetika, Sell
+- To'lov kartasi `bot.js` da kiritilgan (9860 1901 0919 5155, Fayozbek Botirov). Almashtirish uchun `.env` ga `PAY_CARD` va `PAY_HOLDER` qo'shing — ular birinchi o'rinda olinadi.
+- **Coins** (sariq tanga): paketlar va narxlar `webapp/shop-data.js` ichida (`PACKS`). Foydalanuvchi paketni tanlaydi, kartaga o'tkazadi va chek rasmini yuboradi → rasm adminlarga botda keladi (✅ Tasdiqlash / ❌ Rad etish) → tasdiqlansa Coins balansga qo'shiladi.
+- **Kosmetika:** avatar ramkalari va profil fonlari (`FRAMES`, `BACKGROUNDS`), Coins evaziga. Ko'rish oynasida ‹ › bilan almashtiriladi; sotib olingach profilda yoqiladi, Me → Kolleksiyada ko'rinadi.
+- **Sell:** Me → Kolleksiyadagi kubok Do'kon → Sell bo'limida sotiladi. «Sotish» → foydalanuvchi karta raqamini kiritadi → adminga yetib boradi (bazada faqat oxirgi 4 raqam saqlanadi) → foydalanuvchiga «24 soat ichida pulni tashlab beramiz» deyiladi. Admin pulni o'tkazgach botdagi «To'lab berildi» tugmasini bosadi → kubok foydalanuvchi ro'yxatidan chiqariladi. «Rad etish» bosilsa kubok qaytadi.
+- **Kubok berish:** Admin panel → Ishtirokchilar → ligani tanlab, g'olib qatoridagi «🏆 Kubok» tugmasi (bir mavsumda bitta ligadan bitta kubok).
+- **Kubok rasmlari:** `webapp/cards/kubok/` dagi yuklangan fayllar `webapp/img-map.js` (`CUP_FILES`) orqali kubok id larga ulangan.
+- **API (bot.js):** `/api/shop`, `/api/shop/topup`, `/api/shop/buy`, `/api/shop/equip`, `/api/shop/sell`, `/api/admin/league/:id/award`. Modellar: `User` (coins, cosmetics, equipped), `Trophy`, `TopUp`.
+
+## Boshqa ishtirokchi profili va futbolchi fonlari
+- **Profilni ko'rish:** Ma'lumotlar → reyting jadvalidagi qatorni bosganda o'sha ishtirokchining profili ochiladi: kolleksiya (kuboklar, kosmetika), klublari va tanlagan ramka/foni. Telegram ID oshkor qilinmaydi (`/api/profile/view` klub bo'yicha egasini topadi).
+- **Futbolchi fonlari** (Neymar Jr, Ronaldo, Messi, Shevchenko, Gullit, Ramos — 800 Coins): Do'kon → Kosmetika → "Futbolchi fonlari". Rasmlar `webapp/cards/players/<id>.jpg` (yoki `.png`) ga qo'yiladi: `neymar`, `ronaldo`, `messi`, `shevchenko`, `gullit`, `ramos`. Rasm qo'yilmaguncha fon o'rnida gradient ko'rinadi. Narxlar `webapp/shop-data.js` da.

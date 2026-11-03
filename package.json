@@ -1,17 +1,8 @@
 {
   "name": "mini-app-bot",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "main": "bot.js",
-  "engines": {
-    "node": ">=18.17"
-  },
-  "scripts": {
-    "start": "node bot.js",
-    "dev": "node --watch bot.js",
-    "test": "node --test test/tournament.test.js test/season.test.js",
-    "test:season": "node --test test/season.test.js",
-    "check": "node --check bot.js && node --check lib/season.js && node --check lib/tournament.js && node --check webapp/league-data.js"
-  },
+  "scripts": { "start": "node bot.js" },
   "dependencies": {
     "express": "^4.19.2",
     "dotenv": "^16.4.5",
