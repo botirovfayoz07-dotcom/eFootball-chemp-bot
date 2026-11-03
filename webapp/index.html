@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#04060e">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>eFootball</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Liquid fon qatlami: shisha shu ranglarni sindiradi -->
+<div class="lg-bg" aria-hidden="true">
+  <i class="o1"></i><i class="o2"></i><i class="o3"></i><i class="o4"></i>
+</div>
+<div class="lg-noise" aria-hidden="true"></div>
+
+<div id="splash"><div class="spot"></div>
+  <div class="splash-in">
+    <div class="ball-wrap"><i class="ring"></i>
+      <svg class="emblem" viewBox="0 0 100 100" role="img" aria-label="eFootball">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#63e6ff"/><stop offset=".55" stop-color="#8b5cf6"/><stop offset="1" stop-color="#2ee6a8"/>
+          </linearGradient>
+        </defs>
+        <path d="M34 24h32v15c0 10.5-7.2 18-16 18s-16-7.5-16-18V24z" fill="url(#lg)"/>
+        <path d="M34 29h-7.5c0 9.5 4.2 14.8 10.5 15.8M66 29h7.5c0 9.5-4.2 14.8-10.5 15.8" fill="none" stroke="url(#lg)" stroke-width="3" stroke-linecap="round"/>
+        <rect x="46" y="56" width="8" height="9.5" rx="1" fill="url(#lg)"/>
+        <rect x="35" y="65.5" width="30" height="6" rx="3" fill="url(#lg)"/>
+      </svg>
+    </div>
+    <h1 class="splash-title">eFOOTBALL</h1>
+    <p class="splash-tag" data-i18n="splashTag"></p>
+    <div class="loader"><i></i></div>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="brand"><span class="ball">⚽</span><span class="brand-text">eFOOTBALL</span></div>
+
+  <div class="right"><span id="uname"></span><div class="lang" id="lang">
+    <button class="lang-btn" id="langBtn" aria-haspopup="true" aria-expanded="false">
+      <span class="dash">—</span><span id="langCur">UZ</span>
+    </button>
+    <ul class="lang-menu" id="langMenu" hidden>
+      <li><button data-lang="uz">UZ · O'zbekcha</button></li>
+      <li><button data-lang="en">EN · English</button></li>
+      <li><button data-lang="ru">RU · Русский</button></li>
+    </ul>
+  </div></div>
+</header>
+
+<main class="page">
+  <h1 class="section-title" data-i18n="chooseSection"></h1>
+
+  <div class="carousel" id="carousel">
+  <button class="card card-official" data-section="official">
+    <svg class="ico" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg>
+    <h2 data-i18n="officialTitle"></h2>
+    <p data-i18n="officialSub"></p>
+  </button>
+
+  <button class="card card-private" data-section="private">
+    <svg class="ico" viewBox="0 0 24 24"><path d="M4 4l16 16M20 4L4 20M4 4h5M4 4v5M20 4h-5M20 4v5M4 20h5M4 20v-5M20 20h-5M20 20v-5"/></svg>
+    <h2 data-i18n="privateTitle"></h2>
+    <p data-i18n="privateSub"></p>
+  </button>
+  </div>
+  <div class="dots" id="dots"><i class="on"></i><i></i></div>
+
+  <button class="card card-team" data-section="team">
+    <svg class="ico" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>
+    <h2 data-i18n="teamTitle"></h2>
+    <p data-i18n="teamSub"></p>
+  </button>
+
+  <button class="guide" data-section="guide">
+    <span class="guide-ico">📖</span>
+    <span class="guide-text">
+      <b data-i18n="guideTitle"></b>
+      <small data-i18n="guideSub"></small>
+    </span>
+    <span class="chev">›</span>
+  </button>
+</main>
+
+<section id="official" class="page" hidden>
+  <button class="back" data-back><span>‹</span> <span data-i18n="back"></span></button>
+  <h1 class="section-title" data-i18n="chooseMode"></h1>
+  <div class="mode-slider" id="modeSlider">
+    <button class="rb m-leagues" data-mode="leagues"><span class="rb-in"><img src="cards/modes/leagues.jpg" alt="" onerror="this.closest('.rb').classList.add('noimg')"><span class="lbl" data-i18n="modeLeagues"></span></span></button>
+    <button class="rb m-world" data-mode="world"><span class="rb-in"><img src="cards/modes/world.jpg" alt="" onerror="this.closest('.rb').classList.add('noimg')"><span class="lbl" data-i18n="modeWorld"></span></span></button>
+    <button class="rb m-cl" data-mode="cl"><span class="rb-in"><img src="cards/modes/cl.jpg" alt="" onerror="this.closest('.rb').classList.add('noimg')"><span class="lbl cup">UEFA<br>CHAMPIONS<br>LEAGUE</span></span></button>
+    <button class="rb m-el" data-mode="el"><span class="rb-in"><img src="cards/modes/el.jpg" alt="" onerror="this.closest('.rb').classList.add('noimg')"><span class="lbl cup">UEFA<br>EUROPA<br>LEAGUE</span></span></button>
+    <button class="rb m-afc" data-mode="afc"><span class="rb-in"><img src="cards/modes/afc.jpg" alt="" onerror="this.closest('.rb').classList.add('noimg')"><span class="lbl cup">AFC<br>CHAMPIONS<br>LEAGUE</span></span></button>
+    <button class="rb m-div" data-mode="division"><span class="rb-in"><img src="cards/modes/division.jpg" alt="" onerror="this.closest('.rb').classList.add('noimg')"><span class="lbl" data-i18n="modeDivision"></span></span></button>
+  </div>
+  <div class="dots" id="modeDots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+</section>
+
+<section id="league" hidden></section>
+<section id="private" hidden></section>
+<section id="guide" hidden></section>
+<div class="toast" id="toast" hidden></div>
+
+<script src="i18n.js"></script>
+<script src="league-data.js"></script>
+<script src="rating.js"></script>
+<script src="profile.js"></script>
+<script src="league.js"></script>
+<script src="private.js"></script>
+<script src="guide-data.js"></script>
+<script src="guide.js"></script>
+<script src="liquid.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
