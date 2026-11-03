@@ -1429,7 +1429,7 @@ h1, h2, h3, b, strong { font-weight: 700; }
 .rline { display: inline-block; width: 26px; height: 3px; border-radius: 2px; background: rgba(255, 92, 108, .9); margin: 0 1px; }
 
 /* ============================== 14. PROFILE ============================= */
-.pf-card {
+.pf-card:not([class*="bg-"]) {
   display: flex;
   align-items: center;
   gap: 15px;
@@ -2318,7 +2318,7 @@ h1, h2, h3, b, strong { font-weight: 700; }
   .flag { background: rgba(20, 26, 46, .94); }
   .p-hero,
   .l-hero,
-  .pf-card {
+  .pf-card:not([class*="bg-"]) {
     background: linear-gradient(150deg, rgba(255, 255, 255, .13), rgba(255, 255, 255, .05)), #0e1426;
   }
 }

@@ -4,10 +4,10 @@ window.AdminView = (() => {
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const api = (path, opts = {}) => fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', 'x-init-data': tg?.initData || '' } }).then(async (r) => ({ ok: r.ok, ...(await r.json().catch(() => ({}))) })).catch(() => ({ ok: false }));
   const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body || {}) });
-  const ERR = { drawn: "Qura allaqachon o'tkazilgan", few: 'Kamida 2 ishtirokchi kerak', played: "Hisoblar kiritilgan — qayta qura qilib bo'lmaydi", nouser: "Foydalanuvchi topilmadi (botga /start bosgan bo'lishi kerak)", already: "U shu mavsumda allaqachon ro'yxatda", taken: 'Bu klub band', full: "Liga to'lgan", badScore: "Hisobni to'g'ri kiriting (0–99)", gone: "Topilmadi yoki holati o'zgargan", forbidden: "Ruxsat yo'q", fail: "Xatolik, qayta urinib ko'ring" };
+  const ERR = { drawn: "Qura allaqachon o'tkazilgan", few: 'Kamida 2 ishtirokchi kerak', played: "Hisoblar kiritilgan — qayta qura qilib bo'lmaydi", nouser: "Foydalanuvchi topilmadi (botga /start bosgan bo'lishi kerak)", already: "U shu mavsumda allaqachon ro'yxatda", taken: 'Bu klub band', full: "Liga to'lgan", badScore: "Hisobni to'g'ri kiriting (0–99)", gone: "Topilmadi yoki holati o'zgargan", forbidden: "Ruxsat yo'q", stage: "Bosqich topilmadi", nodraw: "Avval qura tashlang", none: "Tasdiqlangan o'yinlar yo'q", last: "Bu oxirgi bosqich", time: "Vaqt noto'g'ri", fail: "Xatolik, qayta urinib ko'ring" };
   const ST = { scheduled: 'Kutilmoqda', pending: 'Raqib tasdig\'i kutilmoqda', disputed: '⚠️ Bahsli (yolg\'on)', confirmed: 'Tasdiqlangan' };
 
-  let el, toast, tab = 'results', tours = null, ov = null, mt = { league: '', status: 'action', list: [], total: 0 }, pl = { league: '', data: null }, cups = null, sp = { threads: null, open: null, name: '', msgs: [] }, spTimer = null;
+  let el, toast, tab = 'results', tours = null, ov = null, mt = { league: '', status: 'action', list: [], total: 0 }, pl = { league: '', data: null }, cups = null, sp = { threads: null, open: null, name: '', msgs: [] }, spTimer = null, cupState = null;
 
   const fmtLocal = (d) => { const x = new Date(d), p = (n) => String(n).padStart(2, '0'); return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}T${p(x.getHours())}:${p(x.getMinutes())}`; };
   const fmtShow = (d) => new Date(d).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -15,7 +15,7 @@ window.AdminView = (() => {
 
   function tabsHtml() {
     const n = ov?.action || 0;
-    return `<div class="ad-tabs">${[['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar'], ['cups', 'Kubok narxi'], ['open', 'Ligalar holati'], ['support', `Xabarlar${ov?.support ? ` <i>${ov.support}</i>` : ''}`]].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
+    return `<div class="ad-tabs">${[['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['cup', '🎲 FA Cup'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar'], ['cups', 'Kubok narxi'], ['open', 'Ligalar holati'], ['support', `Xabarlar${ov?.support ? ` <i>${ov.support}</i>` : ''}`]].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
   }
 
   // ——— Natijalar ———
@@ -56,6 +56,62 @@ window.AdminView = (() => {
     }).join('');
   }
 
+  // ——— FA Cup: saralash + pley-off ———
+  function cupHtml() {
+    if (!cupState) return '<p class="ad-hint">Yuklanmoqda…</p>';
+    return `<p class="ad-hint">Saralash: Premier Liga 20→10, Championship 24→12→6, keyin 16 klub. Qura vaqti kelganda avtomatik o'tadi. <b>Start</b> bosilmaguncha o'yinchilar faqat raqibni ko'radi.</p>` +
+      cupState.stages.map((s) => {
+        const drawn = !!s.drawnAt;
+        return `<div class="g-card ad-lg" data-cupstage="${s.stage}">
+          <h3>${esc(s.label)} <small>${s.teams} klub · ${s.matches} o'yin</small></h3>
+          <p class="ad-hint">
+            ${drawn ? `🎲 ${fmtShow(s.drawnAt)}` : "🎲 qura yo'q"}
+            ${s.startedAt ? ` · ▶️ ${fmtShow(s.startedAt)}` : ''}
+            ${s.deadline ? ` · ⏰ ${fmtShow(s.deadline)}` : ''}
+            ${s.matches ? ` · ✅ ${s.confirmed}/${s.matches}` : ''}
+          </p>
+          ${drawn ? '' : `<label class="ad-lbl">Qura vaqti<input type="datetime-local" data-dt value="${s.drawAt ? fmtLocal(s.drawAt) : ''}"></label>`}
+          <div class="ad-row">
+            ${drawn
+              ? `<label class="ad-lbl">Dedlayn (soat)<input type="number" min="0" max="720" value="24" data-hours></label>
+                 <button class="ad-btn ok" data-act="cup-start">▶️ Start berish</button>`
+              : `<button class="ad-btn" data-act="cup-time">Vaqtni saqlash</button>
+                 <button class="ad-btn ok" data-act="cup-draw">🎲 Hozir qura</button>`}
+          </div>
+          ${s.stage !== 'final' ? `<button class="ad-btn ghost sm" data-act="cup-advance">➡️ Keyingi bosqichga</button>` : ''}
+          ${drawn ? `<button class="ad-btn bad sm" data-act="cup-reset">Tozalash / qayta qura</button>` : ''}
+        </div>`;
+            }).join('') +
+      `<div class="g-card ad-lg">
+        <h3>🛡 Community Shield <small>2 finalist</small></h3>
+        <p class="ad-hint">Premier Liga g'olibi va FA Cup g'olibi o'rtasidagi o'yin. Ikkalasi ham aniqlanganda yaratiladi. Bitta klub ikkalasini yutgan bo'lsa — o'yinsiz g'olib.</p>
+        <button class="ad-btn ghost" data-act="cup-shield">🛡 Community Shield yaratish</button>
+      </div>`;
+  
+  }
+  async function loadCup() { const r = await api('/api/admin/cup'); if (r.ok) { cupState = r; if (tab === 'cup') render(); } }
+
+    // ——— Qura marosimi: juftliklar birma-bir chiqadi ———
+  function reveal(pairs, stage, after) {
+    const meta = cupState?.stages?.find((s) => s.stage === stage);
+    const box = document.createElement('div');
+    box.className = 'rv-modal';
+    box.innerHTML = `<div class="rv-box">
+      <h3>🎲 ${esc(meta?.label || 'Qura')}</h3>
+      <p class="rv-sub">${pairs.length} ta juftlik</p>
+      <div class="rv-list">
+        ${pairs.map((p, i) => `<div class="rv-item" style="animation-delay:${i * 180}ms">
+          <span>${esc(p.home)}</span><b>vs</b><span>${esc(p.away)}</span>
+        </div>`).join('')}
+      </div>
+      <button class="ad-btn ok" data-rv-close>Yopish</button>
+    </div>`;
+    const close = () => { box.remove(); if (after) after(); };
+    box.addEventListener('click', (e) => {
+      if (e.target === box || e.target.hasAttribute('data-rv-close')) close();
+    });
+    document.body.appendChild(box);
+  }
   // ——— Ishtirokchilar ———
   function playersHtml() {
     const d = pl.data;
@@ -105,7 +161,7 @@ window.AdminView = (() => {
         try { const r = await fetch('/api/file/' + encodeURIComponent(fid), { headers: { 'x-init-data': tg?.initData || '' } }); if (!r.ok) throw 0; imgCache.set(fid, URL.createObjectURL(await r.blob())); } catch (_) { im.alt = '⚠️ rasm yuklanmadi'; continue; }
       }
       im.src = imgCache.get(fid);
-    }
+    }4 
   }
   const bubble = (x) => `<div class="m-b ${x.mine ? 'me' : 'op'}">${x.fileId ? `<img class="m-img" data-fid="${esc(x.fileId)}" data-act="zoom" alt="">` : ''}${x.text ? `<span>${esc(x.text)}</span>` : ''}<small>${hm2(x.at)}</small></div>`;
   function supportHtml() {
@@ -131,7 +187,7 @@ window.AdminView = (() => {
 
   function render() {
     if (!ov) { el.innerHTML = '<div class="page"><p class="ad-hint">Yuklanmoqda…</p></div>'; return; }
-    const body = tab === 'results' ? resultsHtml() : tab === 'draw' ? drawHtml() : tab === 'tour' ? toursHtml() : tab === 'cups' ? cupsHtml() : tab === 'open' ? openHtml() : tab === 'support' ? supportHtml() : playersHtml();
+    const body = tab === 'results' ? resultsHtml() : tab === 'draw' ? drawHtml() : tab === 'cup' ? cupHtml() : tab === 'tour' ? toursHtml() : tab === 'cups' ? cupsHtml() : tab === 'open' ? openHtml() : tab === 'support' ? supportHtml() : playersHtml();
     el.innerHTML = `<div class="page ad-page"><button class="back" data-back><span>‹</span> Bo'limlar</button><h1 class="section-title">🛠 Admin panel</h1>${tabsHtml()}${body}</div>`;
     loadImgs(el);
     const sb = el.querySelector('#spMsgs'); if (sb) sb.scrollTop = sb.scrollHeight;
@@ -146,7 +202,7 @@ window.AdminView = (() => {
 
   async function onClick(e) {
     const t = e.target.closest('[data-tab]'), a = e.target.closest('[data-act]');
-    if (t) { tab = t.dataset.tab; render(); if (tab === 'results') loadMatches(); if (tab === 'players') loadPlayers(); if (tab === 'tour') loadTours(); if (tab === 'cups') loadCups(); if (tab === 'support') { sp.open = null; loadSupport(); } loadOverview(); return; }
+    if (t) { tab = t.dataset.tab; render(); if (tab === 'results') loadMatches(); if (tab === 'players') loadPlayers(); if (tab === 'tour') loadTours(); if (tab === 'cups') loadCups(); if (tab === 'cup') loadCup(); if (tab === 'support') { sp.open = null; loadSupport(); } loadOverview(); return; }
     if (!a) return;
     const act = a.dataset.act, lg = a.dataset.lg;
     if (act === 'cupsave') {
@@ -157,6 +213,37 @@ window.AdminView = (() => {
       const c = cups.find((x) => x.id === box.dataset.cup); if (c) c.price = price;
       tg?.HapticFeedback?.notificationOccurred('success'); toast(price ? 'Narx saqlandi ✅' : "Narx o'chirildi");
       return render();
+    }
+        if (act === 'cup-shield') {
+      const r = await post('/api/admin/cup/shield');
+      if (!r.ok) return toast(r.error === 'pl_not_finished' ? 'Premier Liga hali tugamagan' : 'Finalchilar hali aniqlanmagan');
+      toast('Community Shield yaratildi 🛡'); return loadCup();
+    }
+    if (act.startsWith('cup-')) {
+      const box = a.closest('[data-cupstage]'), stage = box.dataset.cupstage;
+      if (act === 'cup-time') {
+        const v = box.querySelector('[data-dt]')?.value;
+        if (!v) return toast('Vaqtni tanlang');
+        return done(await post('/api/admin/cup/draw-time', { stage, drawAt: new Date(v).toISOString() }), 'Qura vaqti saqlandi ✅', loadCup);
+      }
+            if (act === 'cup-draw') {
+        if (!(await confirmBox("Qurani hozir o'tkazamizmi? Ishtirokchilar tasodifiy juftlanadi."))) return;
+        const r = await post('/api/admin/cup/draw', { stage });
+        if (!r.ok) return toast(ERR[r.error] || ERR.fail);
+        const p = await api('/api/admin/cup/pairs?stage=' + stage);
+        return reveal(p.pairs || [], stage, loadCup);
+      }
+      if (act === 'cup-start') {
+        const hours = Number(box.querySelector('[data-hours]')?.value || 0);
+        return done(await post('/api/admin/cup/start', { stage, hours }), 'Tur ochildi ▶️', loadCup);
+      }
+      if (act === 'cup-advance') {
+        return done(await post('/api/admin/cup/advance', { stage }), "Keyingi bosqichga o'tildi ➡️", loadCup);
+      }
+      if (act === 'cup-reset') {
+        if (!(await confirmBox("Bosqich tozalanadi: o'yinlar o'chadi, qayta qura mumkin bo'ladi. Davom etilsinmi?"))) return;
+        return done(await post('/api/admin/cup/reset', { stage }), 'Tozalandi 🧹', loadCup);
+      }
     }
     if (act === 'zoom') return lightbox(a.src);
     if (act === 'viewchat') {

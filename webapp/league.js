@@ -104,9 +104,9 @@ window.LeagueView = (() => {
   }
 
   // ——— Me va Do'kon ———
-  const renderMe = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { clubs: prof.clubs, collection: prof.collection, equipped: prof.equipped, sel: meSel, openGame, supportUnread: prof.supportUnread })}</div>${nav(T[lang], 1)}`; };
+  const renderMe = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { clubs: prof.clubs, collection: prof.collection, equipped: prof.equipped, sel: meSel, openGame, supportUnread: prof.supportUnread, cups: prof.cups })}</div>${nav(T[lang], 1)}`; };
   const renderShop = () => { el.innerHTML = `<div class="page l-page">${window.ShopView.html(lang, { ...shop, lots })}</div>${nav(T[lang], 2)}`; };
-  async function loadProfile() { const r = await api('/api/profile'); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {}, supportUnread: r.supportUnread || 0 }; window.AppBg.setOwn(prof.equipped.pbg); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me') render(); if (autoSupport) { autoSupport = false; window.MatchView.openSupport(); } } }
+  async function loadProfile() { const [r, cs] = await Promise.all([api('/api/profile'), api('/api/cup/state')]); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {}, supportUnread: r.supportUnread || 0, cups: cs.ok ? cs : null }; window.AppBg.setOwn(prof.equipped.pbg); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me') render(); if (autoSupport) { autoSupport = false; window.MatchView.openSupport(); } } }
   async function loadLots() { const r = await api('/api/auctions'); if (r.ok) { lots = r.lots || []; if (tab === 'shop' && !modalOpen()) render(); } }
 
   // ——— Do'kon: Coins sotib olish, kosmetika, Sell (kubokni adminga sotish) ———
@@ -374,6 +374,20 @@ window.LeagueView = (() => {
       for (const c of prof.clubs) {
         const g = (c.games || []).find((x) => x.id === gid);
         if (g) return { ...g, league: c.league, club: c.club, myName: EFL.clubName(c.league, c.club) };
+      }
+      // FA Cup / Community Shield o'yinlari
+      const cm = (prof.cups?.myMatches || []).find((x) => x.id === gid);
+      if (cm) {
+        const me = prof.clubs[0];
+        return {
+          id: cm.id, round: cm.round, status: cm.status, byMe: !!cm.byMe,
+          score: (cm.hg != null && cm.ag != null) ? `${cm.mine ? cm.hg : cm.ag}:${cm.mine ? cm.ag : cm.hg}` : null,
+          unread: 0, proofs: 0, claimScore: null,
+          opponent: cm.oppClub ? EFL.clubName(cm.oppLeague || '', cm.oppClub) : '—',
+          oppClub: cm.oppClub || '', user: '',
+          league: me?.league || 'premier-league', club: me?.club || '',
+          myName: me ? EFL.clubName(me.league, me.club) : '',
+        };
       }
       return null;
     },

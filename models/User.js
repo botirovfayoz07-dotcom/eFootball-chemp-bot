@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
   cosmetics: { type: [String], default: [] },    // sotib olingan kosmetika (ramka / fon) id lari
   equipped: { frame: { type: String, default: null }, bg: { type: String, default: null }, pbg: { type: String, default: null } }, // profilda yoqilgani
   createdAt: { type: Date, default: Date.now },
+  lastSeen: { type: Date, default: null },
 });
 
 module.exports = mongoose.model('User', userSchema);

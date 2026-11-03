@@ -49,6 +49,13 @@ window.MatchView = (() => {
     },
   };
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const ago = (d) => {
+    const m = Math.round((Date.now() - new Date(d).getTime()) / 60000);
+    if (m < 3) return '🟢 online';
+    if (m < 60) return `${m} daq oldin`;
+    if (m < 1440) return `${Math.round(m / 60)} soat oldin`;
+    return `${Math.round(m / 1440)} kun oldin`;
+  };
   const tg = window.Telegram?.WebApp;
   let C = null, root = null, timer = null, S = {};
   const t = () => T[C.lang()] || T.uz;
@@ -171,9 +178,7 @@ window.MatchView = (() => {
     const x = t();
     const head = support
       ? `<div class="m-head"><span class="m-av">🛟</span><div><b>${x.supportName}</b><small>${x.supportSub}</small></div></div>`
-      : `<div class="m-head"><span class="m-av">${esc((g.user || g.opponent || '?').replace('@', '')[0] || '?')}</span><div><b>${esc(g.opponent || '—')}</b><small>${esc(g.user || '')}</small></div></div>`;
-    show(`${head}<div class="m-msgs" id="mMsgs"></div><div id="mPrev" class="m-prev"></div>
-      <div class="m-send">${support ? `<button class="m-ic" data-m="shot" title="${esc(x.shot)}">📎</button><input type="file" id="mFile" accept="image/*" hidden>` : `<button class="m-ic" data-m="room-open" title="${esc(x.roomBtn)}">🎮</button>`}<input id="mChatText" maxlength="${support ? 800 : 500}" placeholder="${esc(x.chatPh)}" autocomplete="off"><button class="m-ic go" data-m="chat-send">➤</button></div>`);
+            : `<div class="m-head"><span class="m-av">${esc((g.user || g.opponent || '?').replace('@', '')[0] || '?')}</span><div><b>${esc(g.opponent || '—')}</b><small>${esc(g.user || '')}${S.opp?.lastSeen ? ' · ' + ago(S.opp.lastSeen) : ''}</small></div></div>`;
     root.querySelector('.msheet').classList.add('chat');
     refresh(true);
     clearInterval(timer); timer = setInterval(() => refresh(false), 4000);

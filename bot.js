@@ -19,8 +19,10 @@ const https = require('https');
 const TopUp = require('./models/TopUp');
 const SeasonState = require('./models/Season');
 const seasonEngine = require('./lib/season');
+const cupLogic = require('./lib/cup');
 const registerSeasonRoutes = require('./lib/season-api');
-
+const Cup = require('./models/Cup');
+// ——— FA Cup API ———
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const MINI_APP_URL = process.env.MINI_APP_URL; // HTTPS bo'lishi shart
@@ -100,7 +102,7 @@ async function migrateEq(id) {
   if (it?.player) await User.updateOne({ telegramId: id }, { $set: { 'equipped.pbg': e.pbg || e.bg, 'equipped.bg': null } });
 }
 // Ilovani ochgan har bir foydalanuvchining ismi/username/avatari saqlanadi (jadvalda klub egasi ko'rinishi uchun)
-const touchUser = (u) => User.updateOne({ telegramId: u.id }, { $set: { firstName: u.first_name || '', username: u.username || '', photoUrl: u.photo_url || '' } }, { upsert: true }).catch(() => {});
+const touchUser = (u) => User.updateOne({ telegramId: u.id }, { $set: { firstName: u.first_name || '', username: u.username || '', photoUrl: u.photo_url || '', lastSeen: new Date() } }, { upsert: true }).catch(() => {});
 // Async marshrutlarda xato chiqsa server qulab tushmasligi uchun
 const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch((e) => { console.error(e); res.status(500).json({ error: 'fail' }); });
 const adminOnly = (req, res, next) => {
@@ -173,14 +175,14 @@ async function decorate(ms) {
   const [regs, users] = await Promise.all([Registration.find({ season, telegramId: { $in: ids } }).lean(), User.find({ telegramId: { $in: ids } }).lean()]);
   const reg = new Map(regs.map((r) => [r.telegramId, r]));
   const nm = new Map(users.map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
-  const side = (id, league) => ({ id, club: reg.has(id) ? EFL.clubName(league, reg.get(id).club) : '—', user: nm.get(id) || String(id) });
+  const side = (id) => { const r = reg.get(id); return { id, club: r ? EFL.clubName(r.league, r.club) : '—', user: nm.get(id) || String(id) }; };
   const chatAgg = await ChatMessage.aggregate([{ $match: { kind: 'match', key: { $in: ms.map((m) => String(m._id)) } } }, { $group: { _id: '$key', n: { $sum: 1 } } }]);
   const chatN = new Map(chatAgg.map((x) => [x._id, x.n]));
   return ms.map((m) => ({
     proofs: (m.proofs || []).map((p) => ({ by: nm.get(p.by) || String(p.by), text: p.text || '', fileId: p.fileId || '', hg: p.hg ?? null, ag: p.ag ?? null, at: p.at })),
     chat: chatN.get(String(m._id)) || 0,
     id: String(m._id), league: m.league, leagueName: EFL.byId[m.league]?.name || m.league, round: m.round, status: m.status,
-    home: side(m.home, m.league), away: side(m.away, m.league), hg: m.hg, ag: m.ag,
+        home: side(m.home), away: side(m.away), hg: m.hg, ag: m.ag,
     claim: m.claim?.hg != null ? { hg: m.claim.hg, ag: m.claim.ag, by: m.claim.by } : null,
   }));
 }
@@ -552,6 +554,15 @@ app.post('/api/matches/:id/report', ah(async (req, res) => {
   if (!validId(id) || !goal(my) || !goal(opp)) return res.status(400).json({ error: 'badScore' });
   const m0 = await Match.findOne({ _id: id, season, $or: [{ home: u.id }, { away: u.id }] }).lean();
   if (!m0) return res.status(404).json({ error: 'gone' });
+
+  // ⬇️⬇️ FA Cup: tur ochilmaguncha / dedlayn o'tgach hisob kiritib bo'lmaydi
+  if (m0.league === 'fa-cup') {
+    const d = await Cup.findOne({ season, round: m0.round, cup: { $in: ['fa-cup', 'shield'] } }).lean();
+    if (!d || !d.startedAt) return res.status(409).json({ error: 'notstarted' });
+    if (d.deadline && new Date(d.deadline) < new Date()) return res.status(409).json({ error: 'deadline' });
+  }
+  // ⬆️⬆️
+
   const isHome = m0.home === u.id;
   // Hisob kiritish mumkin: hali kiritilmagan, yoki o'zi kiritgan va raqib hali tasdiqlamagan (tuzatish)
   const m = await Match.findOneAndUpdate(
@@ -637,30 +648,57 @@ async function chatMatch(req, res) {
   if (!m) { res.status(404).json({ error: 'gone' }); return null; }
   return { u, m, oppId: m.home === u.id ? m.away : m.home };
 }
+
 app.get('/api/matches/:id/chat', ah(async (req, res) => {
   const c = await chatMatch(req, res); if (!c) return;
   const key = String(c.m._id);
   await ChatMessage.updateMany({ kind: 'match', key, readBy: { $ne: c.u.id } }, { $addToSet: { readBy: c.u.id } });
-  const [list, opp] = await Promise.all([ChatMessage.find({ kind: 'match', key }).sort({ at: -1 }).limit(100).lean(), User.findOne({ telegramId: c.oppId }).lean()]);
+  const [list, opp] = await Promise.all([
+    ChatMessage.find({ kind: 'match', key }).sort({ at: -1 }).limit(100).lean(),
+    User.findOne({ telegramId: c.oppId }).lean(),
+  ]);
   res.json({
-    messages: list.reverse().map((x) => ({ id: String(x._id), mine: x.from === c.u.id, type: x.type, text: x.text, at: x.at })),
-    opp: { name: opp?.firstName || '', username: opp?.username || '', photo: opp?.photoUrl || '' },
+    messages: list.reverse().map((x) => ({
+      id: String(x._id), mine: x.from === c.u.id, type: x.type,
+      text: x.text, fileId: x.fileId || '', at: x.at,
+    })),
+    opp: {
+      name: opp?.firstName || '', username: opp?.username || '',
+      photo: opp?.photoUrl || '', lastSeen: opp?.lastSeen || null,
+    },
   });
 }));
+
 app.post('/api/matches/:id/chat', ah(async (req, res) => {
   const c = await chatMatch(req, res); if (!c) return;
-  const key = String(c.m._id), type = req.body?.type === 'room' ? 'room' : 'text', text = String(req.body?.text || '').trim().slice(0, 500);
-  if (!text || (type === 'room' && !/^[A-Za-z0-9\-]{3,24}$/.test(text))) return res.status(400).json({ error: 'badText' });
+  const key = String(c.m._id), type = req.body?.type === 'room' ? 'room' : 'text';
+  const text = String(req.body?.text || '').trim().slice(0, 500);
+  const buf = decodeImage(req.body?.image);
+  if (buf === false) return res.status(400).json({ error: 'badImage' });
+  if (!text && !buf) return res.status(400).json({ error: 'badText' });
+  if (type === 'room' && !/^[A-Za-z0-9\-]{3,24}$/.test(text)) return res.status(400).json({ error: 'badText' });
+
   const last = await ChatMessage.findOne({ kind: 'match', key, from: c.u.id }).sort({ at: -1 }).lean();
   if (last && Date.now() - last.at < 700) return res.status(429).json({ error: 'fast' });
-  // Raqibga bot orqali xabar faqat u hali o'qimagan birinchi xabar uchun boradi (spam bo'lmasin)
+
+  // Rasm bo'lsa — raqibga bot orqali yuborib, fileId ni saqlaymiz
+  let fileId = '';
+  if (buf) {
+    try {
+      const sent = await bot.telegram.sendPhoto(c.oppId, { source: buf }, { caption: text.slice(0, 200) || '📎 Rasm' });
+      fileId = sent.photo?.[sent.photo.length - 1]?.file_id || '';
+    } catch (_) { /* raqib botni bloklagan bo'lishi mumkin */ }
+  }
+
+  // Raqibga bot orqali xabar faqat u hali o'qimagan birinchi matnli xabar uchun boradi (spam bo'lmasin)
   const first = !(await ChatMessage.exists({ kind: 'match', key, from: c.u.id, readBy: { $ne: c.oppId } }));
-  await ChatMessage.create({ kind: 'match', key, from: c.u.id, type, text, readBy: [c.u.id] });
-  if (first) {
+  await ChatMessage.create({ kind: 'match', key, from: c.u.id, type, text, fileId, readBy: [c.u.id] });
+
+  if (first && !buf) {
     const who = await whoIs(c.m.league, c.u.id), shown = type === 'room' ? `🎮 ${text}` : text.slice(0, 120);
     say(c.oppId, { uz: `💬 ${who}: ${shown}`, en: `💬 ${who}: ${shown}`, ru: `💬 ${who}: ${shown}` }, 'games');
   }
-  res.json({ ok: true });
+  res.json({ ok: true, fileId });
 }));
 
 // ——— «Muammoli holatlar»: foydalanuvchi ↔ admin chati ———
@@ -694,7 +732,13 @@ app.get('/api/file/:fid', ah(async (req, res) => {
   if (!u) return res.status(401).json({ error: 'auth' });
   const fid = String(req.params.fid);
   if (!/^[\w\-]{20,250}$/.test(fid)) return res.status(400).json({ error: 'fail' });
-  const ok = ADMINS.includes(u.id) || (await ChatMessage.exists({ kind: 'support', key: String(u.id), fileId: fid })) || (await Match.exists({ 'proofs.fileId': fid, $or: [{ home: u.id }, { away: u.id }] }));
+    const ok = ADMINS.includes(u.id)
+    || (await ChatMessage.exists({ kind: 'support', key: String(u.id), fileId: fid }))
+    || (await Match.exists({ 'proofs.fileId': fid, $or: [{ home: u.id }, { away: u.id }] }))
+    || (await Match.exists({
+         _id: { $in: (await ChatMessage.find({ kind: 'match', fileId: fid }).select('key').lean()).map((x) => x.key) },
+         $or: [{ home: u.id }, { away: u.id }],
+       }));
   if (!ok) return res.status(403).json({ error: 'forbidden' });
   const link = await bot.telegram.getFileLink(fid);
   https.get(String(link.href || link), (r) => {
@@ -881,7 +925,8 @@ app.post('/api/admin/league/:id/add', adminOnly, ah(async (req, res) => {
     if (fx.length) await Match.insertMany(fx.map((m) => ({ ...m, league: league.id, season })));
   }
   notify(usr.telegramId, 'added', league.name, EFL.clubName(league.id, club));
-  res.json({ ok: true });
+  const cupWarning = await cupLogic.onLeagueAdd(season, league.id, usr.telegramId);
+  res.json({ ok: true, cupWarning });
 }));
 
 // Norasmiy turnirlar (unofficial.js)
@@ -889,6 +934,7 @@ let botUser = null;
 const botName = async () => { if (!botUser) { try { botUser = (await bot.telegram.getMe()).username; } catch (_) {} } return botUser; };
 const ut = require('./unofficial')(app, { tgUser, ah, bot, User, ADMINS, Markup, t, MINI_APP_URL, adminOnly, botName });
 registerSeasonRoutes(app, { tgUser, adminIds: ADMINS });
+const cupApi = require('./lib/cup-api')(app, { tgUser, ah, adminOnly, season, notifyAdmins });
 
 // ——— Mavsum starti: PL + Championship + FA Cup + Community Shield birga ———
 const AUTO_CUPS = ['fa-cup', 'community-shield'];
@@ -902,7 +948,10 @@ async function ensureSeasonOpened(cal) {
       { $setOnInsert: { startAt: new Date(cal.startAt), endAt: new Date(cal.endAt) } }, { upsert: true });
     const r = await SeasonState.updateOne({ number: cal.number, openedAt: null },
       { $set: { openedAt: new Date(), cupsStartedAt: new Date(), cups: AUTO_CUPS } });
-    if (r?.modifiedCount) console.log(`⏱ Mavsum ${cal.number} boshlandi — ligalar + ${AUTO_CUPS.join(', ')}`);
+       if (r?.modifiedCount) {
+      console.log(`⏱ Mavsum ${cal.number} boshlandi — ligalar + ${AUTO_CUPS.join(', ')}`);
+      notifyAdmins('🎲 Mavsum boshlandi!\nFA Cup qura marosimi vaqtini kiriting: Admin panel → 🎲 FA Cup → "Qura vaqti"');
+    }
     openedFor = cal.number;
   } catch (_) { /* DB hali ulanmagan */ }
 }
@@ -917,8 +966,8 @@ function startSeasonWatcher() {
 app.listen(process.env.PORT || 3000, () => console.log('Mini app serveri ishga tushdi'));
 
 (async () => {
-  startSeasonWatcher();
   await mongoose.connect(process.env.MONGO_URI);
+  startSeasonWatcher();                 // ← qo'shildi
   // Har daqiqada: vaqti kelgan quralarni avtomatik o'tkazadi
   setInterval(async () => {
     try {
@@ -930,6 +979,7 @@ app.listen(process.env.PORT || 3000, () => console.log('Mini app serveri ishga t
         else { await LeagueConfig.updateOne({ _id: c._id }, { $set: { drawAt: null } }); notifyAdmins(`⚠️ ${name}: qura o'tkazilmadi (${r.error === 'few' ? 'kamida 2 ishtirokchi kerak' : r.error}). Vaqtni qayta belgilang.`); }
       }
       await ut.runDue(); // norasmiy turnirlar quralari
+      await cupApi.runDue(); // FA Cup quralari
     } catch (e) { console.error('Qura rejalashtiruvchisi:', e); }
   }, 60 * 1000);
   await bot.launch();
