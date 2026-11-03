@@ -37,7 +37,7 @@ window.LeagueView = (() => {
   let prof = { league: null, club: null, pos: null, w: 0, d: 0, l: 0, games: [] }, tab = 'home', view = 'geo', country = null, cont = 'europe',
     rank = { group: '1', chip: 'laliga', league: 'laliga', rows: [] },
     data = { mine: null, stats: {}, releasing: [] }, // stats: { [ligaId]: { players, taken[] } }
-    cur = null, selected = null, el, lang = 'uz', toast, firstLoad = true, settle;
+    cur = null, selected = null, openGame = null, pendingTab = null, el, lang = 'uz', toast, firstLoad = true, settle;
 
   const stat = (id) => data.stats[id] || { players: 0, taken: [] };
   const isFull = (l) => stat(l.id).players >= l.max;
@@ -61,7 +61,7 @@ window.LeagueView = (() => {
   }
 
   function renderProfile() {
-    el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, prof)}</div>${nav(T[lang], 2)}`;
+    el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { ...prof, openGame })}</div>${nav(T[lang], 2)}`;
   }
   async function loadProfile() {
     const r = await api('/api/profile');
@@ -220,7 +220,7 @@ window.LeagueView = (() => {
     data = { mine: r.mine, releasing: r.releasing || [], stats: Object.fromEntries(r.leagues.map((l) => [l.id, { players: l.players, taken: l.taken }])) };
     if (firstLoad) { firstLoad = false; const m = r.mine && EFL.byId[r.mine.league]; if (view === 'country' && m && m.country === country) cur = m.id; }
     selected = null;
-    if (tab === 'home') render();
+    if (tab === 'home') render(); else if (tab === 'profile') { renderProfile(); loadProfile(); }
   }
 
   async function claim(key) {
@@ -240,6 +240,26 @@ window.LeagueView = (() => {
     if (tab === 'profile') renderProfile();
   }
 
+  // O'yin hisobi: kiritish / tasdiqlash / yolg'on
+  async function gameAct(kind, id) {
+    const p = window.ProfileView.T[lang];
+    let path = kind === 'g-ok' ? 'confirm' : kind === 'g-bad' ? 'reject' : 'report', body = {};
+    if (kind === 'g-bad') {
+      const yes = await new Promise((res) => (tg?.showConfirm ? tg.showConfirm(p.confirmFake, res) : res(window.confirm(p.confirmFake))));
+      if (!yes) return;
+    }
+    if (kind === 'g-send') {
+      const box = [...el.querySelectorAll('[data-box]')].find((b) => b.dataset.box === id);
+      const my = parseInt(box?.querySelector('[data-in="my"]').value, 10), opp = parseInt(box?.querySelector('[data-in="opp"]').value, 10);
+      if (!(my >= 0 && my <= 99 && opp >= 0 && opp <= 99)) return toast(p.badScore);
+      body = { my, opp };
+    }
+    const r = await api(`/api/matches/${id}/${path}`, { method: 'POST', body: JSON.stringify(body) });
+    if (r.ok) { tg?.HapticFeedback?.notificationOccurred('success'); toast(kind === 'g-ok' ? p.confirmed : kind === 'g-bad' ? p.rejected : p.sent); openGame = null; }
+    else toast(p[r.error] || p.fail);
+    await loadProfile();
+  }
+
   async function register() {
     const t = T[lang], r = await api(`/api/leagues/${cur}/register`, { method: 'POST', body: JSON.stringify({ club: selected }) });
     if (r.ok) { tg?.HapticFeedback?.notificationOccurred('success'); toast(t.ok); }
@@ -249,6 +269,7 @@ window.LeagueView = (() => {
 
   function show(root, l, toastFn) {
     el = root; lang = l; toast = toastFn;
+    if (pendingTab) { tab = pendingTab; pendingTab = null; }
     render();
     if (el.dataset.loaded !== '1') { el.dataset.loaded = '1'; load(); }
     if (!el.dataset.bound) {
@@ -261,9 +282,10 @@ window.LeagueView = (() => {
         else if (cl) { if (!cl.disabled) claim(cl.dataset.claim); }
         else if (lg && lg.dataset.lg !== cur) centerOn(lg.dataset.lg, true);
         else if (c && !c.disabled) { selected = c.dataset.club; tg?.HapticFeedback?.selectionChanged(); updHero(); updBelow(); }
+        else if (a === 'g-open') { openGame = openGame === e.target.closest('[data-gid]').dataset.gid ? null : e.target.closest('[data-gid]').dataset.gid; renderProfile(); }
+        else if (a === 'g-send' || a === 'g-ok' || a === 'g-bad') gameAct(a, e.target.closest('[data-gid]').dataset.gid);
         else if (a === 'register') register();
         else if (a === 'release') toggleRelease();
-        else if (a === 'admin') { location.hash = '#private'; }
         else if (a === 'back') { if (!back()) location.hash = '#official'; }
         else if (a === 'soon') toast(T[lang].soon);
         else if (a === 'home') { tab = 'home'; render(); }
@@ -281,6 +303,7 @@ window.LeagueView = (() => {
       });
     }
   }
-  const leave = () => { if (el) el.dataset.loaded = ''; tab = 'home'; view = 'geo'; country = null; firstLoad = true; };
-  return { show, leave, back };
+  const preset = (name) => { pendingTab = name; };
+  const leave = () => { if (el) el.dataset.loaded = ''; tab = 'home'; view = 'geo'; country = null; firstLoad = true; openGame = null; };
+  return { show, leave, back, preset };
 })();

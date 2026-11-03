@@ -6,46 +6,12 @@
    - `MONGO_URI` — MongoDB Atlas ulanish manzili
    - `MINI_APP_URL` — botni qo'yadigan HTTPS domen (masalan `https://sizning-domen.uz`)
    - `PORT` — 3000
-   - `ADMIN_IDS` — global adminlarning Telegram ID'lari, vergul bilan (masalan `123456789,987654321`)
+   - `ADMIN_IDS` — adminlarning Telegram ID lari, vergul bilan (masalan `123456789,987654321`)
 2. `npm install`
 3. `npm start`
 
-Adminlar botda **/admin** buyrug'i bilan ham panelni ochishi mumkin. Turnir yaratgan foydalanuvchi avtomatik o'sha turnirning tashkilotchisi bo'ladi va unga ham admin panel ko'rinadi.
-
 Bot mini app fayllarini (`webapp/`) o'zi beradi, shuning uchun `MINI_APP_URL` shu server turgan HTTPS domen bo'lishi kerak.
 Mahalliy sinov uchun: `ngrok http 3000` va chiqqan https manzilni `MINI_APP_URL` ga qo'ying.
-
-## Norasmiy turnirlar va admin panel
-
-Bosh sahifadagi **Norasmiy turnirlar** kartasi `#private` bo'limini ochadi. Eski «Yopiq turnirlar» nomi hamma joyda **«Norasmiy turnirlar»**ga almashtirilgan (uz/en/ru).
-
-### Turnir yaratish
-- **+ Yangi turnir** → nom va ishtirokchilar soni (2–32).
-- Turnirni yaratgan foydalanuvchi avtomatik ishtirokchi va tashkilotchi bo'ladi.
-- `ADMIN_IDS` dagi global adminlar istalgan turnirni boshqara oladi.
-- Ro'yxatda turnir holati, ishtirokchilar soni, o'yinlar soni va admin uchun tasdiq kutayotgan natijalar soni ko'rinadi.
-
-### Admin panel
-Turnir sahifasidagi **🛡 Admin** tabida:
-1. **Natijalar** — raqib tasdiqlamagan (`pending`) yoki bekor qilingan (`disputed`) natijalar. Admin tasdiqlaydi, boshqa hisob kiritadi yoki rad etadi.
-2. **Qur'a va vaqtlar** — bir davrali qur'a (har kim har kim bilan bir marta), turlar orasidagi interval, har bir o'yin vaqtini qo'lda o'zgartirish, qo'lda o'yin qo'shish.
-3. **Ishtirokchilar** — @username yoki Telegram ID bo'yicha qo'shish; topilmasa ismni qo'lda yozish; o'yindan chiqarish (u bilan bog'liq o'yinlar ham o'chadi).
-4. **Sozlamalar** — turnir nomi, turnirni tugatish / qayta ochish.
-
-### Natija kiritish logikasi
-1. O'yinchi o'z o'yini kartasida **Natija kiritish**ni bosadi va hisobni yuboradi → holat `pending`.
-2. Raqib **Tasdiqlash**ni bossa → holat `confirmed`, hisob **avtomatik jadvalga** tushadi.
-3. Raqib **Yolg'on**ni bossa → kiritilgan hisob bekor qilinadi (`disputed`), jadval o'zgarmaydi va admin panelda «Hisob kiritish» paydo bo'ladi.
-4. Admin kiritgan/tasdiqlagan natija darhol jadvalga tushadi (`resultSource: admin`).
-5. Faqat `confirmed` o'yinlar jadvalda hisoblanadi. O'z hisobini o'zi tasdiqlash taqiqlangan.
-
-Natijalar haqida raqibga Telegram xabari yuboriladi; nizo bo'lsa tashkilotchi va global adminlarga ham xabar boradi.
-
-### Sinov
-```bash
-npm test                 # qur'a/jadval sof logikasi
-node test/api.e2e.js     # to'liq API oqimi (lokal MongoDB kerak)
-```
 
 ## Rasmlar (o'zingiz qo'yasiz)
 - `webapp/cards/official.jpg`, `private.jpg`, `team.jpg` — bosh sahifa kartalari
@@ -75,3 +41,20 @@ Liga ichidagi imkoniyatlar:
 Liga va klub ro'yxati: `webapp/league-data.js` (brauzer ham, server ham shu faylni ishlatadi). Maksimal o'yinchilar soni videodagi sonlar bo'yicha; klub nomlari qoralama — o'yindagi ro'yxatga qarab tekshiring.
 
 Eslatma: MongoDB'da eski `league+season+telegramId` indeksi qolgan bo'lsa, yangi `season+telegramId` indeksi bilan birga ishlayveradi (xalaqit bermaydi).
+
+## Norasmiy turnirlar
+Bosh sahifadagi "Yopiq turnirlar" kartasi nomi "Norasmiy turnirlar" ga almashtirildi (uz/en/ru, `webapp/i18n.js`). Faqat nomi o'zgargan.
+
+## O'yin hisobi (tasdiqlash mantig'i)
+Profil → *Mening o'yinlarim*. Qura o'tkazilgach har bir o'yinchida o'z o'yinlari chiqadi:
+1. Biri **Hisob kiritish** ni bosib hisobni yuboradi (o'yin `pending` bo'ladi, raqibga botdan xabar boradi). Raqib tasdiqlamaguncha kiritgan odam hisobni o'zgartira oladi.
+2. Raqib **Tasdiqlash** ni bossa — hisob avtomatik reyting jadvaliga o'tadi (`confirmed`).
+3. Raqib **Yolg'on** ni bossa — kiritilgan hisob bekor qilinadi (`disputed`, jadvalga o'tmaydi), adminlarga xabar boradi va natijani admin panelda kiritadi.
+
+## Admin panel
+`.env` dagi `ADMIN_IDS` dagi foydalanuvchilarga bosh sahifada "Admin panel" tugmasi chiqadi (yoki botda `/admin`).
+- **Natijalar** — kutayotgan/bahsli o'yinlar; admin hisobni kiritadi yoki tasdiqlaydi (tasdiqlangan natijani ham o'zgartirish mumkin). Ikkala o'yinchiga xabar boradi.
+- **Qura** — har bir liga uchun qura vaqtini belgilash (vaqti kelganda bot o'zi qura qiladi, har daqiqada tekshiradi), "Hozir qura qilish", 1 yoki 2 davra tanlash, hisob kiritilmagan bo'lsa qayta qura.
+- **Ishtirokchilar** — ishtirokchini ligadan chiqarish (uning o'yinlari bekor, natijalari jadvaldan olib tashlanadi) va qo'shish (@username yoki Telegram ID; qura o'tgan bo'lsa unga qolganlar bilan o'yinlar qo'shiladi).
+
+Yangi fayllar: `models/Match.js`, `models/LeagueConfig.js`, `fixtures.js` (qura va jadval hisobi), `webapp/admin.js`. Jadval (`pts, w, d, l, gf, ga`) har safar tasdiqlangan o'yinlardan qayta hisoblanadi. Klub "topshirilsa", uning o'yinlari ham yangi egasiga o'tadi.
