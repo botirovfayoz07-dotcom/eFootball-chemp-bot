@@ -258,7 +258,7 @@ app.get('/api/profile/view', ah(async (req, res) => {
     clubs.push({ league: r.league, club: r.club, pos: regs.findIndex((x) => x.telegramId === r.telegramId) + 1 });
   }
   res.json({
-    name: usr?.firstName || '', username: usr?.username || '', equipped: { frame: usr?.equipped?.frame || null, bg: usr?.equipped?.bg || null },
+    name: usr?.firstName || '', username: usr?.username || '', photo: usr?.photoUrl || '', equipped: { frame: usr?.equipped?.frame || null, bg: usr?.equipped?.bg || null },
     collection: [...trs.map((x) => ({ kind: 'trophy', cup: x.league, season: x.season })), ...(usr?.cosmetics || []).map((id) => ({ kind: 'item', id }))],
     clubs,
   });
@@ -532,7 +532,9 @@ app.post('/api/matches/:id/reject', ah(async (req, res) => {
 app.get('/api/me', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
-  res.json({ admin: ADMINS.includes(u.id) });
+  // Ilova ochilganda ism/username/avatarni yangilab qo'yamiz va yoqilgan fonni qaytaramiz
+  const me = await User.findOneAndUpdate({ telegramId: u.id }, { $set: { firstName: u.first_name || '', username: u.username || '', photoUrl: u.photo_url || '' } }, { new: true }).lean();
+  res.json({ admin: ADMINS.includes(u.id), bg: me?.equipped?.bg || null });
 }));
 
 // Ligalar: ishtirokchilar, qura vaqti/holati, o'yinlar soni

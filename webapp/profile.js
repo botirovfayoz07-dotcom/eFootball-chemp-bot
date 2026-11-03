@@ -61,7 +61,7 @@ window.ProfileView = (() => {
       return `<button class="mc" data-mc="${esc(key(c))}">${EFL.crest(c.league, c.club, name)}<b>${esc(name)}</b><small>${esc(EFL.byId[c.league]?.name || '')}</small>${c.auction ? '<em>🔨</em>' : ''}</button>`;
     }).join('');
     return `<button class="back" data-act="back"><span>‹</span> ${t.back}</button>
-      <div class="pf-card ${window.ShopView.bgClass(eq.bg)}"><div class="pf-ava${eq.frame ? ' fr-' + eq.frame : ''}">${avatar}</div>
+      <div class="pf-card"><div class="pf-ava${eq.frame ? ' fr-' + eq.frame : ''}">${avatar}</div>
         <div class="pf-info"><h2>${esc(u.first_name || '')}</h2>${u.username ? `<a>@${esc(u.username)}</a>` : ''}</div></div>
       <div class="g-label"><span>${t.collection}</span></div>
       ${coll ? `<div class="coll">${coll}</div>` : `<div class="pf-empty"><span>🏆</span><p>${t.collEmpty}</p></div>`}
@@ -83,7 +83,7 @@ window.ProfileView = (() => {
       return `<div class="mc">${EFL.crest(c.league, c.club, name)}<b>${esc(name)}</b><small>${esc(EFL.byId[c.league]?.name || '')}${c.pos ? ' · #' + c.pos : ''}</small></div>`;
     }).join('');
     return `<button class="back" data-act="pvback"><span>‹</span> ${t.back}</button>
-      <div class="pf-card ${window.ShopView.bgClass(eq.bg)}"><div class="pf-ava${eq.frame ? ' fr-' + eq.frame : ''}"><b>${esc((d.name || d.username || '?')[0])}</b></div>
+      <div class="pf-card"><div class="pf-ava ph${eq.frame ? ' fr-' + eq.frame : ''}"><b>${esc((d.name || d.username || '?')[0])}</b>${d.photo ? `<img src="${esc(d.photo)}" alt="" onerror="this.remove()">` : ''}</div>
         <div class="pf-info"><h2>${esc(d.name || '')}</h2>${d.username ? `<a>@${esc(d.username)}</a>` : ''}</div></div>
       <div class="g-label"><span>${t.collection}</span></div>
       ${coll ? `<div class="coll">${coll}</div>` : `<div class="pf-empty"><span>🏆</span><p>${t.collEmpty}</p></div>`}

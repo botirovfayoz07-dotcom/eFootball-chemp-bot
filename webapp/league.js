@@ -104,19 +104,19 @@ window.LeagueView = (() => {
   // ——— Me va Do'kon ———
   const renderMe = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { clubs: prof.clubs, collection: prof.collection, equipped: prof.equipped, sel: meSel, openGame })}</div>${nav(T[lang], 1)}`; };
   const renderShop = () => { el.innerHTML = `<div class="page l-page">${window.ShopView.html(lang, { ...shop, lots })}</div>${nav(T[lang], 2)}`; };
-  async function loadProfile() { const r = await api('/api/profile'); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {} }; if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me') render(); } }
+  async function loadProfile() { const r = await api('/api/profile'); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {} }; window.AppBg.setOwn(prof.equipped.bg); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me') render(); } }
   async function loadLots() { const r = await api('/api/auctions'); if (r.ok) { lots = r.lots || []; if (tab === 'shop' && !modalOpen()) render(); } }
 
   // ——— Do'kon: Coins sotib olish, kosmetika, Sell (kubokni adminga sotish) ———
   const modalOpen = () => !!el.querySelector('#shopModal');
-  const closeShop = () => el.querySelector('#shopModal')?.remove();
-  const showModal = (inner) => { closeShop(); el.insertAdjacentHTML('beforeend', `<div class="modal" id="shopModal">${inner}</div>`); };
+  const closeShop = () => { el.querySelector('#shopModal')?.remove(); if (!pview) window.AppBg.reset(); };
+  const showModal = (inner, cls = '') => { closeShop(); el.insertAdjacentHTML('beforeend', `<div class="modal${cls ? ' ' + cls : ''}" id="shopModal">${inner}</div>`); };
   const cosList = (kind) => (kind === 'frame' ? window.SHOP.FRAMES : window.SHOP.BACKGROUNDS);
   const ok = () => tg?.HapticFeedback?.notificationOccurred('success');
   async function loadShop() {
     const r = await api('/api/shop');
     if (!r.ok) return;
-    shop = { ...shop, coins: r.coins, owned: r.owned || [], equipped: r.equipped || {}, card: r.card || '', holder: r.holder || '', trophies: r.trophies || [] };
+    shop = { ...shop, coins: r.coins, owned: r.owned || [], equipped: r.equipped || {}, card: r.card || '', holder: r.holder || '', trophies: r.trophies || [] }; if (!modalOpen()) window.AppBg.setOwn(shop.equipped.bg);
     if (tab === 'shop' && !modalOpen()) render();
   }
   function compress(file) {              // chek rasmini kichraytirib JPEG qiladi (serverga base64 ketadi)
@@ -145,14 +145,18 @@ window.LeagueView = (() => {
     if (!r.ok) return toast(s[r.error] || s.fail);
     closeShop(); ok(); toast(s.coinSent);
   }
+  function showPreview() {            // tanlangan fon butun ekranda ko'rinadi (sotib olmaguncha saqlanmaydi)
+    showModal(window.ShopView.previewModal(lang, prev, shop), 'pvm');
+    if (prev.kind === 'bg') window.AppBg.preview(cosList('bg')[prev.idx].id);
+  }
   function openPreview(kind, id) {
     prev = { kind, idx: Math.max(0, cosList(kind).findIndex((x) => x.id === id)) };
-    showModal(window.ShopView.previewModal(lang, prev, shop));
+    showPreview();
   }
   function navPreview(d) {
     const n = cosList(prev.kind).length;
     prev.idx = (prev.idx + d + n) % n;
-    showModal(window.ShopView.previewModal(lang, prev, shop));
+    showPreview();
   }
   async function buyItem(id) {
     const s = ST[lang], r = await post('/api/shop/buy', { id });
@@ -333,6 +337,7 @@ window.LeagueView = (() => {
 
   function render() {
     if (!loaded) { el.innerHTML = '<div class="page l-page"><div class="pf-empty"><span>⏳</span></div></div>'; return; }
+    if (pview) window.AppBg.preview(pview.equipped?.bg); else if (!modalOpen()) window.AppBg.reset();   // boshqa user profilida — uning foni
     if (data.mine && tab === 'home') tab = 'info';       // ro'yxatdan o'tgan -> Ma'lumotlar
     if (!data.mine && tab !== 'home') { tab = 'home'; meSel = null; pview = null; }
     if (pview) { el.innerHTML = `<div class="page l-page">${window.ProfileView.publicHtml(lang, pview)}</div>${nav(T[lang], 0)}`; return; }
@@ -427,6 +432,6 @@ window.LeagueView = (() => {
   }
   // ?open=games (o'yin hisobi xabaridagi tugma): Me → klub → Mening o'yinlarim
   const preset = (name) => { pendingTab = name === 'profile' ? 'me' : name; autoClub = pendingTab === 'me'; };
-  const leave = () => { if (el) el.dataset.loaded = ''; tab = 'home'; view = 'geo'; country = null; meSel = null; openGame = null; loaded = false; };
+  const leave = () => { window.AppBg.reset(); pview = null; if (el) el.dataset.loaded = ''; tab = 'home'; view = 'geo'; country = null; meSel = null; openGame = null; loaded = false; };
   return { show, leave, back, preset };
 })();

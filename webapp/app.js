@@ -6,6 +6,7 @@
     try { tg.setHeaderColor('#070a14'); tg.setBackgroundColor('#070a14'); } catch (_) {}
   }
 
+  window.AppBg.restore();   // oxirgi yoqilgan fon darrov ko'rinadi
   const SUPPORTED = ['uz', 'en', 'ru'];
   const $ = (s) => document.querySelector(s);
 
@@ -142,7 +143,7 @@
   }
 
   // Admin tugmasi faqat adminlarga ko'rinadi
-  if (tg?.initData) fetch('/api/me', { headers: { 'x-init-data': tg.initData } }).then((r) => r.json()).then((d) => { if (d.admin) $('#adminBtn').hidden = false; }).catch(() => {});
+  if (tg?.initData) fetch('/api/me', { headers: { 'x-init-data': tg.initData } }).then((r) => r.json()).then((d) => { if (d.admin) $('#adminBtn').hidden = false; if ('bg' in d) window.AppBg.setOwn(d.bg); }).catch(() => {});
 
   applyLang(lang);
 

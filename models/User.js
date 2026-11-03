@@ -4,6 +4,7 @@ const userSchema = new mongoose.Schema({
   telegramId: { type: Number, required: true, unique: true },
   firstName: String,
   username: String,
+  photoUrl: String,                              // Telegram avatar havolasi (boshqalar profilni ko'rganda chiqadi)
   lang: { type: String, enum: ['uz', 'en', 'ru'], default: 'uz' },
   coins: { type: Number, default: 0 },           // Coins balansi (sariq tanga)
   cosmetics: { type: [String], default: [] },    // sotib olingan kosmetika (ramka / fon) id lari

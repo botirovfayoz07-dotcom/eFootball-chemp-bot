@@ -120,7 +120,7 @@ window.ShopView = (() => {
     const frame = prev.kind === 'frame' ? it.id : st.equipped?.frame, bg = prev.kind === 'bg' ? it.id : st.equipped?.bg;
     const own = (st.owned || []).includes(it.id);
     return modal(`<h3 class="pv-title">${t.prevTitle}</h3>
-      <div class="pf-card pv-card ${bgClass(bg)}"><div class="pf-ava ${frame ? 'fr-' + frame : ''}">${avatar()}</div><div class="pf-info"><h2>${esc(u.first_name || '')}</h2><p>${t.notReg}</p></div></div>
+      <div class="pf-card pv-card"><div class="pf-ava ${frame ? 'fr-' + frame : ''}">${avatar()}</div><div class="pf-info"><h2>${esc(u.first_name || '')}</h2><p>${t.notReg}</p></div></div>
       <div class="pv-nav"><button data-act="pvnav" data-d="-1">‹</button><span><b>${esc(itemName(it, lang))}</b><small>${prev.kind === 'frame' ? t.frames : t.bgs} · ${prev.idx + 1}/${list.length}</small></span><button data-act="pvnav" data-d="1">›</button></div>
       <p class="pv-hint">${t.prevHint}</p>
       ${own ? `<button class="tu-send" disabled>✓ ${t.equipped}</button>` : `<button class="tu-send" data-act="pvbuy" data-id="${it.id}">${t.buy} · ${coin('sm')} ${fmt(it.price)}</button>`}

@@ -487,3 +487,14 @@ body {
 .pf-card.photo .pf-info h2, .pf-card.photo .pf-info p, .pf-card.photo .pf-info a { text-shadow: 0 2px 8px rgba(0,0,0,.9); }
 .cos-bg.tall { height: 96px; }
 .pvrow { cursor: pointer; } .pvrow:active { background: rgba(255,255,255,.05); }
+
+/* ——— Umumiy ilova foni (yoqilgan fon butun ekranda, barcha bo'limlarda) ——— */
+#appbg { position: fixed; inset: 0; z-index: -1; pointer-events: none; background-position: center; }
+#appbg[class*="bg-"]::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7,10,20,.18), rgba(7,10,20,.42) 55%, rgba(7,10,20,.62)); }
+body.has-bg { background: transparent; }
+body.has-bg .mc, body.has-bg .coll-item, body.has-bg .lot, body.has-bg .cos, body.has-bg .r-wrap, body.has-bg .g-card, body.has-bg .pack, body.has-bg .sell-item, body.has-bg .pf-stats > div {
+  background: rgba(10,13,28,.62); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+body.has-bg .pf-card { background: none; border: 0; box-shadow: none; padding-left: 4px; padding-right: 4px; }
+body.has-bg .pf-info h2, body.has-bg .pf-info p, body.has-bg .pf-info a, body.has-bg .g-label, body.has-bg .back { text-shadow: 0 2px 8px rgba(0,0,0,.85); }
+.pf-ava.ph { position: relative; } .pf-ava.ph > * { grid-area: 1 / 1; }
+.modal.pvm { background: rgba(3,5,12,.10); -webkit-backdrop-filter: none; backdrop-filter: none; align-items: end; }
