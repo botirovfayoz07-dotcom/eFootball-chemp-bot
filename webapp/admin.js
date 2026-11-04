@@ -15,7 +15,7 @@ window.AdminView = (() => {
 
   // Yordamchi adminlar ro'yxati (katta admin uchun)
   let hl = { list: null };
-  const HELPER_TABS = ['results', 'draw', 'players', 'clubs', 'support'];
+  const HELPER_TABS = ['results', 'draw', 'rounds', 'players', 'clubs', 'support'];
   async function loadHelpers() { const r = await api('/api/admin/helpers'); if (r.ok) { hl.list = r.helpers; if (tab === 'helpers') render(); } }
   function helpersHtml() {
     const rows = (hl.list || []).map((h) => `<div class="g-card ad-open"><span class="ad-cup-n"><b>${esc(h.name)}</b><small>${esc(h.leagueName)} · ${h.telegramId}</small></span><button class="ad-btn" data-act="hdel" data-id="${h.telegramId}" data-league="${esc(h.league)}">O'chirish</button></div>`).join('')
@@ -51,7 +51,7 @@ window.AdminView = (() => {
 
   function tabsHtml() {
     const n = ov?.action || 0;
-    return `<div class="ad-tabs">${[['stats', '📊 Statistika'], ['broadcast', '📢 Xabar'], ['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['cup', '🎲 FA Cup'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar'], ['cups', 'Kubok narxi'], ['open', 'Ligalar holati'], ['clubs', '🏟 Klublar'], ['support', `Xabarlar${ov?.support ? ` <i>${ov.support}</i>` : ''}`], ['helpers', '👥 Yordamchilar']].filter(([k]) => (ov?.superAdmin ? true : HELPER_TABS.includes(k))).map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
+    return `<div class="ad-tabs">${[['stats', '📊 Statistika'], ['broadcast', '📢 Xabar'], ['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['rounds', '🔁 Turlar'], ['cup', '🎲 FA Cup'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar'], ['cups', 'Kubok narxi'], ['open', 'Ligalar holati'], ['clubs', '🏟 Klublar'], ['support', `Xabarlar${ov?.support ? ` <i>${ov.support}</i>` : ''}`], ['helpers', '👥 Yordamchilar']].filter(([k]) => (ov?.superAdmin ? true : HELPER_TABS.includes(k))).map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
   }
 
   // ——— Natijalar ———
@@ -94,11 +94,17 @@ window.AdminView = (() => {
       <p class="ad-hint">Yopiq turda foydalanuvchilar natija kirita olmaydi. Admin har doim o'zi kiritishi mumkin. Yangi qura o'tkazilganda barcha turlar yopiq bo'ladi.</p>`;
   }
 
+  // ——— Turlar paneli: barcha qura o'tkazilgan ligalar, har bir turni alohida ochish/yopish ———
+  function roundsPanelHtml() {
+    const lgs = (ov?.leagues || []).filter((l) => l.drawnAt);
+    if (!lgs.length) return '<div class="pf-empty"><span>🔁</span><p>Hali qura o\'tkazilgan liga yo\'q</p></div>';
+    return `<p class="ad-hint">Har bir turni alohida ochish yoki yopish mumkin. Yopiq turda o'yinchilar natija kirita olmaydi.</p>` + lgs.map((l) => `<div class="g-card"><div class="ad-meta"><b>${esc(l.name)}</b><small>${l.roundCount || 0} tur · ochiq: ${(l.openRounds || []).length}</small></div>${roundsHtml(l)}</div>`).join('');
+  }
   function drawHtml() {
     return (ov?.leagues || []).map((l) => {
       const drawn = !!l.drawnAt;
       const body = drawn
-        ? `<p class="ad-ok">🎲 Qura o'tkazilgan: ${fmtShow(l.drawnAt)} · ${l.total} ta o'yin (${l.confirmed} tasdiqlangan)</p>${roundsHtml(l)}<button class="ad-btn ghost" data-act="redo" data-lg="${l.id}">Qayta qura (hisob kiritilmagan bo'lsa)</button>
+        ? `<p class="ad-ok">🎲 Qura o'tkazilgan: ${fmtShow(l.drawnAt)} · ${l.total} ta o'yin (${l.confirmed} tasdiqlangan)</p><button class="ad-btn ghost" data-act="redo" data-lg="${l.id}">Qayta qura (hisob kiritilmagan bo'lsa)</button>
            <div class="ad-dl">${daysSel(l.roundDays)}<button class="ad-btn ghost sm" data-act="deadlines" data-lg="${l.id}">⏰ Dedlaynsiz o'yinlarga dedlayn berish</button><p class="ad-hint">Dedlayn o'tgach, hisob kiritilmagan o'yinda avtomatik: faol tomonga 3:0, hech kim kelmagan bo'lsa bekor. Dedlaydan keyin qisqa muhlat beriladi (standart 12 soat).</p></div>`
         : `<label class="ad-lbl">Qura vaqti<input type="datetime-local" data-dt value="${l.drawAt ? fmtLocal(l.drawAt) : ''}"></label>
            <label class="ad-lbl">Davralar<select data-rounds><option value="2" ${l.rounds === 2 ? 'selected' : ''}>2 davra (uyda va mehmonda)</option><option value="1" ${l.rounds === 1 ? 'selected' : ''}>1 davra</option></select></label>
@@ -307,7 +313,7 @@ window.AdminView = (() => {
   function render() {
     if (ov && !ov.superAdmin && !HELPER_TABS.includes(tab)) tab = 'results';
     if (!ov) { el.innerHTML = `<div class="page ad-page">${SK('kpis')}</div>`; return; }
-    const body = tab === 'clubs' ? clubsHtml() : tab === 'helpers' ? helpersHtml() : tab === 'stats' ? statsHtml() : tab === 'broadcast' ? broadcastHtml() : tab === 'results' ? resultsHtml() : tab === 'draw' ? drawHtml() : tab === 'cup' ? cupHtml() : tab === 'tour' ? toursHtml() : tab === 'cups' ? cupsHtml() : tab === 'open' ? openHtml() : tab === 'support' ? supportHtml() : playersHtml();
+    const body = tab === 'clubs' ? clubsHtml() : tab === 'helpers' ? helpersHtml() : tab === 'stats' ? statsHtml() : tab === 'broadcast' ? broadcastHtml() : tab === 'results' ? resultsHtml() : tab === 'rounds' ? roundsPanelHtml() : tab === 'draw' ? drawHtml() : tab === 'cup' ? cupHtml() : tab === 'tour' ? toursHtml() : tab === 'cups' ? cupsHtml() : tab === 'open' ? openHtml() : tab === 'support' ? supportHtml() : playersHtml();
     el.innerHTML = `<div class="page ad-page"><button class="back" data-back><span>‹</span> Bo'limlar</button><h1 class="section-title">🛠 Admin panel</h1>${tabsHtml()}${body}</div>`;
     loadImgs(el);
     const sb = el.querySelector('#spMsgs'); if (sb) sb.scrollTop = sb.scrollHeight;
