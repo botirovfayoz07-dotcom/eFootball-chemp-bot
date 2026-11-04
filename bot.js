@@ -23,6 +23,10 @@ const cupLogic = require('./lib/cup');
 const registerSeasonRoutes = require('./lib/season-api');
 const Cup = require('./models/Cup');
 const registerAdminExtra = require('./lib/admin-extra');
+const createAlerter = require('./lib/alerts');
+const makeLimiters = require('./lib/security');
+const { logCoins, dailyStatus, claimDaily, referralInfo, captureReferral, payReferral, adjustCoins } = require('./lib/economy');
+const CoinLog = require('./models/CoinLog');
 const { trackActivity } = registerAdminExtra;
 const mountDeadlines = require('./lib/deadlines');
 const DL = mountDeadlines;   // stamp / stampSeq / decide / clampDays
@@ -48,11 +52,13 @@ const mainKeyboard = (lang) =>
 
 bot.start(async (ctx) => {
   const { id, first_name, username } = ctx.from;
+  const isNew = !(await User.exists({ telegramId: id }));
   await User.findOneAndUpdate(
     { telegramId: id },
     { firstName: first_name, username },
     { upsert: true, new: true }
   );
+  if (isNew) await captureReferral(id, ctx.startPayload).catch(() => {});   // t.me/bot?start=ref_<id> — do'st taklifi
   // Turnirga taklif havolasi: t.me/<bot>?start=t_KOD → to'g'ridan-to'g'ri turnirga qo'shilish oynasini ochadi
   const m = /^t_([A-Za-z0-9]{4,12})$/.exec(ctx.startPayload || '');
   if (m) {
@@ -79,6 +85,10 @@ bot.action(/^lang_(uz|en|ru)$/, async (ctx) => {
 const app = express();
 app.use(express.json({ limit: '8mb' })); // Coins chek rasmi (base64) uchun
 app.use(express.static(path.join(__dirname, 'webapp')));
+// Serverni proxy (Render, Railway, Nginx) orqasida ishlatsangiz .env da TRUST_PROXY=1 qo'ying — aks holda IP limit noto'g'ri ishlaydi
+if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || 1);
+const limits = makeLimiters({ tgUser });   // tgUser pastda e'lon qilingan (function declaration)
+app.use('/api', limits.global);
 
 // Telegram initData imzosini tekshiradi va foydalanuvchini qaytaradi
 function tgUser(req) {
@@ -108,7 +118,7 @@ async function migrateEq(id) {
 // Ilovani ochgan har bir foydalanuvchining ismi/username/avatari saqlanadi (jadvalda klub egasi ko'rinishi uchun)
 const touchUser = (u) => User.updateOne({ telegramId: u.id }, { $set: { firstName: u.first_name || '', username: u.username || '', photoUrl: u.photo_url || '', lastSeen: new Date(), blocked: false } }, { upsert: true }).then(() => trackActivity(u.id)).catch(() => {});
 // Async marshrutlarda xato chiqsa server qulab tushmasligi uchun
-const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch((e) => { console.error(e); res.status(500).json({ error: 'fail' }); });
+const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch((e) => { alert('API ' + req.method + ' ' + req.path, e); res.status(500).json({ error: 'fail' }); });
 const adminOnly = (req, res, next) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
@@ -205,6 +215,7 @@ async function notify(telegramId, key, ...args) {
   } catch (_) { /* foydalanuvchi botni bloklagan bo'lishi mumkin */ }
 }
 const notifyAdmins = (text) => Promise.all(ADMINS.map((id) => bot.telegram.sendMessage(id, text, Markup.inlineKeyboard([[Markup.button.webApp('🛠 Admin panel', `${MINI_APP_URL}?lang=uz&open=admin`)]])).catch(() => {})));
+const alert = createAlerter(notifyAdmins);   // xatolar adminlarga Telegramda (bir xil xato 10 daqiqada bir marta)
 
 // "Klub (@username)" ko'rinishidagi nom
 async function whoIs(leagueId, id) {
@@ -378,6 +389,7 @@ app.post('/api/leagues/:league/register', async (req, res) => {
   if ((await Registration.countDocuments({ season, league: league.id })) >= league.max) return res.status(409).json({ error: 'full' });
   try {
     await Registration.create({ league: league.id, season, telegramId: u.id, club });
+    await payReferral(u.id).then(notifyReferrer).catch((e) => alert('referal', e));
     res.json({ ok: true });
   } catch (e) {
     // 11000: klub band yoki foydalanuvchi allaqachon yozilgan (parallel so'rov)
@@ -428,7 +440,9 @@ app.get('/api/auctions', async (req, res) => {
   res.json({ lots: regs.map((r) => ({ league: r.league, club: r.club, price: r.auction.price, games: r.w + r.d + r.l, mine: r.telegramId === u.id, user: names.get(r.telegramId) || '' })) });
 });
 // ——— Do'kon: Coins, kosmetika, kubok sotish (Sell) ———
-const PAY_CARD = process.env.PAY_CARD || '9860190109195155', PAY_HOLDER = process.env.PAY_HOLDER || 'Fayozbek Botirov'; // .env da PAY_CARD / PAY_HOLDER bilan almashtirish mumkin
+// To'lov karta raqami FAQAT .env dan olinadi (kodda saqlanmaydi). PAY_CARD bo'lmasa Coins to'lovi o'chiriladi.
+const PAY_CARD = (process.env.PAY_CARD || '').replace(/\D/g, ''), PAY_HOLDER = process.env.PAY_HOLDER || '';
+if (!PAY_CARD) console.warn("⚠️ PAY_CARD .env da yo'q — Coins to'lovi ishlamaydi");
 const money = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 const cardFmt = (d) => d.replace(/(.{4})/g, '$1 ').trim();
 const luhn = (d) => { let s = 0; for (let i = 0; i < d.length; i++) { let n = +d[d.length - 1 - i]; if (i % 2) { n *= 2; if (n > 9) n -= 9; } s += n; } return s % 10 === 0; };
@@ -471,6 +485,12 @@ async function sendToAdmins(text, buf) {
   return { ok: rs.some((r) => r.status === 'fulfilled'), fileId };
 }
 const tgName = (x) => (x?.username ? '@' + x.username : x?.firstName || '');
+// Do'st ligaga yozilgach taklif qilgan odamga xabar
+const notifyReferrer = (p) => p && say(p.refId, {
+  uz: `🎉 Do'stingiz ligaga yozildi: sizga +${p.amount} Coins qo'shildi!`,
+  en: `🎉 Your friend joined a league: +${p.amount} Coins added to your balance!`,
+  ru: `🎉 Ваш друг записался в лигу: +${p.amount} Coins на ваш баланс!`,
+}, 'shop');
 
 app.get('/api/shop', ah(async (req, res) => {
   const u = tgUser(req);
@@ -480,21 +500,27 @@ app.get('/api/shop', ah(async (req, res) => {
   res.json({
     coins: me?.coins || 0, owned: me?.cosmetics || [], equipped: eqOf(me),
     card: PAY_CARD, holder: PAY_HOLDER,
+    daily: dailyStatus(me), ref: referralInfo(me, u.id, await botName()),
     trophies: trs.map((x) => ({ id: String(x._id), league: x.league, season: x.season, status: x.status, price: (x.status === 'selling' && x.sell?.price) || cup.get(x.league) || 0 })),
   });
 }));
 
 // Coins sotib olish: kartaga o'tkazib, chek rasmini yuboradi -> adminga boradi -> admin tasdiqlasa Coins qo'shiladi
-app.post('/api/shop/topup', ah(async (req, res) => {
+app.post('/api/shop/topup', limits.topup, ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const pack = SHOP.PACKS.find((p) => p.id === req.body?.pack), img = String(req.body?.image || ''), cut = img.indexOf(',');
   if (!pack || cut < 0 || !/^data:image\/(jpeg|png|webp);base64$/.test(img.slice(0, cut))) return res.status(400).json({ error: 'fail' });
   const buf = Buffer.from(img.slice(cut + 1), 'base64');
   if (buf.length < 1000 || buf.length > 5 * 1024 * 1024) return res.status(400).json({ error: 'badImage' });
-  if (!ADMINS.length) return res.status(503).json({ error: 'fail' });
+  if (!ADMINS.length || !PAY_CARD) return res.status(503).json({ error: 'fail' });
   if ((await TopUp.countDocuments({ telegramId: u.id, status: 'pending' })) >= 3) return res.status(429).json({ error: 'tooMany' });
-  const tu = await TopUp.create({ telegramId: u.id, coins: pack.coins, amount: pack.uzs });
+  // Chek firibgarligi: bir xil rasm (sha256) ikki marta ishlatilmaydi
+  const imageHash = crypto.createHash('sha256').update(buf).digest('hex');
+  if (await TopUp.exists({ imageHash })) return res.status(409).json({ error: 'duplicate' });
+  let tu;
+  try { tu = await TopUp.create({ telegramId: u.id, coins: pack.coins, amount: pack.uzs, imageHash }); }
+  catch (e) { if (e.code === 11000) return res.status(409).json({ error: 'duplicate' }); throw e; }   // parallel so'rov
   const caption = `💰 Coins to'ldirish\n👤 ${who(u)} (id ${u.id})\n🪙 ${money(pack.coins)} Coins · ${money(pack.uzs)} UZS\n\nChekni tekshiring va tasdiqlang.`;
   const sent = await toAdmins((id) => bot.telegram.sendPhoto(id, { source: buf }, { caption, ...adminKb('tu_ok_' + tu._id, 'tu_no_' + tu._id) }));
   if (!sent) { await TopUp.deleteOne({ _id: tu._id }); return res.status(502).json({ error: 'fail' }); }
@@ -502,7 +528,7 @@ app.post('/api/shop/topup', ah(async (req, res) => {
 }));
 
 // Kosmetika sotib olish (Coins evaziga) va profilda yoqish
-app.post('/api/shop/buy', ah(async (req, res) => {
+app.post('/api/shop/buy', limits.money, ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const item = SHOP.findItem(req.body?.id);
@@ -512,6 +538,7 @@ app.post('/api/shop/buy', ah(async (req, res) => {
     { telegramId: u.id, coins: { $gte: item.price }, cosmetics: { $ne: item.id } },
     { $inc: { coins: -item.price }, $addToSet: { cosmetics: item.id }, $set: { ['equipped.' + (item.kind === 'bg' && item.player ? 'pbg' : item.kind)]: item.id } }, { new: true }).lean();
   if (!r) { const me = await User.findOne({ telegramId: u.id }).lean(); return res.status(409).json({ error: me?.cosmetics?.includes(item.id) ? 'owned' : 'noCoins' }); }
+  await logCoins(u.id, -item.price, 'buy', item.id);
   res.json({ ok: true, coins: r.coins });
 }));
 app.post('/api/shop/equip', ah(async (req, res) => {
@@ -528,7 +555,7 @@ app.post('/api/shop/equip', ah(async (req, res) => {
 }));
 
 // Do'kon -> Sell: kubokni adminga sotish. Foydalanuvchi karta raqamini yuboradi, u adminga boradi, 24 soat ichida pul tashlanadi.
-app.post('/api/shop/sell', ah(async (req, res) => {
+app.post('/api/shop/sell', limits.money, ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const card = String(req.body?.card || '').replace(/\D/g, ''), tid = req.body?.trophy;
@@ -576,7 +603,7 @@ bot.action(/^tu_(ok|no)_([a-f0-9]{24})$/, adminCb(async (ctx, ok, id) => {
   const tu = await TopUp.findOneAndUpdate({ _id: id, status: 'pending' }, { $set: { status: ok ? 'approved' : 'rejected', doneAt: new Date() } }, { new: true }).lean();
   if (!tu) return ctx.answerCbQuery("Allaqachon ko'rib chiqilgan");
   if (ok) {
-    try { await User.updateOne({ telegramId: tu.telegramId }, { $inc: { coins: tu.coins } }, { upsert: true }); }
+    try { await User.updateOne({ telegramId: tu.telegramId }, { $inc: { coins: tu.coins } }, { upsert: true }); await logCoins(tu.telegramId, tu.coins, 'topup', String(tu._id), ctx.from.id); }
     catch (e) { await TopUp.updateOne({ _id: id }, { $set: { status: 'pending' }, $unset: { doneAt: 1 } }); throw e; }
   }
   await ctx.answerCbQuery(ok ? '✅' : '❌');
@@ -599,7 +626,7 @@ bot.action(/^sl_(ok|no)_([a-f0-9]{24})$/, adminCb(async (ctx, ok, id) => {
 }));
 
 // ——— O'yin hisobi: biri kiritadi, raqib tasdiqlaydi yoki "Yolg'on" deydi ———
-app.post('/api/matches/:id/report', ah(async (req, res) => {
+app.post('/api/matches/:id/report', limits.chat, ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const my = req.body?.my, opp = req.body?.opp, id = req.params.id;
@@ -721,7 +748,7 @@ app.get('/api/matches/:id/chat', ah(async (req, res) => {
   });
 }));
 
-app.post('/api/matches/:id/chat', ah(async (req, res) => {
+app.post('/api/matches/:id/chat', limits.chat, ah(async (req, res) => {
   const c = await chatMatch(req, res); if (!c) return;
   const key = String(c.m._id), type = req.body?.type === 'room' ? 'room' : 'text';
   const text = String(req.body?.text || '').trim().slice(0, 500);
@@ -762,7 +789,7 @@ app.get('/api/support', ah(async (req, res) => {
   const list = await ChatMessage.find({ kind: 'support', key }).sort({ at: -1 }).limit(100).lean();
   res.json({ messages: list.reverse().map((x) => ({ id: String(x._id), mine: !x.admin, text: x.text, fileId: x.fileId, at: x.at })) });
 }));
-app.post('/api/support', ah(async (req, res) => {
+app.post('/api/support', limits.chat, ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const text = String(req.body?.text || '').trim().slice(0, 800), buf = decodeImage(req.body?.image);
@@ -797,6 +824,38 @@ app.get('/api/file/:fid', ah(async (req, res) => {
     res.set('Content-Type', r.headers['content-type'] || 'image/jpeg'); res.set('Cache-Control', 'private, max-age=86400');
     r.pipe(res);
   }).on('error', () => res.status(502).end());
+}));
+
+// Kunlik bonus: Toshkent vaqti bo'yicha kuniga bir marta; ketma-ket kunlar uchun ko'proq Coins
+app.post('/api/daily/claim', limits.money, ah(async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const r = await claimDaily(u.id);
+  if (!r.ok) return res.status(409).json({ error: r.error, streak: r.streak || 0 });
+  res.json(r);
+}));
+
+// Admin: Coins audit logi (ixtiyoriy telegramId bo'yicha filtr)
+app.get('/api/admin/coins/log', adminOnly, ah(async (req, res) => {
+  const tid = Number(req.query.telegramId) || null;
+  const rows = await CoinLog.find(tid ? { telegramId: tid } : {}).sort({ at: -1 }).limit(200).lean();
+  res.json({ rows: rows.map((x) => ({ id: String(x._id), telegramId: x.telegramId, delta: x.delta, reason: x.reason, ref: x.ref, actor: x.actor, note: x.note, at: x.at })) });
+}));
+
+// Admin: Coins qo'lda o'zgartirish (delta: + yoki -) yoki tasdiqlangan to'lovni qaytarib olish (topupId). Sabab majburiy.
+app.post('/api/admin/coins/adjust', adminOnly, ah(async (req, res) => {
+  const r = await adjustCoins({
+    telegramId: Number(req.body?.telegramId), delta: Number(req.body?.delta),
+    reason: req.body?.reason, topupId: req.body?.topupId || null, actor: req.admin.id,
+  });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  const sign = r.delta > 0 ? '+' : '';
+  say(r.telegramId, {
+    uz: `ℹ️ Coins balansingiz o'zgardi: ${sign}${money(r.delta)} Coins. Sabab: ${r.reason}`,
+    en: `ℹ️ Your Coins balance changed: ${sign}${money(r.delta)} Coins. Reason: ${r.reason}`,
+    ru: `ℹ️ Баланс Coins изменён: ${sign}${money(r.delta)} Coins. Причина: ${r.reason}`,
+  }, 'shop');
+  res.json({ ok: true, coins: r.coins, delta: r.delta });
 }));
 
 // ——— Admin ———
@@ -1029,6 +1088,11 @@ function startSeasonWatcher() {
   if (id.unref) id.unref();
 }
 
+// Kutilmagan xatolar: konsolga va adminga Telegramda
+app.use((err, req, res, _next) => { alert('express ' + req.method + ' ' + req.path, err); res.status(500).json({ error: 'fail' }); });
+process.on('unhandledRejection', (e) => alert('unhandledRejection', e));
+process.on('uncaughtException', (e) => { alert('uncaughtException', e); setTimeout(() => process.exit(1), 1500).unref(); });
+
 app.listen(process.env.PORT || 3000, () => console.log('Mini app serveri ishga tushdi'));
 
 (async () => {
@@ -1050,6 +1114,7 @@ app.listen(process.env.PORT || 3000, () => console.log('Mini app serveri ishga t
       await ut.remind().catch((e) => console.error('Turnir eslatmalari:', e)); // norasmiy turnirlar: dedlayn eslatmasi
     } catch (e) { console.error('Qura rejalashtiruvchisi:', e); }
   }, 60 * 1000);
+  bot.catch((err, ctx) => alert('bot ' + (ctx?.updateType || ''), err));
   await bot.launch();
   console.log('Bot ishga tushdi');
 })();

@@ -12,6 +12,13 @@ const userSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   lastSeen: { type: Date, default: null },
   blocked: { type: Boolean, default: false },     // botni bloklagan (ommaviy xabar o'tkazib yuboriladi)
+  // Kunlik bonus
+  dailyDay: { type: String, default: null },     // oxirgi bonus olingan kun ('YYYY-MM-DD', Toshkent)
+  dailyStreak: { type: Number, default: 0 },     // ketma-ket kunlar soni
+  // Referal (do'st taklif qilish)
+  referredBy: { type: Number, default: null },   // kim taklif qilgan (Telegram ID)
+  refPaid: { type: Boolean, default: false },    // taklif bonusi to'landimi (taklif qilingan odam ligaga yozilgach)
+  refCount: { type: Number, default: 0 },        // taklif qilgan va bonus to'langan do'stlar soni
 });
 userSchema.index({ lastSeen: 1 });
 userSchema.index({ createdAt: 1 });

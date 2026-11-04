@@ -76,7 +76,7 @@ Me → klub → *Mening o'yinlarim*. Qura o'tkazilgach har bir o'yinchida o'z o'
 Yangi fayllar: `models/Match.js`, `models/LeagueConfig.js`, `fixtures.js` (qura va jadval hisobi), `webapp/admin.js`. Jadval (`pts, w, d, l, gf, ga`) har safar tasdiqlangan o'yinlardan qayta hisoblanadi. Klub "topshirilsa", uning o'yinlari ham yangi egasiga o'tadi.
 
 ## Do'kon: Coins, kosmetika, Sell
-- To'lov kartasi `bot.js` da kiritilgan (9860 1901 0919 5155, Fayozbek Botirov). Almashtirish uchun `.env` ga `PAY_CARD` va `PAY_HOLDER` qo'shing — ular birinchi o'rinda olinadi.
+- To'lov kartasi **faqat `.env` da** saqlanadi (`PAY_CARD`, `PAY_HOLDER`). Kodda karta raqami yo'q. `PAY_CARD` bo'lmasa Coins to'lovi o'chiriladi va serverda ogohlantirish chiqadi.
 - **Coins** (sariq tanga): paketlar va narxlar `webapp/shop-data.js` ichida (`PACKS`). Foydalanuvchi paketni tanlaydi, kartaga o'tkazadi va chek rasmini yuboradi → rasm adminlarga botda keladi (✅ Tasdiqlash / ❌ Rad etish) → tasdiqlansa Coins balansga qo'shiladi.
 - **Kosmetika:** avatar ramkalari va profil fonlari (`FRAMES`, `BACKGROUNDS`), Coins evaziga. Ko'rish oynasida ‹ › bilan almashtiriladi; sotib olingach profilda yoqiladi, Me → Kolleksiyada ko'rinadi.
 - **Sell:** Me → Kolleksiyadagi kubok Do'kon → Sell bo'limida sotiladi. «Sotish» → foydalanuvchi karta raqamini kiritadi → adminga yetib boradi (bazada faqat oxirgi 4 raqam saqlanadi) → foydalanuvchiga «24 soat ichida pulni tashlab beramiz» deyiladi. Admin pulni o'tkazgach botdagi «To'lab berildi» tugmasini bosadi → kubok foydalanuvchi ro'yxatidan chiqariladi. «Rad etish» bosilsa kubok qaytadi.
@@ -96,3 +96,43 @@ Yangi fayllar: `models/Match.js`, `models/LeagueConfig.js`, `fixtures.js` (qura 
 - **O'zi hal qilinmaydigan holatlar:** raqib tasdig'i kutilayotgan (pending) va bahsli o'yinlar, FA Cup — adminga xabar boradi. Avto-natija admin panelda «🤖» belgisi bilan ko'rinadi, «Natijalar → Tasdiqlangan» orqali o'zgartirsa bo'ladi.
 - **Norasmiy turnirlar:** dedlaynga 3 soat qolganda eslatma. FA Cup: 3 soatlik eslatma va dedlayn o'tganda adminga xabar.
 - Dedlaynsiz (eski) o'yinlarga avto-natija qo'llanmaydi.
+
+## Xavfsizlik, kunlik bonus va do'st taklifi
+### .env sozlamalari
+Namuna: `.env.example`. Asosiy o'zgaruvchilar: `BOT_TOKEN`, `MONGO_URI`, `MINI_APP_URL`, `ADMIN_IDS`, `PAY_CARD`, `PAY_HOLDER`. Qo'shimcha: `TRUST_PROXY=1` (server Render/Railway/Nginx orqasida bo'lsa — aks holda IP bo'yicha limit noto'g'ri ishlaydi), `REF_BONUS` (standart 20), `REF_MAX` (standart 50).
+
+### Chek firibgarligi
+- Har bir chek rasmining sha256 hash'i `TopUp.imageHash` da saqlanadi. Bir xil rasm ikkinchi marta yuborilsa — `duplicate` xatosi qaytadi. Hash unique indeks bilan himoyalangan, shuning uchun parallel so'rovlar ham o'tmaydi.
+- Chekning rasmi o'zgartirilsa (boshqa siqish, skrinshot), hash boshqa chiqadi. Bu to'liq himoya emas: admin baribir chekni ko'zi bilan tekshiradi.
+
+### Coins audit logi (`CoinLog`)
+Coins balansiga tegadigan har bir o'zgarish yoziladi: `topup` (chek tasdiqlandi), `buy` (kosmetika), `daily`, `referral`, `admin` (qo'lda), `reversal` (tasdiqlangan to'lov qaytarildi). Har bir yozuvda sana, miqdor, sabab, bog'liq ID va admin ID bor.
+- `GET /api/admin/coins/log?telegramId=123` — tarix (oxirgi 200 ta)
+- `POST /api/admin/coins/adjust` — `{telegramId, delta, reason}` yoki `{topupId, reason?}` (tasdiqlangan to'lovni qaytarish). Sabab majburiy. O'yinchiga xabar yuboriladi. Balans manfiy bo'lmaydi.
+Admin panelda bu uchun hozircha tugma yo'q; API orqali ishlaydi.
+
+### Rate limit (express-rate-limit)
+- Umumiy `/api`: daqiqada 600 so'rov
+- Chek yuborish: 10 daqiqada 5 ta
+- Do'kon, sotish, kunlik bonus: daqiqada 20 ta
+- Chat, hisob kiritish, yordam: daqiqada 40 ta
+Kalit: Telegram ID (initData imzosi tekshirilgan), aks holda IP. Limitdan o'tilsa `429` va `tooMany` xatosi qaytadi.
+
+### Xatoliklar monitoringi
+Server xatolari (API, bot, kutilmagan xatolar) adminlarga Telegramda yuboriladi. Bir xil xato 10 daqiqada bir marta keladi (spam bo'lmasin).
+
+### Bazani zaxiralash (kodsiz, MongoDB Atlas'da)
+1. Atlas → Cluster → **Backup** bo'limiga kiring. M0 (bepul) klasterda avtomatik backup yo'q: M2/M5 yoki boshqa pullik tarifga o'tish kerak, yoki `mongodump` ni kuniga bir marta cron orqali ishga tushiring.
+2. Pullik tarifda **Continuous Backup** yoki kunlik snapshot'ni yoqing va saqlash muddatini belgilang (kamida 7 kun).
+3. Tiklashni bir marta test qiling: test klasterga snapshot'dan tiklab, `users` va `topups` soni mos kelishini tekshiring.
+
+### Kunlik bonus
+- O'yinchi Do'kon → Coins bo'limida **Olish** tugmasini bosadi. Kuniga bir marta, Toshkent vaqti bo'yicha.
+- Miqdor: 1-kun 5 Coins, har ketma-ket kun +1, 6-kundan boshlab 10 Coins. Bir kun o'tkazib yuborilsa seriya 1 dan boshlanadi.
+
+### Do'st taklif qilish (referal)
+- Har bir o'yinchida havola: `https://t.me/<bot>?start=ref_<telegram_id>` (Do'kon → Coins → Do'stlarni taklif qilish).
+- Do'st havola orqali botga kirganda taklif yoziladi, lekin Coins darhol berilmaydi. Bonus **do'st birinchi marta ligaga yozilgandan keyin** beriladi. Shunda faqat bot hisoblarini ochish foydali emas.
+- Taklif qilgan odamga +`REF_BONUS` Coins, va xabar yuboriladi. Bitta odam uchun `REF_MAX` tagacha bonus beriladi.
+- O'zini o'zi taklif qilish mumkin emas. Bir kishi ikki marta bonus ololmaydi (`refPaid` bayrog'i).
+

@@ -1,7 +1,7 @@
 // "Do'kon" bo'limi: Coins (sariq tanga) paketlari · Kosmetika · Auksion · Sell (kubokni adminga sotish)
 window.ShopView = (() => {
   const T = {
-    uz: { title: "Do'kon", balance: 'Balansingiz', tabs: { coins: 'Coins', cosmetics: 'Kosmetika', auction: 'Auksion', sell: 'Sell' }, packs: 'Paketlar',
+    uz: { title: "Do'kon", balance: 'Balansingiz', bonusLabel: 'Bonuslar', dailyTitle: 'Kunlik bonus', dailyHint: (n) => `Bugun +${n} Coins`, dailyBtn: 'Olish', dailyDone: 'Bugungi bonus olingan. Ertaga yana keling!', streak: (n) => `${n} kun ketma-ket`, refTitle: "Do'stlarni taklif qilish", refHint: (n) => `+${n} Coins · do'st ligaga yozilgach`, refCount: (n) => `Taklif qilganlar: ${n}`, tabs: { coins: 'Coins', cosmetics: 'Kosmetika', auction: 'Auksion', sell: 'Sell' }, packs: 'Paketlar',
       transfer: (a) => `Kartaga <b>${a}</b> UZS o'tkazing`, holder: 'Karta egasi', copy: 'Nusxa', step2: "To'lov chekining rasmini yuboring", send: 'Chek rasmini yuborish',
       note: "Admin chekni tekshiradi, odatda bir necha soat ichida. Bot sizga xabar beradi.", cant: 'Chek yubora olmayman', close: 'Yopish', noCard: "Karta raqami hali kiritilmagan — admin bilan bog'laning",
       cosIntro: "Kosmetika faqat ko'rinish uchun: avatar ramkasi va profil foni. Sotib olishdan oldin «Ko'rish» ni bosing.", frames: 'Ramkalar', bgs: 'Fonlar', players: 'Futbolchi fonlari', preview: "Ko'rish", buy: 'Sotib olish', equip: 'Yoqish', equipped: 'Yoqilgan', unequip: "O'chirish",
@@ -10,7 +10,7 @@ window.ShopView = (() => {
       sellIntro: "Yutgan kubogingizni adminga soting: «Sotish» ni bosing va karta raqamingizni yuboring. Pul 24 soat ichida kartangizga o'tkaziladi, shundan so'ng kubok ro'yxatingizdan chiqariladi.",
       sellPrice: 'Narx', noPrice: 'Narx hali belgilanmagan', sellFor: 'Sotish narxi', sellEmpty: "Sotadigan kubok yo'q. Ligada g'olib bo'lsangiz, kubok shu yerda paydo bo'ladi.", sell: 'Sotish', sellWait: "⏳ Admin pulni o'tkazishini kutmoqda (24 soat ichida)", season: 'Mavsum',
       sellTitle: 'Kubokni adminga sotish', sellLabel: "Admin pulni qaysi kartaga tashlasin? Karta raqamini kiriting", sellSend: 'Adminga yuborish', sellNote: "Karta raqami adminga yuboriladi. Pul 24 soat ichida o'tkazib beriladi." },
-    en: { title: 'Shop', balance: 'Your balance', tabs: { coins: 'Coins', cosmetics: 'Cosmetics', auction: 'Auction', sell: 'Sell' }, packs: 'Packages',
+    en: { title: 'Shop', balance: 'Your balance', bonusLabel: 'Bonuses', dailyTitle: 'Daily bonus', dailyHint: (n) => `Today +${n} Coins`, dailyBtn: 'Claim', dailyDone: "Today's bonus is claimed. Come back tomorrow!", streak: (n) => `${n}-day streak`, refTitle: 'Invite friends', refHint: (n) => `+${n} Coins · once the friend joins a league`, refCount: (n) => `Invited: ${n}`, tabs: { coins: 'Coins', cosmetics: 'Cosmetics', auction: 'Auction', sell: 'Sell' }, packs: 'Packages',
       transfer: (a) => `Transfer <b>${a}</b> UZS to the card`, holder: 'Card holder', copy: 'Copy', step2: 'Send a photo of the payment receipt', send: 'Send receipt photo',
       note: 'The admin checks the receipt, usually within a few hours. The bot will notify you.', cant: "I can't send the receipt", close: 'Close', noCard: 'The card number is not set yet — contact the admin',
       cosIntro: 'Cosmetics are for looks only: an avatar frame and a profile background. Tap “Preview” before you buy.', frames: 'Frames', bgs: 'Backgrounds', players: 'Footballer backgrounds', preview: 'Preview', buy: 'Buy', equip: 'Equip', equipped: 'Equipped', unequip: 'Remove',
@@ -19,7 +19,7 @@ window.ShopView = (() => {
       sellIntro: 'Sell the trophy you won to the admin: tap “Sell” and send your card number. The money is sent to your card within 24 hours, then the trophy is removed from your list.',
       sellPrice: 'Price', noPrice: 'Price not set yet', sellFor: 'Selling price', sellEmpty: 'No trophies to sell. If you win a league, the trophy appears here.', sell: 'Sell', sellWait: '⏳ Waiting for the admin to send the money (within 24 hours)', season: 'Season',
       sellTitle: 'Sell the trophy to the admin', sellLabel: 'Which card should the admin send the money to? Enter the card number', sellSend: 'Send to admin', sellNote: 'Your card number goes to the admin. The money is sent within 24 hours.' },
-    ru: { title: 'Магазин', balance: 'Ваш баланс', tabs: { coins: 'Coins', cosmetics: 'Косметика', auction: 'Аукцион', sell: 'Sell' }, packs: 'Пакеты',
+    ru: { title: 'Магазин', balance: 'Ваш баланс', bonusLabel: 'Бонусы', dailyTitle: 'Ежедневный бонус', dailyHint: (n) => `Сегодня +${n} Coins`, dailyBtn: 'Получить', dailyDone: 'Бонус за сегодня получен. Возвращайтесь завтра!', streak: (n) => `Серия: ${n} дн.`, refTitle: 'Пригласить друзей', refHint: (n) => `+${n} Coins · когда друг запишется в лигу`, refCount: (n) => `Приглашено: ${n}`, tabs: { coins: 'Coins', cosmetics: 'Косметика', auction: 'Аукцион', sell: 'Sell' }, packs: 'Пакеты',
       transfer: (a) => `Переведите <b>${a}</b> UZS на карту`, holder: 'Владелец карты', copy: 'Копия', step2: 'Отправьте фото чека об оплате', send: 'Отправить фото чека',
       note: 'Админ проверит чек, обычно в течение нескольких часов. Бот сообщит вам.', cant: 'Не могу отправить чек', close: 'Закрыть', noCard: 'Номер карты ещё не указан — свяжитесь с админом',
       cosIntro: 'Косметика только для вида: рамка аватара и фон профиля. Перед покупкой нажмите «Просмотр».', frames: 'Рамки', bgs: 'Фоны', players: 'Фоны с футболистами', preview: 'Просмотр', buy: 'Купить', equip: 'Надеть', equipped: 'Надето', unequip: 'Снять',
@@ -42,10 +42,26 @@ window.ShopView = (() => {
   const bgClass = (id) => (id && !window.SHOP.itemOf('bg', id)?.player ? 'bg-' + id : '');   // karta foni: faqat oddiy fonlar (futbolchi fonlari butun ekranda)
   const avatar = () => { const u = window.Telegram?.WebApp?.initDataUnsafe?.user || {}; return u.photo_url ? `<img src="${esc(u.photo_url)}" alt="">` : `<b>${esc((u.first_name || '?')[0])}</b>`; };
 
+  // ——— Kunlik bonus va do'st taklif qilish ———
+  function bonusHtml(lang, st, t) {
+    const d = st.daily || {}, r = st.ref || {};
+    const daily = `<div class="bonus">
+      <span class="bonus-ico">🎁</span>
+      <span class="bonus-info"><b>${t.dailyTitle}</b><small>${d.claimed ? t.dailyDone : t.dailyHint(d.next || 5)}${d.streak ? ' · ' + t.streak(d.streak) : ''}</small></span>
+      ${d.claimed ? '<button class="cos-btn on" disabled>✓</button>' : `<button class="cos-btn buy" data-act="daily">${t.dailyBtn}</button>`}
+    </div>`;
+    const ref = r.link ? `<div class="bonus">
+      <span class="bonus-ico">👥</span>
+      <span class="bonus-info"><b>${t.refTitle}</b><small>${t.refHint(r.bonus || 0)} · ${t.refCount(r.count || 0)}</small></span>
+      <button class="cos-btn buy" data-act="refcopy" data-link="${esc(r.link)}">${t.copy}</button>
+    </div>` : '';
+    return `<div class="g-label"><span>${t.bonusLabel}</span></div>${daily}${ref}`;
+  }
+
   // ——— Coins paketlari ———
-  function coinsHtml(t) {
+  function coinsHtml(lang, st, t) {
     const packs = window.SHOP.PACKS.map((p, i) => `<div class="pack">${stack(Math.min(5, 1 + Math.floor(i / 2)))}<b>${fmt(p.coins)}</b><small>Coins</small><button class="pack-buy" data-act="pack" data-pack="${p.id}">${fmt(p.uzs)} UZS</button></div>`).join('');
-    return `<div class="g-label"><span>${t.packs}</span></div><div class="packs">${packs}</div>`;
+    return bonusHtml(lang, st, t) + `<div class="g-label"><span>${t.packs}</span></div><div class="packs">${packs}</div>`;
   }
 
   // ——— Kosmetika ———
@@ -92,7 +108,7 @@ window.ShopView = (() => {
   function html(lang, st) {
     const t = T[lang], tab = st.tab || 'coins';
     const tabs = ['coins', 'cosmetics', 'auction', 'sell'].map((k) => `<button class="${k === tab ? 'on' : ''}" data-act="stab" data-tab="${k}">${k === 'coins' ? coin('sm') + ' ' : k === 'cosmetics' ? '🎨 ' : k === 'auction' ? '🔨 ' : '💸 '}${t.tabs[k]}</button>`).join('');
-    const body = tab === 'coins' ? coinsHtml(t) : tab === 'cosmetics' ? cosmeticsHtml(lang, st, t) : tab === 'auction' ? auctionHtml(lang, st, t) : sellHtml(st, t);
+    const body = tab === 'coins' ? coinsHtml(lang, st, t) : tab === 'cosmetics' ? cosmeticsHtml(lang, st, t) : tab === 'auction' ? auctionHtml(lang, st, t) : sellHtml(st, t);
     return `<button class="back" data-act="back"><span>‹</span> ${lang === 'en' ? 'Back' : lang === 'ru' ? 'Назад' : 'Ortga'}</button>
       <div class="g-label"><span>${t.title}</span></div>
       <div class="shop-bal">${coin('lg')}<span><small>${t.balance}</small><b>${fmt(st.coins || 0)} <em>Coins</em></b></span></div>
