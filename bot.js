@@ -1103,6 +1103,21 @@ app.post('/api/admin/matches/:id/result', staffOnly, ah(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// Natijani o'chirish: o'yin yana «kiritilmagan» holatiga qaytadi, jadval qayta hisoblanadi.
+// Dedlayni o'tib ketgan bo'lsa, o'yinchilarga yangi 12 soatlik muhlat beriladi (avto-natija darhol qo'llanmasin).
+app.post('/api/admin/matches/:id/reset', staffOnly, ah(async (req, res) => {
+  if (!validId(req.params.id)) return res.status(400).json({ error: 'fail' });
+  const cur = await Match.findOne({ _id: req.params.id, season }).select('league status deadline').lean();
+  if (!cur) return res.status(404).json({ error: 'gone' });
+  if (!canLeague(req, cur.league)) return res.status(403).json({ error: 'forbidden' });
+  if (cur.status === 'cancelled') return res.status(409).json({ error: 'cancelled' });
+  if (cur.status === 'scheduled') return res.status(409).json({ error: 'nothing' });
+  const now = new Date();
+  const deadline = cur.deadline && cur.deadline < now ? new Date(now.getTime() + 12 * 3600 * 1000) : cur.deadline;
+  await Match.updateOne({ _id: req.params.id, season }, { $set: { status: 'scheduled', hg: null, ag: null, reportedBy: null, claim: null, proofs: [], confirmedBy: null, auto: null, deadline, notified: [], updatedAt: now } });
+  await recalc(cur.league);
+  res.json({ ok: true });
+}));
 // Qura vaqtini belgilash (vaqti kelganda bot o'zi qura qiladi)
 // Admin: ligani ochiq/yopiq qilish (yopiq ligaga yangi ishtirokchi ro'yxatdan o'ta olmaydi; mavjudlar o'ynashda davom etadi)
 app.post('/api/admin/league/:id/closed', staffOnly, ah(async (req, res) => {

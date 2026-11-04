@@ -65,6 +65,7 @@ window.AdminView = (() => {
       <div class="ad-meta"><small>${esc(m.leagueName)} · ${m.round}-tur${m.deadline ? ` · ⏰ ${fmtShow(m.deadline)}` : ''}</small><span class="ad-st ${m.status}">${ST[m.status]}</span></div>
       <div class="ad-vs"><div><b>${esc(m.home.club)}</b><small>${esc(m.home.user)}</small></div><div class="ad-in"><input type="number" inputmode="numeric" min="0" max="99" value="${m.hg ?? ''}" data-hg><b>:</b><input type="number" inputmode="numeric" min="0" max="99" value="${m.ag ?? ''}" data-ag></div><div><b>${esc(m.away.club)}</b><small>${esc(m.away.user)}</small></div></div>
       ${claim}${auto}${proofs}${m.chat ? `<button class="ad-btn ghost sm" data-act="viewchat">💬 O'yin chati (${m.chat})</button><div class="ad-chatbox" data-chatbox></div>` : ''}
+      ${m.status !== 'scheduled' ? `<button class="ad-btn bad sm" data-act="reset">🗑 Natijani o'chirish</button>` : ''}
       <button class="ad-btn ok" data-act="result">${m.status === 'confirmed' ? "O'zgartirish va saqlash" : m.status === 'pending' ? '✅ Admin sifatida tasdiqlash' : '✅ Tasdiqlash / kiritish'}</button></div>`;
   }
   function resultsHtml() {
@@ -424,6 +425,11 @@ window.AdminView = (() => {
       const box = a.closest('[data-mid]'), hg = parseInt(box.querySelector('[data-hg]').value, 10), ag = parseInt(box.querySelector('[data-ag]').value, 10);
       if (!(hg >= 0 && hg <= 99 && ag >= 0 && ag <= 99)) return toast(ERR.badScore);
       return done(await post(`/api/admin/matches/${box.dataset.mid}/result`, { hg, ag }), 'Natija saqlandi ✅', loadMatches);
+    }
+    if (act === 'reset') {
+      const box = a.closest('[data-mid]');
+      if (!(await confirmBox("Natija o'chirilsinmi? O'yin qayta «kiritilmagan» holatiga qaytadi, jadval qayta hisoblanadi."))) return;
+      return done(await post(`/api/admin/matches/${box.dataset.mid}/reset`, {}), "Natija o'chirildi 🗑", loadMatches);
     }
     if (act === 'settime' || act === 'cleartime' || act === 'draw') {
       const box = a.closest('[data-lgbox]'), v = box.querySelector('[data-dt]')?.value, rounds = Number(box.querySelector('[data-rounds]')?.value || 2), roundDays = Number(box.querySelector('[data-rdays]')?.value || 7);
