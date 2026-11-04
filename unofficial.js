@@ -43,13 +43,13 @@ module.exports = function mount(app, d) {
     } catch (_) { /* bot bloklangan bo'lishi mumkin */ }
   }
   const notifyMgrs = (t, key, ...args) => Promise.all([...new Set([t.ownerId, ...ADMINS])].map((id) => notify(id, t._id, key, t.name, ...args)));
-  const whoName = async (t, id) => { const m = await umap([id]); const p = t.players.find((x) => x.telegramId === id); return (p?.team ? p.team + ' ' : '') + (m.get(id)?.user || id); };
+  const whoName = async (t, id) => { const m = await umap([id]); const p = (t.players || []).find((x) => x.telegramId === id); return (p?.team ? p.team + ' ' : '') + (m.get(id)?.user || id); };
 
   // ——— Hisoblar ———
   function standings(t, ms, names) {
     const st = FX.computeStats(ms.filter((m) => m.stage === 'league' && m.status === 'confirmed'));
     const zero = { pts: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0 };
-    return t.players.map((p) => ({ id: p.telegramId, team: p.team, user: names.get(p.telegramId)?.user || '', ...(st.get(p.telegramId) || zero) }))
+    return (t.players || []).map((p) => ({ id: p.telegramId, team: p.team, user: names.get(p.telegramId)?.user || '', ...(st.get(p.telegramId) || zero) }))
       .map((r) => ({ ...r, p: r.w + r.d + r.l, gd: r.gf - r.ga }))
       .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.id - b.id)
       .map((r, i) => ({ pos: i + 1, ...r }));
@@ -66,22 +66,22 @@ module.exports = function mount(app, d) {
     return { stage: 'league', n, total: t.effRounds, deadline: FX.roundDeadline(t.startedAt, n, t.roundDays) };
   }
   function decorate(t, ms, names, mgr) {
-    const side = (id) => ({ id, team: t.players.find((p) => p.telegramId === id)?.team || '', user: names.get(id)?.user || String(id), username: names.get(id)?.username || '' });
+    const side = (id) => ({ id, team: (t.players || []).find((p) => p.telegramId === id)?.team || '', user: names.get(id)?.user || String(id), username: names.get(id)?.username || '' });
     return ms.map((m) => ({ id: String(m._id), stage: m.stage, round: m.round, slot: m.slot, status: m.status, hg: m.hg, ag: m.ag, reportedBy: m.reportedBy, home: side(m.home), away: side(m.away), claim: mgr && m.claim?.hg != null ? m.claim : null }));
   }
   const sortMs = (a, b) => (a.stage === b.stage ? a.round - b.round || (a.slot ?? 0) - (b.slot ?? 0) : a.stage === 'league' ? -1 : 1);
 
   async function full(t, u) {
     const ms = (await TMatch.find({ tournament: t._id, status: { $ne: 'cancelled' } }).lean()).sort(sortMs);
-    const ids = new Set([t.ownerId, ...t.players.map((p) => p.telegramId)]);
+    const ids = new Set([t.ownerId, ...(t.players || []).map((p) => p.telegramId)]);
     ms.forEach((m) => { ids.add(m.home); ids.add(m.away); });
     const names = await umap([...ids]), mgr = isMgr(t, u), cur = current(t, ms);
     const dm = decorate(t, ms, names, mgr);
     const rows = standings(t, ms, names);
     const bn = await botName();
     return {
-      t: { id: String(t._id), name: t.name, code: t.code, status: t.status, max: t.maxPlayers, rounds: t.effRounds || t.rounds, playoff: t.playoff, roundDays: t.roundDays, drawAt: t.drawAt, startedAt: t.startedAt, champion: t.champion, owner: names.get(t.ownerId)?.user || '', ownerUsername: names.get(t.ownerId)?.username || '', players: t.players.length },
-      me: { id: u.id, joined: t.players.some((p) => p.telegramId === u.id), owner: t.ownerId === u.id, mgr },
+      t: { id: String(t._id), name: t.name, code: t.code, status: t.status, max: t.maxPlayers, rounds: t.effRounds || t.rounds, playoff: t.playoff, roundDays: t.roundDays, drawAt: t.drawAt, startedAt: t.startedAt, champion: t.champion, owner: names.get(t.ownerId)?.user || '', ownerUsername: names.get(t.ownerId)?.username || '', players: (t.players || []).length },
+      me: { id: u.id, joined: (t.players || []).some((p) => p.telegramId === u.id), owner: t.ownerId === u.id, mgr },
       link: bn ? `https://t.me/${bn}?start=t_${t.code}` : null,
       cur, rows, players: rows.map((r) => ({ id: r.id, team: r.team, user: r.user })),
       round: cur ? dm.filter((m) => m.stage === cur.stage && m.round === cur.n) : [],
@@ -102,16 +102,16 @@ module.exports = function mount(app, d) {
   async function performDraw(tid) {
     const t0 = await Tournament.findById(tid).lean();
     if (!t0 || t0.status !== 'open') return { error: 'started' };
-    if (t0.players.length < 2) return { error: 'few' };
+    if ((t0.players || []).length < 2) return { error: 'few' };
     const lock = await Tournament.findOneAndUpdate({ _id: tid, status: 'open' }, { $set: { status: 'league', startedAt: new Date(), drawAt: null } }, { new: true }).lean();
     if (!lock) return { error: 'started' };
     const revert = () => Tournament.updateOne({ _id: tid }, { $set: { status: 'open', startedAt: null, effRounds: 0 } });
     try {
-      const n = lock.players.length, R = Math.min(lock.rounds, n + (n % 2) - 1);
-      const fx = FX.roundRobin(FX.shuffle(lock.players.map((p) => p.telegramId)), false).filter((m) => m.round <= R);
+      const n = (lock.players || []).length, R = Math.min(lock.rounds, n + (n % 2) - 1);
+      const fx = FX.roundRobin(FX.shuffle((lock.players || []).map((p) => p.telegramId)), false).filter((m) => m.round <= R);
       await TMatch.insertMany(fx.map((m) => ({ ...m, tournament: tid, stage: 'league' })));
       await Tournament.updateOne({ _id: tid }, { $set: { effRounds: R } });
-      lock.players.forEach((p) => notify(p.telegramId, tid, 'drawn', lock.name));
+      (lock.players || []).forEach((p) => notify(p.telegramId, tid, 'drawn', lock.name));
       return { ok: true, matches: fx.length };
     } catch (e) { await TMatch.deleteMany({ tournament: tid }); await revert(); throw e; }
   }
@@ -134,7 +134,7 @@ module.exports = function mount(app, d) {
     notifyAll(lock, 'playoff');
     return { ok: true, size: P };
   }
-  const notifyAll = (t, key, ...args) => t.players.forEach((p) => notify(p.telegramId, t._id, key, t.name, ...args));
+  const notifyAll = (t, key, ...args) => (t.players || []).forEach((p) => notify(p.telegramId, t._id, key, t.name, ...args));
   // Play-off turi tugasa — keyingi turni yaratadi yoki g'olibni aniqlaydi
   async function advancePlayoff(tid) {
     const t = await Tournament.findById(tid).lean();
@@ -158,7 +158,7 @@ module.exports = function mount(app, d) {
   // ——— O'yinchi API ———
   app.get('/api/ut/mine', auth, ah(async (req, res) => {
     const ts = await Tournament.find({ $or: [{ ownerId: req.u.id }, { 'players.telegramId': req.u.id }] }).sort({ createdAt: -1 }).limit(50).lean();
-    res.json({ list: ts.map((t) => ({ id: String(t._id), name: t.name, status: t.status, players: t.players.length, max: t.maxPlayers, owner: t.ownerId === req.u.id })) });
+    res.json({ list: ts.map((t) => ({ id: String(t._id), name: t.name, status: t.status, players: (t.players || []).length, max: t.maxPlayers, owner: t.ownerId === req.u.id })) });
   }));
 
   app.post('/api/ut/create', auth, ah(async (req, res) => {
@@ -301,7 +301,7 @@ module.exports = function mount(app, d) {
   app.post('/api/ut/:id/remove', auth, ah(async (req, res) => {
     const t = await mgrT(req, res); if (!t) return;
     const tid = Number(req.body?.telegramId);
-    if (!tid || !t.players.some((p) => p.telegramId === tid)) return res.status(404).json({ error: 'gone' });
+    if (!tid || !(t.players || []).some((p) => p.telegramId === tid)) return res.status(404).json({ error: 'gone' });
     if (t.status === 'playoff' || t.status === 'finished') return res.status(409).json({ error: 'locked' });
     await Tournament.updateOne({ _id: t._id }, { $pull: { players: { telegramId: tid } } });
     await TMatch.updateMany({ tournament: t._id, status: { $ne: 'cancelled' }, $or: [{ home: tid }, { away: tid }] }, { $set: { status: 'cancelled', updatedAt: new Date() } });
@@ -316,12 +316,12 @@ module.exports = function mount(app, d) {
     const usr = /^\d+$/.test(q) ? await User.findOne({ telegramId: Number(q) }).lean() : await User.findOne({ username: new RegExp('^' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }).lean();
     if (!usr) return res.status(404).json({ error: 'nouser' });
     const nt = await Tournament.findOneAndUpdate({ _id: t._id, status: { $in: ['open', 'league'] }, 'players.telegramId': { $ne: usr.telegramId }, $expr: { $lt: [{ $size: '$players' }, '$maxPlayers'] } }, { $push: { players: { telegramId: usr.telegramId, team } } }, { new: true }).lean();
-    if (!nt) return res.status(409).json({ error: t.players.some((p) => p.telegramId === usr.telegramId) ? 'already' : 'full' });
+    if (!nt) return res.status(409).json({ error: (t.players || []).some((p) => p.telegramId === usr.telegramId) ? 'already' : 'full' });
     if (nt.status === 'league') {
       // Qura o'tgan: yangi o'yinchiga eng kam o'yin o'ynagan raqiblar bilan o'yinlar
       const ms = await TMatch.find({ tournament: t._id, stage: 'league', status: { $ne: 'cancelled' } }).lean();
       const cnt = new Map(); ms.forEach((m) => { cnt.set(m.home, (cnt.get(m.home) || 0) + 1); cnt.set(m.away, (cnt.get(m.away) || 0) + 1); });
-      const others = FX.shuffle(t.players.map((p) => p.telegramId)).sort((a, b) => (cnt.get(a) || 0) - (cnt.get(b) || 0)).slice(0, Math.max(1, nt.effRounds));
+      const others = FX.shuffle((t.players || []).map((p) => p.telegramId)).sort((a, b) => (cnt.get(a) || 0) - (cnt.get(b) || 0)).slice(0, Math.max(1, nt.effRounds));
       const R = Math.max(1, nt.effRounds);
       if (others.length) await TMatch.insertMany(others.map((o, i) => ({ tournament: t._id, stage: 'league', round: (i % R) + 1, home: i % 2 ? o : usr.telegramId, away: i % 2 ? usr.telegramId : o })));
     }
@@ -339,7 +339,7 @@ module.exports = function mount(app, d) {
     const ts = await Tournament.find().sort({ createdAt: -1 }).limit(100).lean();
     const act = await TMatch.aggregate([{ $match: { tournament: { $in: ts.map((t) => t._id) }, status: { $in: ['pending', 'review', 'disputed'] } } }, { $group: { _id: '$tournament', n: { $sum: 1 } } }]);
     const an = new Map(act.map((a) => [String(a._id), a.n])), names = await umap(ts.map((t) => t.ownerId));
-    res.json({ list: ts.map((t) => ({ id: String(t._id), name: t.name, status: t.status, players: t.players.length, max: t.maxPlayers, owner: names.get(t.ownerId)?.user || String(t.ownerId), action: an.get(String(t._id)) || 0, drawAt: t.drawAt })) });
+    res.json({ list: ts.map((t) => ({ id: String(t._id), name: t.name, status: t.status, players: (t.players || []).length, max: t.maxPlayers, owner: names.get(t.ownerId)?.user || String(t.ownerId), action: an.get(String(t._id)) || 0, drawAt: t.drawAt })) });
   }));
 
   // Vaqti kelgan quralar (bot.js dagi daqiqalik rejalashtiruvchi chaqiradi)
