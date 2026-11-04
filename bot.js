@@ -28,6 +28,7 @@ const makeLimiters = require('./lib/security');
 const { logCoins, dailyStatus, claimDaily, referralInfo, captureReferral, payReferral, adjustCoins } = require('./lib/economy');
 const CoinLog = require('./models/CoinLog');
 const payments = require('./lib/payments');
+const LeagueHelper = require('./models/LeagueHelper');
 const { trackActivity } = registerAdminExtra;
 const mountDeadlines = require('./lib/deadlines');
 const DL = mountDeadlines;   // stamp / stampSeq / decide / clampDays
@@ -126,6 +127,21 @@ const adminOnly = (req, res, next) => {
   if (!ADMINS.includes(u.id)) return res.status(403).json({ error: 'forbidden' });
   req.admin = u; next();
 };
+// Yordamchi admin: katta admin (ADMINS) hammasini, yordamchi faqat o'ziga biriktirilgan ligani boshqaradi
+const staffOnly = async (req, res, next) => {
+  try {
+    const u = tgUser(req);
+    if (!u) return res.status(401).json({ error: 'auth' });
+    req.admin = u;
+    req.superAdmin = ADMINS.includes(u.id);
+    if (req.superAdmin) return next();
+    req.helperLeagues = (await LeagueHelper.find({ telegramId: u.id }).lean()).map((h) => h.league);
+    if (!req.helperLeagues.length) return res.status(403).json({ error: 'forbidden' });
+    next();
+  } catch (e) { next(e); }
+};
+const canLeague = (req, league) => req.superAdmin || (req.helperLeagues || []).includes(league);
+const leagueOf = (id) => (typeof id === 'string' && Object.prototype.hasOwnProperty.call(EFL.byId, id) ? EFL.byId[id] : null);
 const goal = (v) => Number.isInteger(v) && v >= 0 && v <= 99;
 const validId = (id) => mongoose.isValidObjectId(id);
 
@@ -879,7 +895,7 @@ app.get('/api/me', ah(async (req, res) => {
   await touchUser(u);
   await migrateEq(u.id);
   const me = await User.findOne({ telegramId: u.id }).lean();
-  res.json({ admin: ADMINS.includes(u.id), bg: eqOf(me).pbg });
+  res.json({ admin: ADMINS.includes(u.id) || !!(await LeagueHelper.exists({ telegramId: u.id })), bg: eqOf(me).pbg });
 }));
 
 // Ligalar: ishtirokchilar, qura vaqti/holati, o'yinlar soni
@@ -897,10 +913,11 @@ app.post('/api/admin/cup-prices', adminOnly, ah(async (req, res) => {
 }));
 
 // Admin: o'yin chatini ko'rish (bahsli holatlarda isbot sifatida)
-app.get('/api/admin/matches/:id/chat', adminOnly, ah(async (req, res) => {
+app.get('/api/admin/matches/:id/chat', staffOnly, ah(async (req, res) => {
   if (!validId(req.params.id)) return res.status(400).json({ error: 'fail' });
   const m = await Match.findOne({ _id: req.params.id, season }).lean();
   if (!m) return res.status(404).json({ error: 'gone' });
+  if (!canLeague(req, m.league)) return res.status(403).json({ error: 'forbidden' });
   const list = await ChatMessage.find({ kind: 'match', key: String(m._id) }).sort({ at: -1 }).limit(100).lean();
   const users = await User.find({ telegramId: { $in: [m.home, m.away] } }).lean(), nm = new Map(users.map((x) => [x.telegramId, tgName(x)]));
   res.json({ messages: list.reverse().map((x) => ({ id: String(x._id), by: nm.get(x.from) || String(x.from), side: x.from === m.home ? 'home' : 'away', type: x.type, text: x.text, at: x.at })) });
@@ -931,7 +948,7 @@ app.post('/api/admin/support/:uid', adminOnly, ah(async (req, res) => {
   res.json({ ok: true });
 }));
 
-app.get('/api/admin/overview', adminOnly, ah(async (req, res) => {
+app.get('/api/admin/overview', staffOnly, ah(async (req, res) => {
   const [regs, cfgs, groups] = await Promise.all([
     Registration.find({ season }).select('league').lean(),
     LeagueConfig.find({ season }).lean(),
@@ -945,14 +962,66 @@ app.get('/api/admin/overview', adminOnly, ah(async (req, res) => {
     return { id: l.id, name: l.name, group: l.group, max: l.max, closed: !!c?.closed, players: regs.filter((r) => r.league === l.id).length, drawAt: c?.drawAt || null, drawnAt: c?.drawnAt || null, rounds: c?.rounds || 2, roundDays: c?.roundDays || 7, ...n };
   });
   const support = await ChatMessage.countDocuments({ kind: 'support', admin: false, adminRead: false });
-  res.json({ leagues, action: leagues.reduce((s, l) => s + l.action, 0), support });
+  const vis = req.superAdmin ? leagues : leagues.filter((l) => canLeague(req, l.id));
+  res.json({ leagues: vis, action: vis.reduce((s, l) => s + l.action, 0), support: req.superAdmin ? support : 0, superAdmin: req.superAdmin });
+}));
+
+// Yordamchi adminlar (faqat katta admin boshqaradi)
+app.get('/api/admin/helpers', adminOnly, ah(async (req, res) => {
+  const rows = await LeagueHelper.find({}).sort({ league: 1, addedAt: 1 }).lean();
+  const users = await User.find({ telegramId: { $in: rows.map((r) => r.telegramId) } }).lean();
+  const nm = new Map(users.map((x) => [x.telegramId, tgName(x)]));
+  res.json({ helpers: rows.map((r) => ({ telegramId: r.telegramId, name: nm.get(r.telegramId) || String(r.telegramId), league: r.league, leagueName: leagueOf(r.league)?.name || r.league })) });
+}));
+app.post('/api/admin/helpers', adminOnly, ah(async (req, res) => {
+  const tid = Number(req.body?.telegramId), league = leagueOf(req.body?.league);
+  if (!Number.isInteger(tid) || tid <= 0 || !league) return res.status(400).json({ error: 'fail' });
+  if (!(await User.exists({ telegramId: tid }))) return res.status(404).json({ error: 'nouser' });
+  if (ADMINS.includes(tid)) return res.status(409).json({ error: 'already' });
+  try { await LeagueHelper.create({ telegramId: tid, league: league.id, addedBy: req.admin.id }); }
+  catch (e) { return res.status(e.code === 11000 ? 409 : 500).json({ error: e.code === 11000 ? 'already' : 'fail' }); }
+  say(tid, {
+    uz: `🛠 Siz «${league.name}» ligasining yordamchi admini etib tayinlandingiz. Admin panelda faqat shu ligani boshqarasiz.`,
+    en: `🛠 You were appointed helper admin for «${league.name}». You manage only this league in the admin panel.`,
+    ru: `🛠 Вы назначены помощником админа лиги «${league.name}». В админ-панели доступна только эта лига.`,
+  }, 'shop');
+  res.json({ ok: true });
+}));
+app.post('/api/admin/helpers/remove', adminOnly, ah(async (req, res) => {
+  const tid = Number(req.body?.telegramId), league = leagueOf(req.body?.league);
+  if (!Number.isInteger(tid) || !league) return res.status(400).json({ error: 'fail' });
+  const r = await LeagueHelper.deleteOne({ telegramId: tid, league: league.id });
+  if (!r.deletedCount) return res.status(404).json({ error: 'gone' });
+  say(tid, {
+    uz: `ℹ️ «${league.name}» ligasidagi yordamchi admin huquqingiz olib tashlandi.`,
+    en: `ℹ️ Your helper admin rights for «${league.name}» were removed.`,
+    ru: `ℹ️ Ваши права помощника админа лиги «${league.name}» сняты.`,
+  }, 'shop');
+  res.json({ ok: true });
+}));
+
+// Admin: davlat → liga → klublar holati (band yoki bo'sh, band bo'lsa kim olgani)
+app.get('/api/admin/clubs', staffOnly, ah(async (req, res) => {
+  const regs = await Registration.find({ season }).lean();
+  const users = await User.find({ telegramId: { $in: regs.map((r) => r.telegramId) } }).lean();
+  const nm = new Map(users.map((x) => [x.telegramId, tgName(x)]));
+  const byKey = new Map(regs.map((r) => [r.league + '/' + r.club, r]));
+  const leagues = EFL.LEAGUES.filter((l) => canLeague(req, l.id)).map((l) => ({
+    id: l.id, name: l.name, country: l.country,
+    clubs: l.clubs.map((c) => {
+      const r = byKey.get(l.id + '/' + c.id);
+      return { id: c.id, name: c.name, taken: !!r, user: r ? (nm.get(r.telegramId) || String(r.telegramId)) : '' };
+    }),
+  }));
+  res.json({ leagues });
 }));
 
 // O'yinlar ro'yxati. status: action (tasdiq kutayotgan/bahsli) | scheduled | confirmed | all
-app.get('/api/admin/matches', adminOnly, ah(async (req, res) => {
+app.get('/api/admin/matches', staffOnly, ah(async (req, res) => {
   const { league, status = 'action' } = req.query;
   const q = { season, status: { $ne: 'cancelled' } };
-  if (league) { if (!EFL.byId[league]) return res.status(400).json({ error: 'fail' }); q.league = league; }
+  if (league) { if (!EFL.byId[league]) return res.status(400).json({ error: 'fail' }); if (!canLeague(req, league)) return res.status(403).json({ error: 'forbidden' }); q.league = league; }
+  else if (!req.superAdmin) q.league = { $in: req.helperLeagues };
   if (status === 'action') q.status = { $in: ['disputed', 'pending'] };
   else if (['scheduled', 'confirmed', 'pending', 'disputed'].includes(status)) q.status = status;
   const [ms, total] = await Promise.all([Match.find(q).sort(status === 'action' ? { status: 1, updatedAt: 1 } : { round: 1, _id: 1 }).limit(100).lean(), Match.countDocuments(q)]);
@@ -960,9 +1029,14 @@ app.get('/api/admin/matches', adminOnly, ah(async (req, res) => {
 }));
 
 // Natijani tasdiqlash / kiritish / o'zgartirish (hg — uy egasi goli, ag — mehmon goli)
-app.post('/api/admin/matches/:id/result', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/matches/:id/result', staffOnly, ah(async (req, res) => {
   const { hg, ag } = req.body || {};
   if (!validId(req.params.id) || !goal(hg) || !goal(ag)) return res.status(400).json({ error: 'badScore' });
+  if (!req.superAdmin) {
+    const cur = await Match.findOne({ _id: req.params.id, season }).select('league').lean();
+    if (!cur) return res.status(404).json({ error: 'gone' });
+    if (!canLeague(req, cur.league)) return res.status(403).json({ error: 'forbidden' });
+  }
   const m = await Match.findOneAndUpdate({ _id: req.params.id, season, status: { $ne: 'cancelled' } }, { $set: { hg, ag, status: 'confirmed', confirmedBy: 'admin', reportedBy: null, claim: null, updatedAt: new Date() } }, { new: true }).lean();
   if (!m) return res.status(404).json({ error: 'gone' });
   await recalc(m.league);
@@ -974,13 +1048,15 @@ app.post('/api/admin/matches/:id/result', adminOnly, ah(async (req, res) => {
 
 // Qura vaqtini belgilash (vaqti kelganda bot o'zi qura qiladi)
 // Admin: ligani ochiq/yopiq qilish (yopiq ligaga yangi ishtirokchi ro'yxatdan o'ta olmaydi; mavjudlar o'ynashda davom etadi)
-app.post('/api/admin/league/:id/closed', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/league/:id/closed', staffOnly, ah(async (req, res) => {
+  if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });
   const league = EFL.byId[req.params.id];
   if (!league || typeof req.body?.closed !== 'boolean') return res.status(400).json({ error: 'fail' });
   await LeagueConfig.updateOne({ season, league: league.id }, { $set: { closed: req.body.closed } }, { upsert: true });
   res.json({ ok: true, closed: req.body.closed });
 }));
-app.post('/api/admin/league/:id/draw-time', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/league/:id/draw-time', staffOnly, ah(async (req, res) => {
+  if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });
   const league = EFL.byId[req.params.id];
   if (!league) return res.status(400).json({ error: 'fail' });
   const at = req.body?.drawAt ? new Date(req.body.drawAt) : null;
@@ -991,7 +1067,8 @@ app.post('/api/admin/league/:id/draw-time', adminOnly, ah(async (req, res) => {
 }));
 
 // Qurani hozir o'tkazish. redo: faqat hali birorta hisob kiritilmagan bo'lsa qayta o'tkazish mumkin
-app.post('/api/admin/league/:id/draw', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/league/:id/draw', staffOnly, ah(async (req, res) => {
+  if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });
   const league = EFL.byId[req.params.id];
   if (!league) return res.status(400).json({ error: 'fail' });
   if (req.body?.redo) {
@@ -1005,7 +1082,8 @@ app.post('/api/admin/league/:id/draw', adminOnly, ah(async (req, res) => {
 }));
 
 // Eski (dedlaynsiz) o'yinlarga dedlayn berish: tugallanmagan turlar «hozirdan» ketma-ket sanaladi
-app.post('/api/admin/league/:id/deadlines', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/league/:id/deadlines', staffOnly, ah(async (req, res) => {
+  if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });
   const league = EFL.byId[req.params.id], days = DL.clampDays(req.body?.roundDays);
   if (!league || !days) return res.status(400).json({ error: 'fail' });
   const ms = await Match.find({ season, league: league.id, status: { $in: ['scheduled', 'pending', 'disputed'] }, deadline: null }).select('round').lean();
@@ -1017,7 +1095,8 @@ app.post('/api/admin/league/:id/deadlines', adminOnly, ah(async (req, res) => {
 }));
 
 // Ligadagi ishtirokchilar va bo'sh klublar
-app.get('/api/admin/league/:id/players', adminOnly, ah(async (req, res) => {
+app.get('/api/admin/league/:id/players', staffOnly, ah(async (req, res) => {
+  if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });
   const league = EFL.byId[req.params.id];
   if (!league) return res.status(400).json({ error: 'fail' });
   const regs = await Registration.find({ season, league: league.id }).lean();
@@ -1032,7 +1111,8 @@ app.get('/api/admin/league/:id/players', adminOnly, ah(async (req, res) => {
 }));
 
 // Ishtirokchini o'yindan chiqarish: uning o'yinlari bekor qilinadi (natijalari ham jadvaldan olib tashlanadi)
-app.post('/api/admin/league/:id/remove', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/league/:id/remove', staffOnly, ah(async (req, res) => {
+  if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });
   const league = EFL.byId[req.params.id], tid = Number(req.body?.telegramId);
   if (!league || !tid) return res.status(400).json({ error: 'fail' });
   const reg = await Registration.findOneAndDelete({ season, league: league.id, telegramId: tid }).lean();
@@ -1044,7 +1124,8 @@ app.post('/api/admin/league/:id/remove', adminOnly, ah(async (req, res) => {
 }));
 
 // Ishtirokchi qo'shish (foydalanuvchi botga /start bosgan bo'lishi kerak). Qura o'tgan bo'lsa — qolganlar bilan o'yinlari qo'shiladi
-app.post('/api/admin/league/:id/add', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/league/:id/add', staffOnly, ah(async (req, res) => {
+  if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });
   const league = EFL.byId[req.params.id], club = req.body?.club, q = String(req.body?.user || '').trim().replace(/^@/, '');
   if (!league || !league.clubs.some((c) => c.id === club) || !q) return res.status(400).json({ error: 'fail' });
   const usr = /^\d+$/.test(q) ? await User.findOne({ telegramId: Number(q) }).lean() : await User.findOne({ username: new RegExp('^' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }).lean();

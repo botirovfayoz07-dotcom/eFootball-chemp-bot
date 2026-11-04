@@ -13,9 +13,45 @@ window.AdminView = (() => {
   const fmtShow = (d) => new Date(d).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   const leagueOpts = (sel, all) => (all ? `<option value="">Barcha ligalar</option>` : '') + (ov?.leagues || []).map((l) => `<option value="${l.id}" ${l.id === sel ? 'selected' : ''}>${esc(l.name)} (${l.players})</option>`).join('');
 
+  // Yordamchi adminlar ro'yxati (katta admin uchun)
+  let hl = { list: null };
+  const HELPER_TABS = ['results', 'draw', 'players', 'clubs'];
+  async function loadHelpers() { const r = await api('/api/admin/helpers'); if (r.ok) { hl.list = r.helpers; if (tab === 'helpers') render(); } }
+  function helpersHtml() {
+    const rows = (hl.list || []).map((h) => `<div class="g-card ad-open"><span class="ad-cup-n"><b>${esc(h.name)}</b><small>${esc(h.leagueName)} · ${h.telegramId}</small></span><button class="ad-btn" data-act="hdel" data-id="${h.telegramId}" data-league="${esc(h.league)}">O'chirish</button></div>`).join('')
+      || '<p class="ad-hint">Yordamchi adminlar yo\'q</p>';
+    return `<div class="g-label"><span>Yordamchi adminlar</span></div>${rows}
+      <div class="g-label"><span>Yangi yordamchi</span></div>
+      <div class="ad-filters">
+        <label class="ad-lbl">Foydalanuvchi Telegram ID si<input id="hId" class="ad-in" inputmode="numeric" placeholder="123456789"></label>
+        <label class="ad-lbl">Liga<select id="hLg" class="ad-in">${leagueOpts(null, false)}</select></label>
+        <button class="ad-btn" data-act="hadd">Tasdiqlash</button>
+      </div>
+      <p class="ad-hint">Yordamchi botga /start bosgan bo'lishi kerak. Tasdiqlangach unga xabar boradi.</p>`;
+  }
+
+  // ——— Klublar holati: davlat → liga → klublar ———
+  let cl = { data: null, country: null, league: null };
+  async function loadClubs() { const r = await api('/api/admin/clubs'); if (r.ok) { cl.data = r; if (tab === 'clubs') render(); } }
+  function clubsHtml() {
+    if (!cl.data) return '<p class="ad-hint">Yuklanmoqda…</p>';
+    const all = cl.data.leagues, countries = (window.EFL?.COUNTRIES || []).filter((c) => all.some((l) => l.country === c.id));
+    if (!countries.length) return '<p class="ad-hint">Ligalar topilmadi</p>';
+    const country = countries.some((c) => c.id === cl.country) ? cl.country : countries[0].id;
+    const leagues = all.filter((l) => l.country === country);
+    const lg = leagues.find((l) => l.id === cl.league) || leagues[0];
+    const taken = lg.clubs.filter((c) => c.taken).length;
+    const cBtns = countries.map((c) => `<button class="${c.id === country ? 'on' : ''}" data-act="clc" data-cid="${c.id}">${c.flag || ''} ${esc(c.name?.uz || c.id)}</button>`).join('');
+    const lBtns = leagues.map((l) => `<button class="${l.id === lg.id ? 'on' : ''}" data-act="cll" data-lid="${l.id}">${esc(l.name)}</button>`).join('');
+    const grid = lg.clubs.map((c) => `<div class="ad-cl ${c.taken ? 'taken' : 'free'}"><b>${esc(c.name)}</b><small>${c.taken ? '🔒 ' + esc(c.user) : '✅ Bo\'sh'}</small></div>`).join('');
+    return `<div class="ad-tabs">${cBtns}</div><div class="ad-tabs">${lBtns}</div>
+      <div class="g-label"><span>${esc(lg.name)} · band ${taken}/${lg.clubs.length}</span></div>
+      <div class="ad-clgrid">${grid}</div>`;
+  }
+
   function tabsHtml() {
     const n = ov?.action || 0;
-    return `<div class="ad-tabs">${[['stats', '📊 Statistika'], ['broadcast', '📢 Xabar'], ['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['cup', '🎲 FA Cup'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar'], ['cups', 'Kubok narxi'], ['open', 'Ligalar holati'], ['support', `Xabarlar${ov?.support ? ` <i>${ov.support}</i>` : ''}`]].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
+    return `<div class="ad-tabs">${[['stats', '📊 Statistika'], ['broadcast', '📢 Xabar'], ['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['cup', '🎲 FA Cup'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar'], ['cups', 'Kubok narxi'], ['open', 'Ligalar holati'], ['clubs', '🏟 Klublar'], ['support', `Xabarlar${ov?.support ? ` <i>${ov.support}</i>` : ''}`], ['helpers', '👥 Yordamchilar']].filter(([k]) => (ov?.superAdmin ? true : HELPER_TABS.includes(k))).map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
   }
 
   // ——— Natijalar ———
@@ -256,8 +292,9 @@ window.AdminView = (() => {
   }
 
   function render() {
+    if (ov && !ov.superAdmin && !HELPER_TABS.includes(tab)) tab = 'results';
     if (!ov) { el.innerHTML = `<div class="page ad-page">${SK('kpis')}</div>`; return; }
-    const body = tab === 'stats' ? statsHtml() : tab === 'broadcast' ? broadcastHtml() : tab === 'results' ? resultsHtml() : tab === 'draw' ? drawHtml() : tab === 'cup' ? cupHtml() : tab === 'tour' ? toursHtml() : tab === 'cups' ? cupsHtml() : tab === 'open' ? openHtml() : tab === 'support' ? supportHtml() : playersHtml();
+    const body = tab === 'clubs' ? clubsHtml() : tab === 'helpers' ? helpersHtml() : tab === 'stats' ? statsHtml() : tab === 'broadcast' ? broadcastHtml() : tab === 'results' ? resultsHtml() : tab === 'draw' ? drawHtml() : tab === 'cup' ? cupHtml() : tab === 'tour' ? toursHtml() : tab === 'cups' ? cupsHtml() : tab === 'open' ? openHtml() : tab === 'support' ? supportHtml() : playersHtml();
     el.innerHTML = `<div class="page ad-page"><button class="back" data-back><span>‹</span> Bo'limlar</button><h1 class="section-title">🛠 Admin panel</h1>${tabsHtml()}${body}</div>`;
     loadImgs(el);
     const sb = el.querySelector('#spMsgs'); if (sb) sb.scrollTop = sb.scrollHeight;
@@ -272,9 +309,22 @@ window.AdminView = (() => {
 
   async function onClick(e) {
     const t = e.target.closest('[data-tab]'), a = e.target.closest('[data-act]');
-    if (t) { tab = t.dataset.tab; render(); if (tab === 'stats') loadStats(); if (tab === 'broadcast') { loadBroadcasts(); loadBcCount(); } if (tab === 'results') loadMatches(); if (tab === 'players') loadPlayers(); if (tab === 'tour') loadTours(); if (tab === 'cups') loadCups(); if (tab === 'cup') loadCup(); if (tab === 'support') { sp.open = null; loadSupport(); } loadOverview(); return; }
+    if (t) { tab = t.dataset.tab; render(); if (tab === 'stats') loadStats(); if (tab === 'broadcast') { loadBroadcasts(); loadBcCount(); } if (tab === 'results') loadMatches(); if (tab === 'players') loadPlayers(); if (tab === 'helpers') loadHelpers(); if (tab === 'clubs') loadClubs(); if (tab === 'tour') loadTours(); if (tab === 'cups') loadCups(); if (tab === 'cup') loadCup(); if (tab === 'support') { sp.open = null; loadSupport(); } loadOverview(); return; }
     if (!a) return;
     const act = a.dataset.act, lg = a.dataset.lg;
+    if (act === 'clc') { cl.country = a.dataset.cid; cl.league = null; return render(); }
+    if (act === 'cll') { cl.league = a.dataset.lid; return render(); }
+    if (act === 'hadd') {
+      const tid = Number(el.querySelector('#hId')?.value), lgId = el.querySelector('#hLg')?.value || '';
+      if (!Number.isInteger(tid) || tid <= 0 || !lgId) return toast(ERR.fail);
+      const r = await post('/api/admin/helpers', { telegramId: tid, league: lgId });
+      return done(r, "Yordamchi admin qo'shildi ✅", loadHelpers);
+    }
+    if (act === 'hdel') {
+      if (!(await confirmBox("Yordamchi admin huquqini olib tashlaysizmi?"))) return;
+      const r = await post('/api/admin/helpers/remove', { telegramId: Number(a.dataset.id), league: a.dataset.league });
+      return done(r, "Olib tashlandi", loadHelpers);
+    }
     if (act === 'cupsave') {
       const box = a.closest('[data-cup]'), price = Math.round(Number(box.querySelector('[data-price]').value || 0));
       if (!(price >= 0 && price <= 1e9)) return toast("Narxni to'g'ri kiriting");

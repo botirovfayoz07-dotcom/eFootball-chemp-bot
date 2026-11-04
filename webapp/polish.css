@@ -69,3 +69,12 @@
 .bonus-tile > b{font:700 16px 'Rajdhani',sans-serif;color:#fff;line-height:1.2;}
 .bonus-tile > small{color:var(--muted);font-size:12px;line-height:1.3;}
 .bonus-tile .pack-buy:disabled{opacity:.55;cursor:default;}
+
+/* Admin: klublar holati (band / bo'sh) */
+.ad-clgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ad-cl{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);}
+.ad-cl b{font-size:14px;line-height:1.2;}
+.ad-cl small{font-size:12px;opacity:.8;word-break:break-word;}
+.ad-cl.taken{border-color:rgba(255,90,90,.55);}
+.ad-cl.free{border-color:rgba(80,220,120,.55);}
+
