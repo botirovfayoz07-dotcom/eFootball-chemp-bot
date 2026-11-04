@@ -1176,6 +1176,18 @@ app.post('/api/admin/league/:id/draw', staffOnly, ah(async (req, res) => {
   res.json(r);
 }));
 
+// Qurani bekor qilish: o'yinlar o'chadi, liga qura o'tkazilmagan (0 dan) holatiga qaytadi. Ishtirokchilar qoladi.
+// Hisob kiritilgan o'yin bo'lsa bekor qilib bo'lmaydi (redo bilan bir xil qoida).
+app.post('/api/admin/league/:id/draw-cancel', staffOnly, ah(async (req, res) => {
+  if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });
+  const league = EFL.byId[req.params.id];
+  if (!league) return res.status(400).json({ error: 'fail' });
+  if (await Match.exists({ season, league: league.id, status: { $nin: ['scheduled', 'cancelled'] } })) return res.status(409).json({ error: 'played' });
+  await Match.deleteMany({ season, league: league.id });
+  await LeagueConfig.updateOne({ season, league: league.id }, { $set: { drawnAt: null, drawAt: null, roundsLocked: false, openRounds: [] } }, { upsert: true });
+  await recalc(league.id);
+  res.json({ ok: true });
+}));
 // Eski (dedlaynsiz) o'yinlarga dedlayn berish: tugallanmagan turlar «hozirdan» ketma-ket sanaladi
 app.post('/api/admin/league/:id/deadlines', staffOnly, ah(async (req, res) => {
   if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });

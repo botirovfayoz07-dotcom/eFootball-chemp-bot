@@ -104,7 +104,7 @@ window.AdminView = (() => {
     return (ov?.leagues || []).map((l) => {
       const drawn = !!l.drawnAt;
       const body = drawn
-        ? `<p class="ad-ok">🎲 Qura o'tkazilgan: ${fmtShow(l.drawnAt)} · ${l.total} ta o'yin (${l.confirmed} tasdiqlangan)</p><button class="ad-btn ghost" data-act="redo" data-lg="${l.id}">Qayta qura (hisob kiritilmagan bo'lsa)</button>
+        ? `<p class="ad-ok">🎲 Qura o'tkazilgan: ${fmtShow(l.drawnAt)} · ${l.total} ta o'yin (${l.confirmed} tasdiqlangan)</p><button class="ad-btn ghost" data-act="redo" data-lg="${l.id}">Qayta qura (hisob kiritilmagan bo'lsa)</button><button class="ad-btn bad sm" data-act="draw-cancel" data-lg="${l.id}">✖ Qurani bekor qilish</button>
            <div class="ad-dl">${daysSel(l.roundDays)}<button class="ad-btn ghost sm" data-act="deadlines" data-lg="${l.id}">⏰ Dedlaynsiz o'yinlarga dedlayn berish</button><p class="ad-hint">Dedlayn o'tgach, hisob kiritilmagan o'yinda avtomatik: faol tomonga 3:0, hech kim kelmagan bo'lsa bekor. Dedlaydan keyin qisqa muhlat beriladi (standart 12 soat).</p></div>`
         : `<label class="ad-lbl">Qura vaqti<input type="datetime-local" data-dt value="${l.drawAt ? fmtLocal(l.drawAt) : ''}"></label>
            <label class="ad-lbl">Davralar<select data-rounds><option value="2" ${l.rounds === 2 ? 'selected' : ''}>2 davra (uyda va mehmonda)</option><option value="1" ${l.rounds === 1 ? 'selected' : ''}>1 davra</option></select></label>
@@ -449,6 +449,10 @@ window.AdminView = (() => {
       if (!(await confirmBox(`Tugallanmagan o'yinlarga dedlayn beriladi (tur ${days} kun, hozirdan boshlab). Dedlayn o'tgach avtomatik texnik natija qo'llanadi. Davom etilsinmi?`))) return;
       const r = await post(`/api/admin/league/${lg}/deadlines`, { roundDays: days });
       return done(r, `Dedlayn berildi: ${r.matches} ta o'yin ⏰`, null).then(() => r.ok || toast(r.error === 'nodl' ? "Dedlaynsiz o'yin yo'q" : ERR.fail));
+    }
+    if (act === 'draw-cancel') {
+      if (!(await confirmBox("Qura bekor qilinadimi? Barcha o'yinlar o'chadi, liga 0 dan (qura o'tkazilmagan) holatga qaytadi. Ishtirokchilar qoladi."))) return;
+      return done(await post(`/api/admin/league/${lg}/draw-cancel`, {}), 'Qura bekor qilindi ✖');
     }
     if (act === 'redo') {
       if (!(await confirmBox('Qurani qayta o\'tkazamizmi? Eski o\'yinlar jadvali o\'chiriladi.'))) return;
