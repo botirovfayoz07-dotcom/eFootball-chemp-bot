@@ -21,10 +21,16 @@ const schema = new mongoose.Schema({
   claim: { type: { hg: Number, ag: Number, by: Number }, default: null, _id: false },
   // Isbotlar: raqib «Yolg'on» deganda (yoki keyin) yuborilgan skrinshot/izoh — admin ko'radi
   proofs: { type: [{ by: Number, text: String, fileId: String, hg: Number, ag: Number, at: Date, _id: false }], default: [] },
-  confirmedBy: { type: String, enum: ['player', 'admin', null], default: null },
+  confirmedBy: { type: String, enum: ['player', 'admin', 'auto', null], default: null }, // auto — dedlayn bo'yicha texnik natija
+  // Dedlayn: tur boshlanishi va tugashi (null — dedlaynsiz, avto-yutuq ishlamaydi)
+  startsAt: { type: Date, default: null },
+  deadline: { type: Date, default: null },
+  notified: { type: [String], default: [] },   // yuborilgan eslatmalar: start | h3 | over | done
+  auto: { type: { kind: String, at: Date }, default: null, _id: false }, // avtomatik qaror izi (win-home | win-away | void)
   updatedAt: { type: Date, default: Date.now },
 });
 schema.index({ season: 1, league: 1, status: 1, round: 1 });
+schema.index({ status: 1, deadline: 1 });
 schema.index({ season: 1, home: 1 });
 schema.index({ season: 1, away: 1 });
 

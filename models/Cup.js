@@ -18,6 +18,7 @@ const schema = new mongoose.Schema({
   drawnAt: { type: Date, default: null },      // qura o'tkazilgan vaqt
   startedAt: { type: Date, default: null },    // tur starti (qulf ochiladi)
   deadline: { type: Date, default: null },     // tur dedlayni
+  notified: { type: [String], default: [] },   // yuborilgan eslatmalar (h3 | over)
 }, { timestamps: true });
 
 schema.index({ season: 1, cup: 1, stage: 1 }, { unique: true });

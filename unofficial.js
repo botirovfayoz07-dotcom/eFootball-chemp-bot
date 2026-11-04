@@ -24,6 +24,7 @@ const MSG = {
   champion: { uz: (n, who) => `🏆 ${n} yakunlandi! G'olib: ${who}`, en: (n, who) => `🏆 ${n} is over! Champion: ${who}`, ru: (n, who) => `🏆 ${n} завершён! Победитель: ${who}` },
   removed: { uz: (n) => `ℹ️ Siz «${n}» turniridan chiqarildingiz.`, en: (n) => `ℹ️ You were removed from “${n}”.`, ru: (n) => `ℹ️ Вас исключили из турнира «${n}».` },
   added: { uz: (n) => `✅ Siz «${n}» turniriga qo'shildingiz.`, en: (n) => `✅ You were added to “${n}”.`, ru: (n) => `✅ Вас добавили в турнир «${n}».` },
+  remind: { uz: (n, r) => `⏰ ${n}: tur dedlayniga 3 soat qoldi. O'yinni tugatib hisobni kiriting / tasdiqlang.`, en: (n, r) => `⏰ ${n}: 3 hours left until the round deadline. Finish your game and enter / confirm the score.`, ru: (n, r) => `⏰ ${n}: до дедлайна тура 3 часа. Доиграйте и введите / подтвердите счёт.` },
   room: { uz: (n, who, room) => `🎮 ${n}: ${who} xona ID sini yubordi: ${room}`, en: (n, who, room) => `🎮 ${n}: ${who} sent the room ID: ${room}`, ru: (n, who, room) => `🎮 ${n}: ${who} прислал ID комнаты: ${room}` },
 };
 
@@ -351,5 +352,20 @@ module.exports = function mount(app, d) {
       else if (r.error === 'few') bot.telegram.sendMessage(t.ownerId, `⚠️ «${t.name}»: qura o'tkazilmadi — kamida 2 ishtirokchi kerak.`).catch(() => {});
     }
   }
-  return { runDue };
+  // Dedlaynga 3 soat qolganda: joriy turda hisobi tugamagan o'yinchilarga eslatma
+  async function remind() {
+    const now = Date.now(), ts = await Tournament.find({ status: { $in: ['league', 'playoff'] }, startedAt: { $ne: null } }).lean();
+    for (const t of ts) {
+      const ms = await TMatch.find({ tournament: t._id, status: { $ne: 'cancelled' } }).lean(), cur = current(t, ms);
+      const left = cur?.deadline ? new Date(cur.deadline).getTime() - now : 0;
+      if (left <= 0 || left > 3 * 3600 * 1000) continue;
+      const tag = `h3:${cur.stage}:${cur.n}`;
+      if (!(await Tournament.updateOne({ _id: t._id, notified: { $ne: tag } }, { $addToSet: { notified: tag } })).modifiedCount) continue;
+      for (const m of ms.filter((x) => x.stage === cur.stage && x.round === cur.n && ['scheduled', 'pending'].includes(x.status))) {
+        const to = m.status === 'pending' ? [m.reportedBy === m.home ? m.away : m.home] : [m.home, m.away];   // pending: faqat tasdiqlashi kerak bo'lgan tomonga
+        to.forEach((id) => notify(id, t._id, 'remind', t.name, cur.n));
+      }
+    }
+  }
+  return { runDue, remind };
 };

@@ -14,6 +14,7 @@ const schema = new mongoose.Schema({
   drawAt: { type: Date, default: null },
   startedAt: { type: Date, default: null },
   champion: { type: Number, default: null },
+  notified: { type: [String], default: [] },       // yuborilgan eslatmalar (h3:<bosqich>:<tur>)
   players: { type: [{ telegramId: Number, team: { type: String, default: '' }, _id: false }], default: [] },
   createdAt: { type: Date, default: Date.now },
 });

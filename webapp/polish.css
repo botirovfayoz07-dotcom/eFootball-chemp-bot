@@ -59,3 +59,6 @@
 .r-table tr.z-rel td { background: linear-gradient(90deg, rgba(255,92,108,.16), rgba(255,92,108,.03)); }
 .r-table tr.z-rel td:first-child { box-shadow: inset 3px 0 0 #ef4444; }
 .r-table tr.z-rel .pos { background: rgba(239,68,68,.22); color: #ff8a95; }
+
+/* ——— Admin: dedlayn bloki ——— */
+.ad-dl { margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,.12); display: grid; gap: 8px; }

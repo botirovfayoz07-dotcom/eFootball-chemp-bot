@@ -87,3 +87,12 @@ Yangi fayllar: `models/Match.js`, `models/LeagueConfig.js`, `fixtures.js` (qura 
 ## Boshqa ishtirokchi profili va futbolchi fonlari
 - **Profilni ko'rish:** Ma'lumotlar → reyting jadvalidagi qatorni bosganda o'sha ishtirokchining profili ochiladi: kolleksiya (kuboklar, kosmetika), klublari va tanlagan ramka/foni. Telegram ID oshkor qilinmaydi (`/api/profile/view` klub bo'yicha egasini topadi).
 - **Futbolchi fonlari** (Neymar Jr, Ronaldo, Messi, Shevchenko, Gullit, Ramos — 800 Coins): Do'kon → Kosmetika → "Futbolchi fonlari". Rasmlar `webapp/cards/players/<id>.jpg` (yoki `.png`) ga qo'yiladi: `neymar`, `ronaldo`, `messi`, `shevchenko`, `gullit`, `ramos`. Rasm qo'yilmaguncha fon o'rnida gradient ko'rinadi. Narxlar `webapp/shop-data.js` da.
+
+
+## Dedlaynlar va avto-yutuq (lib/deadlines.js)
+- **Tur davomiyligi:** admin panel → Qura → «Tur davomiyligi (kun)». Har tur oxirgi kuni 23:59 (Toshkent) tugaydi. Qura o'tgan, lekin dedlaynsiz ligalar uchun «⏰ Dedlaynsiz o'yinlarga dedlayn berish» tugmasi bor (tugallanmagan turlar hozirdan ketma-ket sanaladi).
+- **Bildirishnomalar (o'yinchi tilida):** «Tur boshlandi» (2-turdan), dedlaynga 3 soat qolganda eslatma (hisob kiritilmagan o'yinda ikkala o'yinchiga; raqib hisob kiritgan bo'lsa — tasdiqlashi kerak bo'lgan tomonga), dedlayn o'tganda ogohlantirish. «Raqib hisob kiritdi» xabari avvaldan bor edi.
+- **Avto-natija:** dedlayn + muhlat (`AUTO_GRACE_HOURS`, standart 12 soat) o'tgach, hisob **kiritilmagan** o'yinda: faqat bir tomon o'yin chatiga yozgan bo'lsa — unga 3:0 texnik g'alaba; hech kim yozmagan bo'lsa — o'yin bekor (jadvalga hisoblanmaydi); ikkala tomon ham yozgan bo'lsa — bahsli, admin hal qiladi.
+- **O'zi hal qilinmaydigan holatlar:** raqib tasdig'i kutilayotgan (pending) va bahsli o'yinlar, FA Cup — adminga xabar boradi. Avto-natija admin panelda «🤖» belgisi bilan ko'rinadi, «Natijalar → Tasdiqlangan» orqali o'zgartirsa bo'ladi.
+- **Norasmiy turnirlar:** dedlaynga 3 soat qolganda eslatma. FA Cup: 3 soatlik eslatma va dedlayn o'tganda adminga xabar.
+- Dedlaynsiz (eski) o'yinlarga avto-natija qo'llanmaydi.

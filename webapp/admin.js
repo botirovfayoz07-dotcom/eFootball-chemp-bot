@@ -24,10 +24,11 @@ window.AdminView = (() => {
   function matchHtml(m) {
     const proofs = proofsHtml(m);
     const claim = m.claim ? `<p class="ad-claim">Bekor qilingan hisob: ${m.claim.hg}:${m.claim.ag} (${esc(m.claim.by === m.home.id ? m.home.user : m.claim.by === m.away.id ? m.away.user : m.claim.by)} kiritgan)</p>` : '';
+    const auto = m.auto ? `<p class="ad-claim">🤖 Avtomatik natija (dedlayn): ${m.auto === 'void' ? 'ikkala tomon kelmadi — bekor' : '3:0 texnik'}. Noto'g'ri bo'lsa — natijani o'zgartiring.</p>` : '';
     return `<div class="g-card ad-match" data-mid="${m.id}">
-      <div class="ad-meta"><small>${esc(m.leagueName)} · ${m.round}-tur</small><span class="ad-st ${m.status}">${ST[m.status]}</span></div>
+      <div class="ad-meta"><small>${esc(m.leagueName)} · ${m.round}-tur${m.deadline ? ` · ⏰ ${fmtShow(m.deadline)}` : ''}</small><span class="ad-st ${m.status}">${ST[m.status]}</span></div>
       <div class="ad-vs"><div><b>${esc(m.home.club)}</b><small>${esc(m.home.user)}</small></div><div class="ad-in"><input type="number" inputmode="numeric" min="0" max="99" value="${m.hg ?? ''}" data-hg><b>:</b><input type="number" inputmode="numeric" min="0" max="99" value="${m.ag ?? ''}" data-ag></div><div><b>${esc(m.away.club)}</b><small>${esc(m.away.user)}</small></div></div>
-      ${claim}${proofs}${m.chat ? `<button class="ad-btn ghost sm" data-act="viewchat">💬 O'yin chati (${m.chat})</button><div class="ad-chatbox" data-chatbox></div>` : ''}
+      ${claim}${auto}${proofs}${m.chat ? `<button class="ad-btn ghost sm" data-act="viewchat">💬 O'yin chati (${m.chat})</button><div class="ad-chatbox" data-chatbox></div>` : ''}
       <button class="ad-btn ok" data-act="result">${m.status === 'confirmed' ? "O'zgartirish va saqlash" : m.status === 'pending' ? '✅ Admin sifatida tasdiqlash' : '✅ Tasdiqlash / kiritish'}</button></div>`;
   }
   function resultsHtml() {
@@ -43,13 +44,16 @@ window.AdminView = (() => {
   }
 
   // ——— Qura ———
+  const daysSel = (v) => `<label class="ad-lbl">Tur davomiyligi (kun) — dedlayn har tur oxirgi kuni 23:59<select data-rdays>${[1, 2, 3, 5, 7, 10, 14].map((d) => `<option value="${d}" ${d === (v || 7) ? 'selected' : ''}>${d} kun</option>`).join('')}</select></label>`;
   function drawHtml() {
     return (ov?.leagues || []).map((l) => {
       const drawn = !!l.drawnAt;
       const body = drawn
-        ? `<p class="ad-ok">🎲 Qura o'tkazilgan: ${fmtShow(l.drawnAt)} · ${l.total} ta o'yin (${l.confirmed} tasdiqlangan)</p><button class="ad-btn ghost" data-act="redo" data-lg="${l.id}">Qayta qura (hisob kiritilmagan bo'lsa)</button>`
+        ? `<p class="ad-ok">🎲 Qura o'tkazilgan: ${fmtShow(l.drawnAt)} · ${l.total} ta o'yin (${l.confirmed} tasdiqlangan)</p><button class="ad-btn ghost" data-act="redo" data-lg="${l.id}">Qayta qura (hisob kiritilmagan bo'lsa)</button>
+           <div class="ad-dl">${daysSel(l.roundDays)}<button class="ad-btn ghost sm" data-act="deadlines" data-lg="${l.id}">⏰ Dedlaynsiz o'yinlarga dedlayn berish</button><p class="ad-hint">Dedlayn o'tgach, hisob kiritilmagan o'yinda avtomatik: faol tomonga 3:0, hech kim kelmagan bo'lsa bekor. Dedlaydan keyin qisqa muhlat beriladi (standart 12 soat).</p></div>`
         : `<label class="ad-lbl">Qura vaqti<input type="datetime-local" data-dt value="${l.drawAt ? fmtLocal(l.drawAt) : ''}"></label>
            <label class="ad-lbl">Davralar<select data-rounds><option value="2" ${l.rounds === 2 ? 'selected' : ''}>2 davra (uyda va mehmonda)</option><option value="1" ${l.rounds === 1 ? 'selected' : ''}>1 davra</option></select></label>
+           ${daysSel(l.roundDays)}
            ${l.drawAt ? `<p class="ad-hint">⏰ Avtomatik qura: ${fmtShow(l.drawAt)}</p>` : ''}
            <div class="ad-row"><button class="ad-btn" data-act="settime" data-lg="${l.id}">Vaqtni saqlash</button><button class="ad-btn ok" data-act="draw" data-lg="${l.id}">🎲 Hozir qura qilish</button></div>${l.drawAt ? `<button class="ad-btn ghost" data-act="cleartime" data-lg="${l.id}">Vaqtni o'chirish</button>` : ''}`;
       return `<div class="g-card ad-lg" data-lgbox="${l.id}"><h3>${esc(l.name)} <small>${l.players}/${l.max}</small></h3>${body}</div>`;
@@ -351,15 +355,21 @@ window.AdminView = (() => {
       return done(await post(`/api/admin/matches/${box.dataset.mid}/result`, { hg, ag }), 'Natija saqlandi ✅', loadMatches);
     }
     if (act === 'settime' || act === 'cleartime' || act === 'draw') {
-      const box = a.closest('[data-lgbox]'), v = box.querySelector('[data-dt]')?.value, rounds = Number(box.querySelector('[data-rounds]')?.value || 2);
-      if (act === 'settime') { if (!v) return toast('Vaqtni tanlang'); return done(await post(`/api/admin/league/${lg}/draw-time`, { drawAt: new Date(v).toISOString(), rounds }), 'Qura vaqti saqlandi ✅'); }
-      if (act === 'cleartime') return done(await post(`/api/admin/league/${lg}/draw-time`, { drawAt: null, rounds }), "Qura vaqti o'chirildi");
+      const box = a.closest('[data-lgbox]'), v = box.querySelector('[data-dt]')?.value, rounds = Number(box.querySelector('[data-rounds]')?.value || 2), roundDays = Number(box.querySelector('[data-rdays]')?.value || 7);
+      if (act === 'settime') { if (!v) return toast('Vaqtni tanlang'); return done(await post(`/api/admin/league/${lg}/draw-time`, { drawAt: new Date(v).toISOString(), rounds, roundDays }), 'Qura vaqti saqlandi ✅'); }
+      if (act === 'cleartime') return done(await post(`/api/admin/league/${lg}/draw-time`, { drawAt: null, rounds, roundDays }), "Qura vaqti o'chirildi");
       if (!(await confirmBox('Qurani hozir o\'tkazamizmi? Ishtirokchilar aralashtirilib, o\'yinlar jadvali tuziladi.'))) return;
-      return done(await post(`/api/admin/league/${lg}/draw`, { rounds }), 'Qura o\'tkazildi 🎲');
+      return done(await post(`/api/admin/league/${lg}/draw`, { rounds, roundDays }), 'Qura o\'tkazildi 🎲');
+    }
+    if (act === 'deadlines') {
+      const days = Number(a.closest('[data-lgbox]')?.querySelector('[data-rdays]')?.value || 7);
+      if (!(await confirmBox(`Tugallanmagan o'yinlarga dedlayn beriladi (tur ${days} kun, hozirdan boshlab). Dedlayn o'tgach avtomatik texnik natija qo'llanadi. Davom etilsinmi?`))) return;
+      const r = await post(`/api/admin/league/${lg}/deadlines`, { roundDays: days });
+      return done(r, `Dedlayn berildi: ${r.matches} ta o'yin ⏰`, null).then(() => r.ok || toast(r.error === 'nodl' ? "Dedlaynsiz o'yin yo'q" : ERR.fail));
     }
     if (act === 'redo') {
       if (!(await confirmBox('Qurani qayta o\'tkazamizmi? Eski o\'yinlar jadvali o\'chiriladi.'))) return;
-      return done(await post(`/api/admin/league/${lg}/draw`, { redo: true, rounds: ov.leagues.find((l) => l.id === lg)?.rounds }), 'Qayta qura o\'tkazildi 🎲');
+      return done(await post(`/api/admin/league/${lg}/draw`, { redo: true, rounds: ov.leagues.find((l) => l.id === lg)?.rounds, roundDays: Number(a.closest('[data-lgbox]')?.querySelector('[data-rdays]')?.value || 7) }), 'Qayta qura o\'tkazildi 🎲');
     }
     if (act === 'award') {
       const lname = ov?.leagues.find((l) => l.id === pl.league)?.name || '';

@@ -24,6 +24,8 @@ const registerSeasonRoutes = require('./lib/season-api');
 const Cup = require('./models/Cup');
 const registerAdminExtra = require('./lib/admin-extra');
 const { trackActivity } = registerAdminExtra;
+const mountDeadlines = require('./lib/deadlines');
+const DL = mountDeadlines;   // stamp / stampSeq / decide / clampDays
 // ——— FA Cup API ———
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -148,6 +150,46 @@ const MSG = {
     en: (lg, club) => `✅ The admin added you to ${lg} (${club}).`,
     ru: (lg, club) => `✅ Админ добавил вас в лигу ${lg} (${club}).`,
   },
+  roundStart: {
+    uz: (lg, r, opp, dl) => `🟢 ${lg}: ${r}-tur boshlandi!\nRaqibingiz: ${opp}\nDedlayn: ${dl} (Toshkent vaqti)`,
+    en: (lg, r, opp, dl) => `🟢 ${lg}: round ${r} has started!\nYour opponent: ${opp}\nDeadline: ${dl} (Tashkent time)`,
+    ru: (lg, r, opp, dl) => `🟢 ${lg}: начался ${r}-й тур!\nСоперник: ${opp}\nДедлайн: ${dl} (по Ташкенту)`,
+  },
+  remindPlay: {
+    uz: (lg, r, opp, dl) => `⏰ ${lg}, ${r}-tur: dedlaynga 3 soat qoldi${dl ? ` (${dl})` : ''}.${opp ? `\nRaqib: ${opp}.` : ''}\nO'yinni o'ynab hisobni kiriting, aks holda texnik mag'lubiyat berilishi mumkin.`,
+    en: (lg, r, opp, dl) => `⏰ ${lg}, round ${r}: 3 hours left until the deadline${dl ? ` (${dl})` : ''}.${opp ? `\nOpponent: ${opp}.` : ''}\nPlay and enter the score, or a technical defeat may be given.`,
+    ru: (lg, r, opp, dl) => `⏰ ${lg}, ${r}-й тур: до дедлайна 3 часа${dl ? ` (${dl})` : ''}.${opp ? `\nСоперник: ${opp}.` : ''}\nСыграйте и введите счёт, иначе может быть засчитано техническое поражение.`,
+  },
+  remindConfirm: {
+    uz: (lg, r, opp) => `⏰ ${lg}, ${r}-tur: dedlaynga 3 soat qoldi.${opp ? `\n${opp} hisob kiritgan.` : ''} Iltimos, tasdiqlang yoki «Yolg'on» ni bosing.`,
+    en: (lg, r, opp) => `⏰ ${lg}, round ${r}: 3 hours left.${opp ? `\n${opp} entered the score.` : ''} Please confirm it or press “Fake”.`,
+    ru: (lg, r, opp) => `⏰ ${lg}, ${r}-й тур: осталось 3 часа.${opp ? `\n${opp} ввёл счёт.` : ''} Подтвердите его или нажмите «Ложь».`,
+  },
+  overdue: {
+    uz: (lg, r, opp, h) => `⛔ ${lg}, ${r}-tur: dedlayn o'tdi, hisob kiritilmagan (${opp}).\nYana ${h} soat muhlat: o'yinni tugatib hisob kiriting yoki raqib bilan chat orqali bog'laning. Aks holda faol bo'lmagan tomonga texnik mag'lubiyat beriladi.`,
+    en: (lg, r, opp, h) => `⛔ ${lg}, round ${r}: the deadline has passed and no score was entered (${opp}).\n${h} more hours: finish the game and enter the score, or contact your opponent in the match chat. Otherwise the inactive side gets a technical defeat.`,
+    ru: (lg, r, opp, h) => `⛔ ${lg}, ${r}-й тур: дедлайн прошёл, счёт не введён (${opp}).\nЕщё ${h} ч: сыграйте и введите счёт или свяжитесь с соперником в чате матча. Иначе неактивной стороне засчитают техническое поражение.`,
+  },
+  techWin: {
+    uz: (lg, r, opp) => `🏆 ${lg}, ${r}-tur: ${opp} o'yinga kelmadi — sizga 3:0 texnik g'alaba berildi.`,
+    en: (lg, r, opp) => `🏆 ${lg}, round ${r}: ${opp} did not show up — you were awarded a 3:0 technical win.`,
+    ru: (lg, r, opp) => `🏆 ${lg}, ${r}-й тур: ${opp} не явился — вам засчитана техническая победа 3:0.`,
+  },
+  techLoss: {
+    uz: (lg, r, opp) => `⛔ ${lg}, ${r}-tur: dedlaynda o'yinda qatnashmadingiz (${opp}) — 0:3 texnik mag'lubiyat. Xato bo'lsa, «Muammoli holatlar» orqali adminga yozing.`,
+    en: (lg, r, opp) => `⛔ ${lg}, round ${r}: you did not take part by the deadline (${opp}) — 0:3 technical defeat. If this is a mistake, write to the admin via “Problems”.`,
+    ru: (lg, r, opp) => `⛔ ${lg}, ${r}-й тур: вы не участвовали до дедлайна (${opp}) — техническое поражение 0:3. Если это ошибка, напишите админу через «Проблемы».`,
+  },
+  voided: {
+    uz: (lg, r, opp) => `ℹ️ ${lg}, ${r}-tur: ${opp} bilan o'yin ikkala tomon ham qatnashmagani uchun bekor qilindi.`,
+    en: (lg, r, opp) => `ℹ️ ${lg}, round ${r}: the game with ${opp} was cancelled because neither side took part.`,
+    ru: (lg, r, opp) => `ℹ️ ${lg}, ${r}-й тур: матч с ${opp} отменён, так как никто не участвовал.`,
+  },
+  toAdmin: {
+    uz: (lg, r, opp) => `⚠️ ${lg}, ${r}-tur: ${opp} bilan o'yin dedlaynda hal bo'lmadi — natijani admin kiritadi. Isbot bo'lsa «Muammoli holatlar» orqali yuboring.`,
+    en: (lg, r, opp) => `⚠️ ${lg}, round ${r}: the game with ${opp} was not settled by the deadline — the admin will enter the result. Send proof via “Problems” if you have any.`,
+    ru: (lg, r, opp) => `⚠️ ${lg}, ${r}-й тур: матч с ${opp} не решён к дедлайну — результат внесёт админ. Если есть доказательства, отправьте через «Проблемы».`,
+  },
   drawn: {
     uz: (lg) => `🎲 ${lg}: qura o'tkazildi! O'yinlaringiz: Me → klubingiz → Mening o'yinlarim.`,
     en: (lg) => `🎲 ${lg}: the draw is done! Your games: Me → your club → My games.`,
@@ -183,6 +225,7 @@ async function decorate(ms) {
   return ms.map((m) => ({
     proofs: (m.proofs || []).map((p) => ({ by: nm.get(p.by) || String(p.by), text: p.text || '', fileId: p.fileId || '', hg: p.hg ?? null, ag: p.ag ?? null, at: p.at })),
     chat: chatN.get(String(m._id)) || 0,
+    deadline: m.deadline || null, auto: m.auto?.kind || null,
     id: String(m._id), league: m.league, leagueName: EFL.byId[m.league]?.name || m.league, round: m.round, status: m.status,
         home: side(m.home), away: side(m.away), hg: m.hg, ag: m.ag,
     claim: m.claim?.hg != null ? { hg: m.claim.hg, ag: m.claim.ag, by: m.claim.by } : null,
@@ -198,17 +241,17 @@ async function recalc(leagueId) {
 }
 
 // Qura: ishtirokchilarni aralashtirib, o'yinlar jadvalini tuzadi
-async function performDraw(leagueId, rounds) {
+async function performDraw(leagueId, rounds, roundDays) {
   let lock;
   try {
-    lock = await LeagueConfig.findOneAndUpdate({ season, league: leagueId, drawnAt: null }, { $set: { drawnAt: new Date(), rounds: rounds === 1 ? 1 : 2 } }, { upsert: true, new: true });
+    lock = await LeagueConfig.findOneAndUpdate({ season, league: leagueId, drawnAt: null }, { $set: { drawnAt: new Date(), rounds: rounds === 1 ? 1 : 2, ...(DL.clampDays(roundDays) ? { roundDays: DL.clampDays(roundDays) } : {}) } }, { upsert: true, new: true });
   } catch (e) { if (e.code === 11000) return { error: 'drawn' }; throw e; }
   const unlock = () => LeagueConfig.updateOne({ _id: lock._id }, { $set: { drawnAt: null } });
   const regs = await Registration.find({ season, league: leagueId }).lean();
   if (regs.length < 2) { await unlock(); return { error: 'few' }; }
   try {
     const fx = FX.roundRobin(FX.shuffle(regs.map((r) => r.telegramId)), lock.rounds === 2);
-    await Match.insertMany(fx.map((m) => ({ ...m, league: leagueId, season })));
+    await Match.insertMany(DL.stamp(fx, new Date(), lock.roundDays || 7).map((m) => ({ ...m, league: leagueId, season })));
     await LeagueConfig.updateOne({ _id: lock._id }, { $set: { drawAt: null } });
     regs.forEach((r) => notify(r.telegramId, 'drawn', EFL.byId[leagueId].name));
     return { ok: true, matches: fx.length };
@@ -827,7 +870,7 @@ app.get('/api/admin/overview', adminOnly, ah(async (req, res) => {
   groups.forEach((g) => { const c = (cnt[g._id.league] ||= { total: 0, confirmed: 0, action: 0 }); c.total += g.n; if (g._id.status === 'confirmed') c.confirmed += g.n; if (g._id.status === 'pending' || g._id.status === 'disputed') c.action += g.n; });
   const leagues = EFL.LEAGUES.map((l) => {
     const c = cfg.get(l.id), n = cnt[l.id] || { total: 0, confirmed: 0, action: 0 };
-    return { id: l.id, name: l.name, group: l.group, max: l.max, closed: !!c?.closed, players: regs.filter((r) => r.league === l.id).length, drawAt: c?.drawAt || null, drawnAt: c?.drawnAt || null, rounds: c?.rounds || 2, ...n };
+    return { id: l.id, name: l.name, group: l.group, max: l.max, closed: !!c?.closed, players: regs.filter((r) => r.league === l.id).length, drawAt: c?.drawAt || null, drawnAt: c?.drawnAt || null, rounds: c?.rounds || 2, roundDays: c?.roundDays || 7, ...n };
   });
   const support = await ChatMessage.countDocuments({ kind: 'support', admin: false, adminRead: false });
   res.json({ leagues, action: leagues.reduce((s, l) => s + l.action, 0), support });
@@ -871,7 +914,7 @@ app.post('/api/admin/league/:id/draw-time', adminOnly, ah(async (req, res) => {
   const at = req.body?.drawAt ? new Date(req.body.drawAt) : null;
   if (at && isNaN(at)) return res.status(400).json({ error: 'fail' });
   if (await LeagueConfig.exists({ season, league: league.id, drawnAt: { $ne: null } })) return res.status(409).json({ error: 'drawn' });
-  const c = await LeagueConfig.findOneAndUpdate({ season, league: league.id }, { $set: { drawAt: at, rounds: req.body?.rounds === 1 ? 1 : 2 } }, { upsert: true, new: true }).lean();
+  const c = await LeagueConfig.findOneAndUpdate({ season, league: league.id }, { $set: { drawAt: at, rounds: req.body?.rounds === 1 ? 1 : 2, ...(DL.clampDays(req.body?.roundDays) ? { roundDays: DL.clampDays(req.body.roundDays) } : {}) } }, { upsert: true, new: true }).lean();
   res.json({ ok: true, drawAt: c.drawAt });
 }));
 
@@ -884,9 +927,21 @@ app.post('/api/admin/league/:id/draw', adminOnly, ah(async (req, res) => {
     await Match.deleteMany({ season, league: league.id });
     await LeagueConfig.updateOne({ season, league: league.id }, { $set: { drawnAt: null } });
   }
-  const r = await performDraw(league.id, req.body?.rounds);
+  const r = await performDraw(league.id, req.body?.rounds, req.body?.roundDays);
   if (r.error) return res.status(409).json({ error: r.error });
   res.json(r);
+}));
+
+// Eski (dedlaynsiz) o'yinlarga dedlayn berish: tugallanmagan turlar «hozirdan» ketma-ket sanaladi
+app.post('/api/admin/league/:id/deadlines', adminOnly, ah(async (req, res) => {
+  const league = EFL.byId[req.params.id], days = DL.clampDays(req.body?.roundDays);
+  if (!league || !days) return res.status(400).json({ error: 'fail' });
+  const ms = await Match.find({ season, league: league.id, status: { $in: ['scheduled', 'pending', 'disputed'] }, deadline: null }).select('round').lean();
+  if (!ms.length) return res.status(409).json({ error: 'nodl' });
+  const st = DL.stampSeq(ms.map((m) => ({ _id: m._id, round: m.round })), new Date(), days);
+  await Match.bulkWrite(st.map((m) => ({ updateOne: { filter: { _id: m._id }, update: { $set: { startsAt: m.startsAt, deadline: m.deadline, notified: m.notified } } } })));
+  await LeagueConfig.updateOne({ season, league: league.id }, { $set: { roundDays: days } }, { upsert: true });
+  res.json({ ok: true, matches: st.length });
 }));
 
 // Ligadagi ishtirokchilar va bo'sh klublar
@@ -931,7 +986,7 @@ app.post('/api/admin/league/:id/add', adminOnly, ah(async (req, res) => {
     const others = (await Registration.find({ season, league: league.id, telegramId: { $ne: usr.telegramId } }).lean()).map((r) => r.telegramId);
     const last = (await Match.findOne({ season, league: league.id }).sort({ round: -1 }).lean())?.round || 0;
     const fx = FX.fixturesForNewcomer(usr.telegramId, others, last, cfg.rounds === 2);
-    if (fx.length) await Match.insertMany(fx.map((m) => ({ ...m, league: league.id, season })));
+    if (fx.length) await Match.insertMany(DL.stampSeq(fx, new Date(), cfg.roundDays || 7).map((m) => ({ ...m, league: league.id, season })));
   }
   notify(usr.telegramId, 'added', league.name, EFL.clubName(league.id, club));
   const cupWarning = await cupLogic.onLeagueAdd(season, league.id, usr.telegramId);
@@ -945,6 +1000,7 @@ const ut = require('./unofficial')(app, { tgUser, ah, bot, User, ADMINS, Markup,
 registerSeasonRoutes(app, { tgUser, adminIds: ADMINS });
 registerAdminExtra(app, { adminOnly, ah, bot, season, EFL, Markup, MINI_APP_URL });
 const cupApi = require('./lib/cup-api')(app, { tgUser, ah, adminOnly, season, notifyAdmins });
+const deadlines = mountDeadlines({ Match, Cup, ChatMessage, season, EFL, notify, whoIs, recalc, notifyAdmins });
 
 // ——— Mavsum starti: PL + Championship + FA Cup + Community Shield birga ———
 const AUTO_CUPS = ['fa-cup', 'community-shield'];
@@ -990,6 +1046,8 @@ app.listen(process.env.PORT || 3000, () => console.log('Mini app serveri ishga t
       }
       await ut.runDue(); // norasmiy turnirlar quralari
       await cupApi.runDue(); // FA Cup quralari
+      await deadlines.tick(); // tur boshlandi / dedlayn eslatmalari / avto-yutuq
+      await ut.remind().catch((e) => console.error('Turnir eslatmalari:', e)); // norasmiy turnirlar: dedlayn eslatmasi
     } catch (e) { console.error('Qura rejalashtiruvchisi:', e); }
   }, 60 * 1000);
   await bot.launch();
