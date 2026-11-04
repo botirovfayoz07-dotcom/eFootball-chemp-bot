@@ -1,0 +1,61 @@
+/* 3-qatlam: skeleton · admin statistika · xabar · jadval formasi va zona ranglari */
+
+/* ——— Skeleton ——— */
+.sk {
+  display: block; border-radius: 8px;
+  background: linear-gradient(100deg, rgba(255,255,255,.06) 30%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.06) 70%) 0 0 / 220% 100%;
+  animation: sk-shine 1.3s linear infinite;
+}
+@keyframes sk-shine { to { background-position: -220% 0; } }
+.sk-line { margin: 5px 0; }
+.sk-ava { width: 44px; height: 44px; border-radius: 12px; flex: none; }
+.sk-card { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.sk-card > span { flex: 1; min-width: 0; }
+.sk-tr td { padding: 14px 6px; }
+.sk-tr .sk-line { margin: 0 auto; } .sk-tr td.pl .sk-line { margin: 0; }
+@media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
+
+/* ——— Admin: statistika ——— */
+.st-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+.st-kpi { display: flex; flex-direction: column; gap: 3px; margin: 0; padding: 14px; }
+.st-kpi b { font: 700 24px/1.1 var(--font-d, 'Rajdhani', sans-serif); color: #fff; }
+.st-kpi span { color: var(--ink-2, #a7b4d0); font-size: 13px; }
+.st-kpi small { color: var(--ink-3, #6f7d9c); font-size: 11.5px; }
+.st-box { margin: 10px 0; padding: 14px; }
+.st-box h3 { margin: 0 0 10px; font: 600 16px var(--font-d, 'Rajdhani', sans-serif); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.st-box h3 small { color: var(--ink-3, #6f7d9c); font-weight: 500; font-size: 12px; }
+.st-chart { width: 100%; height: auto; display: block; overflow: visible; }
+.st-chart line { stroke: rgba(255,255,255,.14); stroke-width: 1; }
+.st-chart rect { fill: var(--cy, #3fd8ff); opacity: .9; transition: opacity .15s; }
+.st-chart rect:hover { opacity: 1; }
+.st-chart.c-vi rect { fill: var(--vi, #8b5cf6); } .st-chart.c-am rect { fill: var(--am, #ffb03a); }
+.st-axis { display: flex; justify-content: space-between; margin-top: 6px; color: var(--ink-3, #6f7d9c); font-size: 11px; }
+.st-lg { display: flex; align-items: center; gap: 8px; margin: 7px 0; font-size: 13px; }
+.st-lg > span { flex: 0 0 38%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-lg i { flex: 1; height: 8px; border-radius: 99px; background: rgba(255,255,255,.08); overflow: hidden; }
+.st-lg u { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--vi, #8b5cf6), var(--cy, #3fd8ff)); text-decoration: none; transition: width .4s; }
+.st-lg b { flex: none; min-width: 44px; text-align: right; font-weight: 600; color: var(--ink-2, #a7b4d0); }
+
+/* ——— Admin: ommaviy xabar ——— */
+.bc-form { display: grid; gap: 10px; margin: 10px 0; padding: 14px; }
+.bc-form textarea {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 120px; padding: 12px; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.14); background: rgba(0,0,0,.28); color: #fff; font: 400 15px/1.45 'Inter', system-ui, sans-serif;
+}
+.bc-form textarea:focus { outline: 2px solid rgba(63,216,255,.55); outline-offset: 1px; }
+.bc-meta { display: flex; justify-content: space-between; color: var(--ink-3, #6f7d9c); font-size: 12.5px; }
+.bc-item { margin: 8px 0; padding: 12px; } .bc-item p { margin: 8px 0; word-break: break-word; }
+
+/* ——— Reyting jadvali: forma (so'nggi 5 o'yin) ——— */
+.r-table th.frm, .r-table td.frm { min-width: 128px; }
+.fm { display: inline-flex; gap: 4px; align-items: center; justify-content: center; }
+.fm em { color: var(--ink-3, #6f7d9c); font-style: normal; }
+.fd { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; font: 700 11px/1 'Rajdhani', 'Sora', sans-serif; font-style: normal; color: #fff; }
+.fd.w { background: #16a34a; } .fd.d { background: #6b7280; } .fd.l { background: #dc2626; }
+
+/* Zonalar: chap chetda rangli chiziq (chempionlar ligasi — ko'k, Yevropa ligasi — to'q sariq, tushish zonasi — qizil) */
+.r-table tr.z-cl td:first-child { box-shadow: inset 3px 0 0 #4f8cff; }
+.r-table tr.z-el td:first-child { box-shadow: inset 3px 0 0 #ff9f5a; }
+.r-table tr.z-rel td { background: linear-gradient(90deg, rgba(255,92,108,.16), rgba(255,92,108,.03)); }
+.r-table tr.z-rel td:first-child { box-shadow: inset 3px 0 0 #ef4444; }
+.r-table tr.z-rel .pos { background: rgba(239,68,68,.22); color: #ff8a95; }

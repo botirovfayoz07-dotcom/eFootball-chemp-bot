@@ -22,6 +22,8 @@ const seasonEngine = require('./lib/season');
 const cupLogic = require('./lib/cup');
 const registerSeasonRoutes = require('./lib/season-api');
 const Cup = require('./models/Cup');
+const registerAdminExtra = require('./lib/admin-extra');
+const { trackActivity } = registerAdminExtra;
 // ——— FA Cup API ———
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -102,7 +104,7 @@ async function migrateEq(id) {
   if (it?.player) await User.updateOne({ telegramId: id }, { $set: { 'equipped.pbg': e.pbg || e.bg, 'equipped.bg': null } });
 }
 // Ilovani ochgan har bir foydalanuvchining ismi/username/avatari saqlanadi (jadvalda klub egasi ko'rinishi uchun)
-const touchUser = (u) => User.updateOne({ telegramId: u.id }, { $set: { firstName: u.first_name || '', username: u.username || '', photoUrl: u.photo_url || '', lastSeen: new Date() } }, { upsert: true }).catch(() => {});
+const touchUser = (u) => User.updateOne({ telegramId: u.id }, { $set: { firstName: u.first_name || '', username: u.username || '', photoUrl: u.photo_url || '', lastSeen: new Date(), blocked: false } }, { upsert: true }).then(() => trackActivity(u.id)).catch(() => {});
 // Async marshrutlarda xato chiqsa server qulab tushmasligi uchun
 const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch((e) => { console.error(e); res.status(500).json({ error: 'fail' }); });
 const adminOnly = (req, res, next) => {
@@ -302,11 +304,18 @@ app.get('/api/rankings/:league', async (req, res) => {
   if (!tgUser(req)) return res.status(401).json({ error: 'auth' });
   const league = req.params.league;
   if (!EFL.byId[league]) return res.status(404).json({ error: 'fail' });
-  const regs = await Registration.find({ season, league }).lean();
+  const [regs, played] = await Promise.all([
+    Registration.find({ season, league }).lean(),
+    Match.find({ season, league, status: 'confirmed' }).select('home away hg ag round').sort({ round: 1, _id: 1 }).lean(),
+  ]);
   const users = await User.find({ telegramId: { $in: regs.map((r) => r.telegramId) } }).lean();
   const names = new Map(users.map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
+  // Oxirgi 5 o'yin shakli: W (g'alaba) / D (durang) / L (mag'lubiyat), eskisidan yangisiga
+  const formOf = new Map();
+  const pushForm = (id, c) => { const a = formOf.get(id) || []; a.push(c); formOf.set(id, a); };
+  played.forEach((m) => { const h = m.hg > m.ag ? 'W' : m.hg < m.ag ? 'L' : 'D'; pushForm(m.home, h); pushForm(m.away, h === 'W' ? 'L' : h === 'L' ? 'W' : 'D'); });
   const rows = regs
-    .map((r) => ({ club: r.club, user: names.get(r.telegramId) || '', pts: r.pts, w: r.w, d: r.d, l: r.l, gf: r.gf, ga: r.ga, gd: r.gf - r.ga }))
+    .map((r) => ({ club: r.club, user: names.get(r.telegramId) || '', pts: r.pts, w: r.w, d: r.d, l: r.l, gf: r.gf, ga: r.ga, gd: r.gf - r.ga, form: (formOf.get(r.telegramId) || []).slice(-5) }))
     .sort(rankSort)
     .map((r, i) => ({ pos: i + 1, ...r }));
   res.json({ league, rows });
@@ -934,6 +943,7 @@ let botUser = null;
 const botName = async () => { if (!botUser) { try { botUser = (await bot.telegram.getMe()).username; } catch (_) {} } return botUser; };
 const ut = require('./unofficial')(app, { tgUser, ah, bot, User, ADMINS, Markup, t, MINI_APP_URL, adminOnly, botName });
 registerSeasonRoutes(app, { tgUser, adminIds: ADMINS });
+registerAdminExtra(app, { adminOnly, ah, bot, season, EFL, Markup, MINI_APP_URL });
 const cupApi = require('./lib/cup-api')(app, { tgUser, ah, adminOnly, season, notifyAdmins });
 
 // ——— Mavsum starti: PL + Championship + FA Cup + Community Shield birga ———

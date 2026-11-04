@@ -15,7 +15,7 @@ window.AdminView = (() => {
 
   function tabsHtml() {
     const n = ov?.action || 0;
-    return `<div class="ad-tabs">${[['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['cup', '🎲 FA Cup'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar'], ['cups', 'Kubok narxi'], ['open', 'Ligalar holati'], ['support', `Xabarlar${ov?.support ? ` <i>${ov.support}</i>` : ''}`]].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
+    return `<div class="ad-tabs">${[['stats', '📊 Statistika'], ['broadcast', '📢 Xabar'], ['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['cup', '🎲 FA Cup'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar'], ['cups', 'Kubok narxi'], ['open', 'Ligalar holati'], ['support', `Xabarlar${ov?.support ? ` <i>${ov.support}</i>` : ''}`]].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
   }
 
   // ——— Natijalar ———
@@ -58,7 +58,7 @@ window.AdminView = (() => {
 
   // ——— FA Cup: saralash + pley-off ———
   function cupHtml() {
-    if (!cupState) return '<p class="ad-hint">Yuklanmoqda…</p>';
+    if (!cupState) return SK('rows', 3);
     return `<p class="ad-hint">Saralash: Premier Liga 20→10, Championship 24→12→6, keyin 16 klub. Qura vaqti kelganda avtomatik o'tadi. <b>Start</b> bosilmaguncha o'yinchilar faqat raqibni ko'radi.</p>` +
       cupState.stages.map((s) => {
         const drawn = !!s.drawnAt;
@@ -115,7 +115,7 @@ window.AdminView = (() => {
   // ——— Ishtirokchilar ———
   function playersHtml() {
     const d = pl.data;
-    const list = !d ? '<p class="ad-hint">Yuklanmoqda…</p>' : `${d.players.map((p) => `<div class="g-card ad-pl"><span><b>${esc(p.club)}</b><small>${esc(p.user)} · ${p.pts} ball · ${p.games} o'yin</small></span><button class="ad-btn ok" data-act="award" data-tid="${p.telegramId}" data-name="${esc(p.club)}">🏆 Kubok</button><button class="ad-btn bad" data-act="remove" data-tid="${p.telegramId}" data-name="${esc(p.club)}">Chiqarish</button></div>`).join('') || '<p class="ad-hint">Ishtirokchi yo\'q</p>'}
+    const list = !d ? SK('rows', 3) : `${d.players.map((p) => `<div class="g-card ad-pl"><span><b>${esc(p.club)}</b><small>${esc(p.user)} · ${p.pts} ball · ${p.games} o'yin</small></span><button class="ad-btn ok" data-act="award" data-tid="${p.telegramId}" data-name="${esc(p.club)}">🏆 Kubok</button><button class="ad-btn bad" data-act="remove" data-tid="${p.telegramId}" data-name="${esc(p.club)}">Chiqarish</button></div>`).join('') || '<p class="ad-hint">Ishtirokchi yo\'q</p>'}
       <div class="g-label"><span>Qo'shish (${d.players.length}/${d.max})</span></div>
       <div class="g-card ad-add"><input type="text" data-user placeholder="@username yoki Telegram ID"><select data-club>${d.free.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select><button class="ad-btn ok" data-act="add">➕ Qo'shish</button><p class="ad-hint">Foydalanuvchi botga kamida bir marta /start bosgan bo'lishi kerak. Qura o'tgan bo'lsa, unga qolganlar bilan o'yinlar qo'shiladi.</p></div>`;
     return `<div class="ad-filters"><select data-f="plleague">${leagueOpts(pl.league, false)}</select></div>${list}`;
@@ -129,7 +129,7 @@ window.AdminView = (() => {
   // ——— Norasmiy turnirlar ———
   function toursHtml() {
     const SB = { open: 'Qabul ochiq', league: 'Davom etmoqda', playoff: 'Play-off', finished: 'Yakunlangan' };
-    if (!tours) return '<p class="ad-hint">Yuklanmoqda…</p>';
+    if (!tours) return SK('rows', 3);
     return tours.map((x) => `<button class="g-card ut-card" data-act="tour-open" data-tid="${x.id}"><span><b>${esc(x.name)}</b><small>${esc(x.owner)} · ${x.players}/${x.max} · ${SB[x.status]}${x.action ? ` · <i style="color:#fb923c;font-style:normal">⚠️ ${x.action}</i>` : ''}</small></span><span class="chev">›</span></button>`).join('') || '<div class="pf-empty"><span>🏆</span><p>Turnir yo\'q</p></div>';
   }
   async function loadTours() { const r = await api('/api/admin/tournaments'); if (r.ok) { tours = r.list; if (tab === 'tour') render(); } }
@@ -144,7 +144,7 @@ window.AdminView = (() => {
   // ——— Kubok narxlari: foydalanuvchilar kubokni shu narxda (UZS) adminga sotadi ———
   const money = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   function cupsHtml() {
-    if (!cups) return '<p class="ad-hint">Yuklanmoqda…</p>';
+    if (!cups) return SK('rows', 3);
     const block = (g, title) => `<div class="g-label"><span>${title}</span></div>${cups.filter((c) => String(c.group) === String(g)).map((c) => `<div class="g-card ad-cup" data-cup="${c.id}"><span class="ad-cup-n"><b>${esc(c.name)}</b><small>${c.price ? '💰 ' + money(c.price) + ' UZS' : 'Narx belgilanmagan — sotib bo\'lmaydi'}</small></span><input type="number" inputmode="numeric" min="0" step="1000" placeholder="UZS" value="${c.price || ''}" data-price><button class="ad-btn ok" data-act="cupsave">Saqlash</button></div>`).join('')}`;
     return `<p class="ad-hint">Har bir liga kubogining narxini so'mda kiriting. Foydalanuvchi kubokni sotganda shu narx adminga xabarda ko'rinadi va pul shu summada o'tkaziladi. Bo'sh yoki 0 — narx yo'q, kubokni sotib bo'lmaydi.</p>${block('1', '1-ligalar')}${block('2', '2-ligalar')}`;
   }
@@ -166,7 +166,7 @@ window.AdminView = (() => {
   const bubble = (x) => `<div class="m-b ${x.mine ? 'me' : 'op'}">${x.fileId ? `<img class="m-img" data-fid="${esc(x.fileId)}" data-act="zoom" alt="">` : ''}${x.text ? `<span>${esc(x.text)}</span>` : ''}<small>${hm2(x.at)}</small></div>`;
   function supportHtml() {
     if (sp.open) return `<button class="back" data-act="spback"><span>‹</span> Murojaatlar</button><div class="g-card ad-thread-h"><b>${esc(sp.name)}</b><small>ID ${sp.open}</small></div><div class="m-msgs ad-msgs" id="spMsgs">${sp.msgs.map(bubble).join('') || '<p class="m-empty">Xabar yo\'q</p>'}</div><div class="m-send"><input id="spText" maxlength="800" placeholder="Javob yozing…" autocomplete="off"><button class="m-ic go" data-act="spsend">➤</button></div>`;
-    if (!sp.threads) return '<p class="ad-hint">Yuklanmoqda…</p>';
+    if (!sp.threads) return SK('rows', 3);
     return `<p class="ad-hint">Foydalanuvchilarning «Muammoli holatlar» bo'limidan yozgan xabarlari. Javobingiz foydalanuvchiga bot orqali ham boradi.</p>${sp.threads.map((x) => `<button class="g-card ad-thread" data-act="spopen" data-uid="${x.uid}" data-name="${esc(x.name)}"><span><b>${esc(x.name)}</b><small>${x.fromAdmin ? 'Siz: ' : ''}${esc(x.text.slice(0, 70))}</small></span><span class="ad-thread-r"><small>${hm2(x.at)}</small>${x.unread ? `<i class="gm-badge" style="position:static">${x.unread}</i>` : ''}</span></button>`).join('') || '<div class="pf-empty"><span>📭</span><p>Murojaat yo\'q</p></div>'}`;
   }
   async function loadSupport() { const r = await api('/api/admin/support'); if (r.ok) { sp.threads = r.threads; if (tab === 'support' && !sp.open) render(); } }
@@ -185,9 +185,75 @@ window.AdminView = (() => {
   function startSpTimer() { clearInterval(spTimer); spTimer = setInterval(() => { if (tab === 'support' && sp.open) loadThread(false); else { clearInterval(spTimer); spTimer = null; } }, 5000); }
   function lightbox(src) { const d = document.createElement('div'); d.className = 'm-light'; d.innerHTML = `<img src="${src}" alt="">`; d.onclick = () => d.remove(); document.body.appendChild(d); }
 
+  // ——— Statistika paneli ———
+  let st = null, bc = { list: null, count: null, text: '', league: '', lang: '' }, bcTimer = null;
+  const SK = (kind, n) => window.Skel?.[kind]?.(n) || '<p class="ad-hint">Yuklanmoqda…</p>';
+  const short = (n) => (n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + ' mln' : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, '') + ' ming' : String(n));
+  function bars(vals, days, cls, fmt = (v) => v) {
+    const W = 320, H = 100, max = Math.max(1, ...vals), bw = W / vals.length;
+    const rects = vals.map((v, i) => { const h = v ? Math.max(3, Math.round((v / max) * H)) : 0; return `<rect x="${(i * bw + 2).toFixed(1)}" y="${H - h}" width="${(bw - 4).toFixed(1)}" height="${h}" rx="3"><title>${days[i].slice(5)} · ${fmt(v)}</title></rect>`; }).join('');
+    return `<svg class="st-chart ${cls}" viewBox="0 0 ${W} ${H}" role="img" aria-label="grafik"><line x1="0" y1="${H - .5}" x2="${W}" y2="${H - .5}"/>${rects}</svg><div class="st-axis"><span>${days[0].slice(5)}</span><span>eng ko'pi: ${fmt(max)}</span><span>${days[days.length - 1].slice(5)}</span></div>`;
+  }
+  const kpi = (v, l, sub = '') => `<div class="g-card st-kpi"><b>${v}</b><span>${l}</span>${sub ? `<small>${sub}</small>` : ''}</div>`;
+  function statsHtml() {
+    if (!st) return SK('kpis');
+    const u = st.users, r = st.revenue, s = st.series, last = s.days.length;
+    const sticky = u.mau ? Math.round((u.dau / u.mau) * 100) : 0;
+    return `<div class="st-grid">
+        ${kpi(money(u.total), 'Jami foydalanuvchi', `+${u.new7} oxirgi 7 kunda`)}
+        ${kpi(money(u.dau), 'Kunlik faol (24 soat)', `haftalik ${money(u.wau)} · oylik ${money(u.mau)}`)}
+        ${kpi(money(r.todayCoins), 'Bugungi Coins daromadi', money(r.todayUzs) + ' UZS')}
+        ${kpi(money(r.weekCoins), '7 kunlik Coins', money(r.weekUzs) + ' UZS')}
+      </div>
+      <div class="g-card st-box"><h3>Kunlik faol foydalanuvchilar <small>so'nggi ${last} kun</small></h3>${bars(s.active, s.days, 'c-cy')}
+        <p class="ad-hint">Grafik shu yangilanishdan boshlab to'planadi. Yopishqoqlik (DAU/MAU): <b>${sticky}%</b></p></div>
+      <div class="g-card st-box"><h3>Yangi ro'yxatdan o'tganlar <small>jami ${money(s.signups.reduce((a, b) => a + b, 0))}</small></h3>${bars(s.signups, s.days, 'c-vi')}</div>
+      <div class="g-card st-box"><h3>Coins daromadi <small>${money(r.periodCoins)} Coins · ${money(r.periodUzs)} UZS · ${r.payments} ta to'lov</small></h3>${bars(s.coins, s.days, 'c-am', (v) => money(v) + ' Coins')}
+        ${r.pending ? `<p class="ad-hint">⏳ Tasdiq kutayotgan to'lovlar: <b>${r.pending}</b> (botdagi chek xabarlarida)</p>` : ''}</div>
+      <div class="g-card st-box"><h3>Ligalar to'ldirilishi <small>${money(u.registered)} ro'yxatdan o'tgan</small></h3>
+        ${st.leagues.map((l) => `<div class="st-lg"><span>${esc(l.name)}</span><i><u style="width:${Math.min(100, Math.round((l.players / l.max) * 100))}%"></u></i><b>${l.players}/${l.max}</b></div>`).join('')}</div>
+      ${u.blocked ? `<p class="ad-hint">🚫 Botni bloklaganlar: ${money(u.blocked)} (ommaviy xabar ularga yuborilmaydi)</p>` : ''}`;
+  }
+  async function loadStats() { const r = await api('/api/admin/stats?days=14'); if (r.ok) { st = r; if (tab === 'stats') render(); } }
+
+  // ——— Ommaviy xabar ———
+  const BCS = { running: '⏳ Yuborilmoqda', done: '✅ Yakunlandi', interrupted: '⚠️ To\'xtatilgan' };
+  function broadcastHtml() {
+    const hist = !bc.list ? SK('rows', 2) : bc.list.length ? bc.list.map((b) => {
+      const pct = b.total ? Math.round(((b.sent + b.failed + b.blocked) / b.total) * 100) : 0;
+      return `<div class="g-card bc-item"><div class="ad-meta"><small>${hm2(b.at)} · ${b.league ? esc(b.league) : 'hamma'}${b.lang ? ' · ' + b.lang.toUpperCase() : ''}</small><span class="ad-st ${b.status === 'done' ? 'confirmed' : 'pending'}">${BCS[b.status]}</span></div>
+        <p>${esc(b.text.length > 140 ? b.text.slice(0, 140) + '…' : b.text)}</p>
+        <div class="st-lg"><i><u style="width:${pct}%"></u></i><b>${b.sent}/${b.total}</b></div>
+        <small class="ad-hint">${b.blocked ? `🚫 bloklagan: ${b.blocked} · ` : ''}${b.failed ? `❌ xato: ${b.failed}` : ''}</small></div>`;
+    }).join('') : '<p class="ad-hint">Hali xabar yuborilmagan</p>';
+    return `<p class="ad-hint">Xabar botdan shaxsiy chatga ketadi, pastida «Ilovani ochish» tugmasi bo'ladi. Avval «Sinov» bilan o'zingizga yuborib ko'ring.</p>
+      <div class="g-card bc-form">
+        <label class="ad-lbl">Kimga<select data-f="bcleague"><option value="">Hamma foydalanuvchilar</option>${(ov?.leagues || []).map((l) => `<option value="${l.id}" ${bc.league === l.id ? 'selected' : ''}>${esc(l.name)} o'yinchilari (${l.players})</option>`).join('')}</select></label>
+        <label class="ad-lbl">Til<select data-f="bclang">${[['', 'Barcha tillar'], ['uz', "O'zbekcha"], ['en', 'English'], ['ru', 'Русский']].map(([k, v]) => `<option value="${k}" ${bc.lang === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+        <label class="ad-lbl">Matn<textarea id="bcText" maxlength="3500" rows="6" placeholder="E'lon matni…">${esc(bc.text)}</textarea></label>
+        <div class="bc-meta"><span id="bcCount">${bc.count == null ? '…' : money(bc.count) + ' kishiga boradi'}</span><span id="bcLen">${bc.text.length}/3500</span></div>
+        <div class="ad-row"><button class="ad-btn ghost" data-act="bc-test">🧪 Sinov (o'zimga)</button><button class="ad-btn ok" data-act="bc-send">📢 Yuborish</button></div>
+      </div>
+      <div class="g-label"><span>Oxirgi xabarlar</span></div>${hist}`;
+  }
+  async function loadBroadcasts() {
+    const r = await api('/api/admin/broadcast');
+    if (!r.ok) return;
+    bc.list = r.list;
+    if (tab === 'broadcast') { const y = window.scrollY; render(); window.scrollTo(0, y); }
+    const running = r.list.some((b) => b.status === 'running');
+    if (running && !bcTimer) bcTimer = setInterval(() => (tab === 'broadcast' ? loadBroadcasts() : (clearInterval(bcTimer), (bcTimer = null))), 3000);
+    if (!running && bcTimer) { clearInterval(bcTimer); bcTimer = null; }
+  }
+  async function loadBcCount() {
+    const r = await post('/api/admin/broadcast/count', { league: bc.league || undefined, lang: bc.lang || undefined });
+    bc.count = r.ok ? r.count : null;
+    const c = el.querySelector('#bcCount'); if (c) c.textContent = bc.count == null ? '—' : money(bc.count) + ' kishiga boradi';
+  }
+
   function render() {
-    if (!ov) { el.innerHTML = '<div class="page"><p class="ad-hint">Yuklanmoqda…</p></div>'; return; }
-    const body = tab === 'results' ? resultsHtml() : tab === 'draw' ? drawHtml() : tab === 'cup' ? cupHtml() : tab === 'tour' ? toursHtml() : tab === 'cups' ? cupsHtml() : tab === 'open' ? openHtml() : tab === 'support' ? supportHtml() : playersHtml();
+    if (!ov) { el.innerHTML = `<div class="page ad-page">${SK('kpis')}</div>`; return; }
+    const body = tab === 'stats' ? statsHtml() : tab === 'broadcast' ? broadcastHtml() : tab === 'results' ? resultsHtml() : tab === 'draw' ? drawHtml() : tab === 'cup' ? cupHtml() : tab === 'tour' ? toursHtml() : tab === 'cups' ? cupsHtml() : tab === 'open' ? openHtml() : tab === 'support' ? supportHtml() : playersHtml();
     el.innerHTML = `<div class="page ad-page"><button class="back" data-back><span>‹</span> Bo'limlar</button><h1 class="section-title">🛠 Admin panel</h1>${tabsHtml()}${body}</div>`;
     loadImgs(el);
     const sb = el.querySelector('#spMsgs'); if (sb) sb.scrollTop = sb.scrollHeight;
@@ -202,7 +268,7 @@ window.AdminView = (() => {
 
   async function onClick(e) {
     const t = e.target.closest('[data-tab]'), a = e.target.closest('[data-act]');
-    if (t) { tab = t.dataset.tab; render(); if (tab === 'results') loadMatches(); if (tab === 'players') loadPlayers(); if (tab === 'tour') loadTours(); if (tab === 'cups') loadCups(); if (tab === 'cup') loadCup(); if (tab === 'support') { sp.open = null; loadSupport(); } loadOverview(); return; }
+    if (t) { tab = t.dataset.tab; render(); if (tab === 'stats') loadStats(); if (tab === 'broadcast') { loadBroadcasts(); loadBcCount(); } if (tab === 'results') loadMatches(); if (tab === 'players') loadPlayers(); if (tab === 'tour') loadTours(); if (tab === 'cups') loadCups(); if (tab === 'cup') loadCup(); if (tab === 'support') { sp.open = null; loadSupport(); } loadOverview(); return; }
     if (!a) return;
     const act = a.dataset.act, lg = a.dataset.lg;
     if (act === 'cupsave') {
@@ -244,6 +310,16 @@ window.AdminView = (() => {
         if (!(await confirmBox("Bosqich tozalanadi: o'yinlar o'chadi, qayta qura mumkin bo'ladi. Davom etilsinmi?"))) return;
         return done(await post('/api/admin/cup/reset', { stage }), 'Tozalandi 🧹', loadCup);
       }
+    }
+    if (act === 'bc-test' || act === 'bc-send') {
+      const text = bc.text.trim();
+      if (!text) return toast('Matnni yozing');
+      if (act === 'bc-test') { const r = await post('/api/admin/broadcast', { text, test: true }); return toast(r.ok ? "Sinov xabari o'zingizga yuborildi 🧪" : "Yuborilmadi — avval botga /start bosing"); }
+      if (!(await confirmBox(`Xabar ${bc.count ?? ''} kishiga yuboriladi. Davom etilsinmi?`))) return;
+      const r = await post('/api/admin/broadcast', { text, league: bc.league || undefined, lang: bc.lang || undefined });
+      if (!r.ok) return toast(r.error === 'busy' ? "Boshqa xabar hali yuborilmoqda" : r.error === 'empty' ? "Qabul qiluvchi yo'q" : ERR.fail);
+      tg?.HapticFeedback?.notificationOccurred('success'); toast(`Yuborish boshlandi: ${r.total} kishi 📢`);
+      bc.text = ''; return loadBroadcasts();
     }
     if (act === 'zoom') return lightbox(a.src);
     if (act === 'viewchat') {
@@ -302,15 +378,21 @@ window.AdminView = (() => {
       return done(await post(`/api/admin/league/${pl.league}/add`, { user, club }), "Ishtirokchi qo'shildi ✅", loadPlayers);
     }
   }
+  function onInput(e) {
+    if (e.target.id !== 'bcText') return;
+    bc.text = e.target.value;
+    const l = el.querySelector('#bcLen'); if (l) l.textContent = bc.text.length + '/3500';
+  }
   function onChange(e) {
     const f = e.target.dataset.f;
     if (f === 'league' || f === 'status') { mt[f] = e.target.value; loadMatches(); }
+    if (f === 'bcleague' || f === 'bclang') { bc[f === 'bcleague' ? 'league' : 'lang'] = e.target.value; bc.count = null; loadBcCount(); }
     if (f === 'plleague') { pl = { league: e.target.value, data: null }; render(); loadPlayers(); }
   }
 
   function show(root, toastFn) {
     el = root; toast = toastFn;
-    if (!el.dataset.bound) { el.dataset.bound = '1'; el.addEventListener('click', onClick); el.addEventListener('change', onChange); el.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'spText') { e.preventDefault(); el.querySelector('[data-act="spsend"]')?.click(); } }); }
+    if (!el.dataset.bound) { el.dataset.bound = '1'; el.addEventListener('click', onClick); el.addEventListener('change', onChange); el.addEventListener('input', onInput); el.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'spText') { e.preventDefault(); el.querySelector('[data-act="spsend"]')?.click(); } }); }
     render();
     if (el.dataset.loaded !== '1') { el.dataset.loaded = '1'; loadOverview(); loadMatches(); }
   }

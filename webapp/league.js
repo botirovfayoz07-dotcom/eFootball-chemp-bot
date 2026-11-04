@@ -98,9 +98,10 @@ window.LeagueView = (() => {
   async function loadRank() {
     const id = data.mine?.league;
     if (!id) return;
-    if (rank.league !== id) rank = { league: id, chip: id, group: String(EFL.byId[id].group), rows: [], single: true };
+    if (rank.league !== id) rank = { league: id, chip: id, group: String(EFL.byId[id].group), rows: [], single: true, loading: true };
+    if (!rank.rows.length) { rank.loading = true; if (tab === 'info') render(); }
     const r = await api('/api/rankings/' + id);
-    if (r.ok && id === rank.league) { rank.rows = r.rows; if (tab === 'info') render(); }
+    if (id === rank.league) { rank.loading = false; if (r.ok) rank.rows = r.rows; if (tab === 'info') render(); }
   }
 
   // ——— Me va Do'kon ———
@@ -339,7 +340,7 @@ window.LeagueView = (() => {
   }
 
   function render() {
-    if (!loaded) { el.innerHTML = '<div class="page l-page"><div class="pf-empty"><span>⏳</span></div></div>'; return; }
+    if (!loaded) { el.innerHTML = `<div class="page l-page">${window.Skel?.page() || ''}</div>`; return; }
     if (!modalOpen()) syncBg();
     if (data.mine && tab === 'home') tab = 'info';       // ro'yxatdan o'tgan -> Ma'lumotlar
     if (!data.mine && tab !== 'home') { tab = 'home'; meSel = null; pview = null; }

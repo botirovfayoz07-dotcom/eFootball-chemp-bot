@@ -11,6 +11,9 @@ const userSchema = new mongoose.Schema({
   equipped: { frame: { type: String, default: null }, bg: { type: String, default: null }, pbg: { type: String, default: null } }, // profilda yoqilgani
   createdAt: { type: Date, default: Date.now },
   lastSeen: { type: Date, default: null },
+  blocked: { type: Boolean, default: false },     // botni bloklagan (ommaviy xabar o'tkazib yuboriladi)
 });
+userSchema.index({ lastSeen: 1 });
+userSchema.index({ createdAt: 1 });
 
 module.exports = mongoose.model('User', userSchema);
