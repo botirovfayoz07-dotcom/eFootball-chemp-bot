@@ -1,4 +1,6 @@
 require('dotenv').config();
+require('dns').setDefaultResultOrder('ipv4first');
+require('net').setDefaultAutoSelectFamily(false);
 const { Telegraf, Markup } = require('telegraf');
 const mongoose = require('mongoose');
 const User = require('./models/User');
