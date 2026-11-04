@@ -1004,7 +1004,7 @@ app.post('/api/admin/support/:uid', staffOnly, ah(async (req, res) => {
 }));
 
 app.get('/api/admin/overview', staffOnly, ah(async (req, res) => {
-  const [regs, cfgs, groups, maxRounds] = await Promise.all([
+  const [regs, cfgs, maxRounds, groups] = await Promise.all([
     Registration.find({ season }).select('league').lean(),
     LeagueConfig.find({ season }).lean(),
     Match.aggregate([{ $match: { season } }, { $group: { _id: '$league', max: { $max: '$round' } } }]),
