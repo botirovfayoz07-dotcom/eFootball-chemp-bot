@@ -24,6 +24,7 @@ window.ProfileView = (() => {
     const mine = EFL.crest(sel.league, sel.club, '', 'crest'), opp = EFL.crest(sel.league, g.oppClub, g.opponent, 'crest');
     let score = '<b class="gm2-s none">–:–</b>', chip = '', act = '', extra = '';
     if (g.status === 'confirmed') { score = `<b class="gm2-s">${esc(g.score)}</b>`; chip = `<span class="gm-chip ok">${M.cConfirmed}</span>`; }
+    else if (g.status === 'scheduled' && g.locked) { chip = `<span class="gm-chip wait">🔒</span>`; extra = `<p class="gm-note">🔒 ${t.roundLocked || 'Tur hali ochilmagan'}</p>`; }
     else if (g.status === 'scheduled') act = btn('m-result', g.id, M.result, 'ok');
     else if (g.status === 'pending' && g.byMe) { score = `<b class="gm2-s wait">${esc(g.score)}</b>`; chip = `<span class="gm-chip wait">${M.cPending}</span>`; act = btn('m-result', g.id, '✎', 'ghost'); extra = `<p class="gm-note">⏳ ${t.waiting}</p>`; }
     else if (g.status === 'pending') { score = `<b class="gm2-s wait">${esc(g.score)}</b>`; chip = `<span class="gm-chip wait">${M.cPending}</span>`; extra = `<p class="gm-note">${t.theirs}</p><div class="gm-row">${btn('g-ok', g.id, '✅ ' + t.ok, 'ok')}${btn('m-bad', g.id, '❌ ' + t.fake, 'bad')}</div>`; }

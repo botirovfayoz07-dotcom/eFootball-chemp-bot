@@ -146,6 +146,21 @@ const canLeague = (req, league) => req.superAdmin || (req.helperLeagues || []).i
 const leagueOf = (id) => (typeof id === 'string' && Object.prototype.hasOwnProperty.call(EFL.byId, id) ? EFL.byId[id] : null);
 const goal = (v) => Number.isInteger(v) && v >= 0 && v <= 99;
 const validId = (id) => mongoose.isValidObjectId(id);
+// Tur qulfi: ochiq turda natija kiritish/tasdiqlash/bahslash mumkin. roundsLocked=false bo'lsa cheklov yo'q (eski ligalar)
+const roundOpen = (cfg, round) => !cfg?.roundsLocked || (cfg.openRounds || []).includes(round);
+// Admin panel uchun: jami turlar, samarali ochiq turlar (eski ligada hammasi ochiq)
+const lockInfo = (c, total) => {
+  const all = Array.from({ length: total }, (_, i) => i + 1);
+  return { roundCount: total, roundsLocked: !!c?.roundsLocked, openRounds: c?.roundsLocked ? (c.openRounds || []) : all };
+};
+// Yopiq tur bo'lsa 409 roundLocked qaytaradi va true qaytaradi
+const roundGate = async (res, league, round) => {
+  if (!leagueOf(league)) return false;
+  const cfg = await LeagueConfig.findOne({ season, league }).select('roundsLocked openRounds').lean();
+  if (roundOpen(cfg, round)) return false;
+  res.status(409).json({ error: 'roundLocked' });
+  return true;
+};
 
 // ——— Bot xabarlari (o'yinchining tilida) ———
 const MSG = {
@@ -274,7 +289,7 @@ async function recalc(leagueId) {
 async function performDraw(leagueId, rounds, roundDays) {
   let lock;
   try {
-    lock = await LeagueConfig.findOneAndUpdate({ season, league: leagueId, drawnAt: null }, { $set: { drawnAt: new Date(), rounds: rounds === 1 ? 1 : 2, ...(DL.clampDays(roundDays) ? { roundDays: DL.clampDays(roundDays) } : {}) } }, { upsert: true, new: true });
+    lock = await LeagueConfig.findOneAndUpdate({ season, league: leagueId, drawnAt: null }, { $set: { drawnAt: new Date(), roundsLocked: true, openRounds: [], rounds: rounds === 1 ? 1 : 2, ...(DL.clampDays(roundDays) ? { roundDays: DL.clampDays(roundDays) } : {}) } }, { upsert: true, new: true });
   } catch (e) { if (e.code === 11000) return { error: 'drawn' }; throw e; }
   const unlock = () => LeagueConfig.updateOne({ _id: lock._id }, { $set: { drawnAt: null } });
   const regs = await Registration.find({ season, league: leagueId }).lean();
@@ -315,12 +330,13 @@ async function gamesOf(uid, league, regs) {
   const uname = new Map(users.map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
   const clubOf = new Map(regs.map((r) => [r.telegramId, r.club]));
   const utg = new Map(users.map((x) => [x.telegramId, x.username || '']));
+  const cfg = await LeagueConfig.findOne({ season, league }).select('roundsLocked openRounds').lean();
   const unreadAgg = ms.length ? await ChatMessage.aggregate([{ $match: { kind: 'match', key: { $in: ms.map((m) => String(m._id)) }, readBy: { $ne: uid } } }, { $group: { _id: '$key', n: { $sum: 1 } } }]) : [];
   const unread = new Map(unreadAgg.map((x) => [x._id, x.n]));
   return ms.map((m) => {
     const mine = m.home === uid, hasScore = m.hg != null && m.ag != null;
     return {
-      id: String(m._id), round: m.round, status: m.status, byMe: m.reportedBy === uid,
+      id: String(m._id), round: m.round, status: m.status, byMe: m.reportedBy === uid, locked: !roundOpen(cfg, m.round),
       oppClub: clubOf.get(oppId(m)) || '', oppTg: utg.get(oppId(m)) || '', unread: unread.get(String(m._id)) || 0,
       proofs: (m.proofs || []).length, iProved: (m.proofs || []).some((p) => p.by === uid),
       claimScore: m.claim?.hg != null ? `${mine ? m.claim.hg : m.claim.ag}:${mine ? m.claim.ag : m.claim.hg}` : null,
@@ -492,17 +508,34 @@ function decodeImage(img) {
   return buf.length < 1000 || buf.length > 5 * 1024 * 1024 ? false : buf;
 }
 // Adminlarga matn (+ ixtiyoriy rasm) yuboradi; { ok, fileId } — fileId keyin admin panelda rasmni ko'rsatish uchun saqlanadi
-async function sendToAdmins(text, buf) {
-  if (!ADMINS.length) return { ok: true, fileId: '' };
+async function sendToAdmins(text, buf) { return sendToIds(ADMINS, text, buf); }
+async function sendToIds(ids, text, buf) {
+  if (!ids.length) return { ok: true, fileId: '' };
   const kb = Markup.inlineKeyboard([[Markup.button.webApp('🛠 Admin panel', `${MINI_APP_URL}?lang=uz&open=admin`)]]);
   let fileId = '';
-  const rs = await Promise.allSettled(ADMINS.map(async (id) => {
+  const rs = await Promise.allSettled(ids.map(async (id) => {
     if (!buf) return bot.telegram.sendMessage(id, text.slice(0, 4000), kb);
     const m = await bot.telegram.sendPhoto(id, fileId || { source: buf }, { caption: text.slice(0, 1000), ...kb });
     if (!fileId) fileId = m.photo?.[m.photo.length - 1]?.file_id || '';
   }));
   return { ok: rs.some((r) => r.status === 'fulfilled'), fileId };
 }
+// «Muammoli holatlar»: ligada yordamchi admin bo'lsa — birinchi tayinlangani, bo'lmasa — katta adminlar
+const supportLeague = (x) => (leagueOf(String(x || '')) ? String(x) : '');
+const leagueQ = (league) => (league ? league : { $in: ['', null] });   // eski xabarlarda league maydoni yo'q
+async function supportTarget(league) {
+  const h = league ? await LeagueHelper.findOne({ league }).sort({ addedAt: 1 }).lean() : null;
+  if (!h) return { helper: null, name: '' };
+  return { helper: h.telegramId, name: tgName(await User.findOne({ telegramId: h.telegramId }).lean()) || 'Yordamchi admin' };
+}
+async function sendSupport(league, text, buf) {
+  const { helper } = await supportTarget(league);
+  if (helper) { const r = await sendToIds([helper], text, buf); if (r.ok) return r; }   // yordamchi bloklagan bo'lsa — katta adminlarga
+  return sendToIds(ADMINS, text, buf);
+}
+// Murojaatni ko'rish/javob berish huquqi: katta admin hammasini, yordamchi faqat o'z ligasini
+const supportOk = (req, league) => req.superAdmin || (!!league && (req.helperLeagues || []).includes(league));
+const leagueNameOf = (id) => leagueOf(id)?.name || '';
 const tgName = (x) => (x?.username ? '@' + x.username : x?.firstName || '');
 // Do'st ligaga yozilgach taklif qilgan odamga xabar
 const notifyReferrer = (p) => p && say(p.refId, {
@@ -664,6 +697,7 @@ app.post('/api/matches/:id/report', limits.chat, ah(async (req, res) => {
   if (!validId(id) || !goal(my) || !goal(opp)) return res.status(400).json({ error: 'badScore' });
   const m0 = await Match.findOne({ _id: id, season, $or: [{ home: u.id }, { away: u.id }] }).lean();
   if (!m0) return res.status(404).json({ error: 'gone' });
+  if (await roundGate(res, m0.league, m0.round)) return;
 
   // ⬇️⬇️ FA Cup: tur ochilmaguncha / dedlayn o'tgach hisob kiritib bo'lmaydi
   if (m0.league === 'fa-cup') {
@@ -689,6 +723,8 @@ app.post('/api/matches/:id/confirm', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   if (!validId(req.params.id)) return res.status(400).json({ error: 'fail' });
+  const pre = await Match.findOne({ _id: req.params.id, season }).select('league round').lean();
+  if (pre && await roundGate(res, pre.league, pre.round)) return;
   // Faqat raqib (hisobni kiritmagan tomon) tasdiqlay oladi
   const m = await Match.findOneAndUpdate(
     { _id: req.params.id, season, status: 'pending', reportedBy: { $ne: u.id }, $or: [{ home: u.id }, { away: u.id }] },
@@ -712,6 +748,7 @@ app.post('/api/matches/:id/dispute', ah(async (req, res) => {
   if (!buf && text.length < 3) return res.status(400).json({ error: 'needProof' });
   const old = await Match.findOne({ _id: req.params.id, season, status: 'pending', reportedBy: { $ne: u.id }, $or: [{ home: u.id }, { away: u.id }] }).lean();
   if (!old) return res.status(409).json({ error: 'gone' });
+  if (await roundGate(res, old.league, old.round)) return;
   const isHome = old.home === u.id, my = req.body?.my, opp = req.body?.opp, real = goal(my) && goal(opp);
   const proof = { by: u.id, text, fileId: '', hg: real ? (isHome ? my : opp) : null, ag: real ? (isHome ? opp : my) : null, at: new Date() };
   const [a, b] = await Promise.all([whoIs(old.league, old.home), whoIs(old.league, old.away)]);
@@ -740,6 +777,7 @@ app.post('/api/matches/:id/proof', ah(async (req, res) => {
   if (!buf && text.length < 3) return res.status(400).json({ error: 'needProof' });
   const m0 = await Match.findOne({ _id: req.params.id, season, status: 'disputed', $or: [{ home: u.id }, { away: u.id }] }).lean();
   if (!m0) return res.status(409).json({ error: 'gone' });
+  if (await roundGate(res, m0.league, m0.round)) return;
   if ((m0.proofs || []).filter((p) => p.by === u.id).length >= 4) return res.status(429).json({ error: 'tooMany' });
   const [a, b] = await Promise.all([whoIs(m0.league, m0.home), whoIs(m0.league, m0.away)]);
   const cap = `📎 Qo'shimcha isbot — ${EFL.byId[m0.league].name}, ${m0.round}-tur\n${a} — ${b}\n👤 ${await whoIs(m0.league, u.id)}\n${text ? `💬 ${text}` : ''}`;
@@ -815,10 +853,11 @@ app.post('/api/matches/:id/chat', limits.chat, ah(async (req, res) => {
 app.get('/api/support', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
-  const key = String(u.id);
-  await ChatMessage.updateMany({ kind: 'support', key, admin: true, readBy: { $ne: u.id } }, { $addToSet: { readBy: u.id } });
-  const list = await ChatMessage.find({ kind: 'support', key }).sort({ at: -1 }).limit(100).lean();
-  res.json({ messages: list.reverse().map((x) => ({ id: String(x._id), mine: !x.admin, text: x.text, fileId: x.fileId, at: x.at })) });
+  const key = String(u.id), league = supportLeague(req.query.league);
+  await ChatMessage.updateMany({ kind: 'support', key, league: leagueQ(league), admin: true, readBy: { $ne: u.id } }, { $addToSet: { readBy: u.id } });
+  const list = await ChatMessage.find({ kind: 'support', key, league: leagueQ(league) }).sort({ at: -1 }).limit(100).lean();
+  const tgt = await supportTarget(league);
+  res.json({ peer: { name: tgt.name }, messages: list.reverse().map((x) => ({ id: String(x._id), mine: !x.admin, text: x.text, fileId: x.fileId, at: x.at })) });
 }));
 app.post('/api/support', limits.chat, ah(async (req, res) => {
   const u = tgUser(req);
@@ -826,16 +865,26 @@ app.post('/api/support', limits.chat, ah(async (req, res) => {
   const text = String(req.body?.text || '').trim().slice(0, 800), buf = decodeImage(req.body?.image);
   if (buf === false) return res.status(400).json({ error: 'badImage' });
   if (!buf && !text) return res.status(400).json({ error: 'badText' });
-  const key = String(u.id), hour = new Date(Date.now() - 3600 * 1000);
+  const key = String(u.id), hour = new Date(Date.now() - 3600 * 1000), league = supportLeague(req.body?.league);
   const [last, cnt] = await Promise.all([ChatMessage.findOne({ kind: 'support', key, admin: false }).sort({ at: -1 }).lean(), ChatMessage.countDocuments({ kind: 'support', key, admin: false, at: { $gt: hour } })]);
   if ((last && Date.now() - last.at < 1500) || cnt >= 30) return res.status(429).json({ error: 'fast' });
   await touchUser(u);
-  const sent = await sendToAdmins(`🆘 Muammoli holat (murojaat)\n👤 ${who(u)} (id ${u.id})\n${text ? `💬 ${text}\n` : ''}${buf ? '📎 Skrinshot ilova qilingan\n' : ''}\nJavob: Admin panel → Xabarlar`, buf);
+  const lname = leagueNameOf(league);
+  const sent = await sendSupport(league, `🆘 Muammoli holat (murojaat)${lname ? `\n🏆 ${lname}` : ''}\n👤 ${who(u)} (id ${u.id})\n${text ? `💬 ${text}\n` : ''}${buf ? '📎 Skrinshot ilova qilingan\n' : ''}\nJavob: Admin panel → Xabarlar`, buf);
   if (!sent.ok) return res.status(502).json({ error: 'fail' });
-  await ChatMessage.create({ kind: 'support', key, from: u.id, admin: false, text, fileId: sent.fileId, readBy: [u.id] });
+  await ChatMessage.create({ kind: 'support', key, league, from: u.id, admin: false, text, fileId: sent.fileId, readBy: [u.id] });
   res.json({ ok: true });
 }));
 
+// Yordamchi admin o'z ligasidagi murojaat/isbot skrinshotini ko'ra oladi
+async function helperCanSee(uid, fid) {
+  const rows = await Promise.all([
+    ChatMessage.findOne({ kind: 'support', fileId: fid }).select('league').lean(),
+    Match.findOne({ 'proofs.fileId': fid }).select('league').lean(),
+  ]);
+  const lgs = rows.filter(Boolean).map((x) => x.league).filter(Boolean);
+  return lgs.length > 0 && !!(await LeagueHelper.exists({ telegramId: uid, league: { $in: lgs } }));
+}
 // Telegram serveridagi rasmni (isbot / murojaat skrinshoti) ilovaga uzatadi. Faqat adminlar yoki rasm egasi ko'ra oladi
 app.get('/api/file/:fid', ah(async (req, res) => {
   const u = tgUser(req);
@@ -844,6 +893,7 @@ app.get('/api/file/:fid', ah(async (req, res) => {
   if (!/^[\w\-]{20,250}$/.test(fid)) return res.status(400).json({ error: 'fail' });
     const ok = ADMINS.includes(u.id)
     || (await ChatMessage.exists({ kind: 'support', key: String(u.id), fileId: fid }))
+    || (await helperCanSee(u.id, fid))
     || (await Match.exists({ 'proofs.fileId': fid, $or: [{ home: u.id }, { away: u.id }] }))
     || (await Match.exists({
          _id: { $in: (await ChatMessage.find({ kind: 'match', fileId: fid }).select('key').lean()).map((x) => x.key) },
@@ -926,46 +976,51 @@ app.get('/api/admin/matches/:id/chat', staffOnly, ah(async (req, res) => {
 }));
 
 // Admin: «Muammoli holatlar» murojaatlari
-app.get('/api/admin/support', adminOnly, ah(async (req, res) => {
+app.get('/api/admin/support', staffOnly, ah(async (req, res) => {
+  const scope = req.superAdmin ? {} : { league: { $in: req.helperLeagues } };
   const agg = await ChatMessage.aggregate([
-    { $match: { kind: 'support' } }, { $sort: { at: -1 } },
-    { $group: { _id: '$key', last: { $first: '$$ROOT' }, unread: { $sum: { $cond: [{ $and: [{ $eq: ['$admin', false] }, { $eq: ['$adminRead', false] }] }, 1, 0] } } } },
+    { $match: { kind: 'support', ...scope } }, { $sort: { at: -1 } },
+    { $group: { _id: { key: '$key', league: { $ifNull: ['$league', ''] } }, last: { $first: '$$ROOT' }, unread: { $sum: { $cond: [{ $and: [{ $eq: ['$admin', false] }, { $eq: ['$adminRead', false] }] }, 1, 0] } } } },
     { $sort: { 'last.at': -1 } }, { $limit: 60 },
   ]);
-  const users = await User.find({ telegramId: { $in: agg.map((g) => Number(g._id)) } }).lean(), nm = new Map(users.map((x) => [x.telegramId, tgName(x)]));
-  res.json({ threads: agg.map((g) => ({ uid: g._id, name: nm.get(Number(g._id)) || g._id, text: g.last.text || (g.last.fileId ? '📎 Rasm' : ''), at: g.last.at, unread: g.unread, fromAdmin: !!g.last.admin })) });
+  const users = await User.find({ telegramId: { $in: agg.map((g) => Number(g._id.key)) } }).lean(), nm = new Map(users.map((x) => [x.telegramId, tgName(x)]));
+  res.json({ threads: agg.map((g) => ({ uid: g._id.key, league: g._id.league, leagueName: leagueNameOf(g._id.league), name: nm.get(Number(g._id.key)) || g._id.key, text: g.last.text || (g.last.fileId ? '📎 Rasm' : ''), at: g.last.at, unread: g.unread, fromAdmin: !!g.last.admin })) });
 }));
-app.get('/api/admin/support/:uid', adminOnly, ah(async (req, res) => {
-  const uid = Number(req.params.uid);
+app.get('/api/admin/support/:uid', staffOnly, ah(async (req, res) => {
+  const uid = Number(req.params.uid), league = supportLeague(req.query.league);
   if (!Number.isInteger(uid)) return res.status(400).json({ error: 'fail' });
-  await ChatMessage.updateMany({ kind: 'support', key: String(uid), admin: false, adminRead: false }, { $set: { adminRead: true } });
-  const [list, usr] = await Promise.all([ChatMessage.find({ kind: 'support', key: String(uid) }).sort({ at: -1 }).limit(100).lean(), User.findOne({ telegramId: uid }).lean()]);
+  if (!supportOk(req, league)) return res.status(403).json({ error: 'forbidden' });
+  await ChatMessage.updateMany({ kind: 'support', key: String(uid), league: leagueQ(league), admin: false, adminRead: false }, { $set: { adminRead: true } });
+  const [list, usr] = await Promise.all([ChatMessage.find({ kind: 'support', key: String(uid), league: leagueQ(league) }).sort({ at: -1 }).limit(100).lean(), User.findOne({ telegramId: uid }).lean()]);
   res.json({ user: { name: usr?.firstName || '', username: usr?.username || '' }, messages: list.reverse().map((x) => ({ id: String(x._id), mine: x.admin, text: x.text, fileId: x.fileId, at: x.at })) });
 }));
-app.post('/api/admin/support/:uid', adminOnly, ah(async (req, res) => {
-  const uid = Number(req.params.uid), text = String(req.body?.text || '').trim().slice(0, 800);
+app.post('/api/admin/support/:uid', staffOnly, ah(async (req, res) => {
+  const uid = Number(req.params.uid), text = String(req.body?.text || '').trim().slice(0, 800), league = supportLeague(req.body?.league);
   if (!Number.isInteger(uid) || !text) return res.status(400).json({ error: 'badText' });
-  await ChatMessage.create({ kind: 'support', key: String(uid), from: req.admin.id, admin: true, text, adminRead: true, readBy: [] });
+  if (!supportOk(req, league)) return res.status(403).json({ error: 'forbidden' });
+  await ChatMessage.create({ kind: 'support', key: String(uid), league, from: req.admin.id, admin: true, text, adminRead: true, readBy: [] });
   say(uid, { uz: `📩 Admin javobi:\n${text}`, en: `📩 Admin reply:\n${text}`, ru: `📩 Ответ админа:\n${text}` }, 'support');
   res.json({ ok: true });
 }));
 
 app.get('/api/admin/overview', staffOnly, ah(async (req, res) => {
-  const [regs, cfgs, groups] = await Promise.all([
+  const [regs, cfgs, groups, maxRounds] = await Promise.all([
     Registration.find({ season }).select('league').lean(),
     LeagueConfig.find({ season }).lean(),
+    Match.aggregate([{ $match: { season } }, { $group: { _id: '$league', max: { $max: '$round' } } }]),
     Match.aggregate([{ $match: { season, status: { $ne: 'cancelled' } } }, { $group: { _id: { league: '$league', status: '$status' }, n: { $sum: 1 } } }]),
   ]);
   const cfg = new Map(cfgs.map((c) => [c.league, c]));
+  const roundMax = new Map(maxRounds.map((x) => [x._id, x.max]));
   const cnt = {};
   groups.forEach((g) => { const c = (cnt[g._id.league] ||= { total: 0, confirmed: 0, action: 0 }); c.total += g.n; if (g._id.status === 'confirmed') c.confirmed += g.n; if (g._id.status === 'pending' || g._id.status === 'disputed') c.action += g.n; });
   const leagues = EFL.LEAGUES.map((l) => {
     const c = cfg.get(l.id), n = cnt[l.id] || { total: 0, confirmed: 0, action: 0 };
-    return { id: l.id, name: l.name, group: l.group, max: l.max, closed: !!c?.closed, players: regs.filter((r) => r.league === l.id).length, drawAt: c?.drawAt || null, drawnAt: c?.drawnAt || null, rounds: c?.rounds || 2, roundDays: c?.roundDays || 7, ...n };
+    return { id: l.id, name: l.name, group: l.group, max: l.max, closed: !!c?.closed, players: regs.filter((r) => r.league === l.id).length, drawAt: c?.drawAt || null, drawnAt: c?.drawnAt || null, rounds: c?.rounds || 2, roundDays: c?.roundDays || 7, ...lockInfo(c, roundMax.get(l.id) || 0), ...n };
   });
-  const support = await ChatMessage.countDocuments({ kind: 'support', admin: false, adminRead: false });
+  const support = await ChatMessage.countDocuments({ kind: 'support', admin: false, adminRead: false, ...(req.superAdmin ? {} : { league: { $in: req.helperLeagues } }) });
   const vis = req.superAdmin ? leagues : leagues.filter((l) => canLeague(req, l.id));
-  res.json({ leagues: vis, action: vis.reduce((s, l) => s + l.action, 0), support: req.superAdmin ? support : 0, superAdmin: req.superAdmin });
+  res.json({ leagues: vis, action: vis.reduce((s, l) => s + l.action, 0), support, superAdmin: req.superAdmin });
 }));
 
 // Yordamchi adminlar (faqat katta admin boshqaradi)
@@ -1056,6 +1111,29 @@ app.post('/api/admin/league/:id/closed', staffOnly, ah(async (req, res) => {
   if (!league || typeof req.body?.closed !== 'boolean') return res.status(400).json({ error: 'fail' });
   await LeagueConfig.updateOne({ season, league: league.id }, { $set: { closed: req.body.closed } }, { upsert: true });
   res.json({ ok: true, closed: req.body.closed });
+}));
+// Turlarni ochish/yopish: {round, open} — bitta tur, {all:true, open} — hammasi. Faqat qura o'tgan ligada.
+app.post('/api/admin/league/:id/rounds', staffOnly, ah(async (req, res) => {
+  if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });
+  const league = EFL.byId[req.params.id];
+  if (!league) return res.status(400).json({ error: 'fail' });
+  const cfg = await LeagueConfig.findOne({ season, league: league.id }).lean();
+  if (!cfg?.drawnAt) return res.status(409).json({ error: 'notdrawn' });
+  const last = await Match.findOne({ season, league: league.id }).sort({ round: -1 }).select('round').lean();
+  const total = last?.round || 0, allRounds = Array.from({ length: total }, (_, i) => i + 1);
+  const open = req.body?.open;
+  if (typeof open !== 'boolean') return res.status(400).json({ error: 'fail' });
+  let set;
+  if (req.body?.all === true) set = open ? allRounds : [];
+  else {
+    const r = Number(req.body?.round);
+    if (!Number.isInteger(r) || r < 1 || r > total) return res.status(400).json({ error: 'fail' });
+    const cur = new Set(cfg.roundsLocked ? (cfg.openRounds || []) : allRounds);   // eski liga: hozirgi holatdan boshlanadi
+    if (open) cur.add(r); else cur.delete(r);
+    set = [...cur].sort((a, b) => a - b);
+  }
+  await LeagueConfig.updateOne({ season, league: league.id }, { $set: { roundsLocked: true, openRounds: set } }, { upsert: true });
+  res.json({ ok: true, openRounds: set });
 }));
 app.post('/api/admin/league/:id/draw-time', staffOnly, ah(async (req, res) => {
   if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });
@@ -1155,7 +1233,7 @@ const ut = require('./unofficial')(app, { tgUser, ah, bot, User, ADMINS, Markup,
 registerSeasonRoutes(app, { tgUser, adminIds: ADMINS });
 registerAdminExtra(app, { adminOnly, ah, bot, season, EFL, Markup, MINI_APP_URL });
 const cupApi = require('./lib/cup-api')(app, { tgUser, ah, adminOnly, season, notifyAdmins });
-const deadlines = mountDeadlines({ Match, Cup, ChatMessage, season, EFL, notify, whoIs, recalc, notifyAdmins });
+const deadlines = mountDeadlines({ Match, Cup, ChatMessage, LeagueConfig, season, EFL, notify, whoIs, recalc, notifyAdmins });
 
 // ——— Mavsum starti: PL + Championship + FA Cup + Community Shield birga ———
 const AUTO_CUPS = ['fa-cup', 'community-shield'];

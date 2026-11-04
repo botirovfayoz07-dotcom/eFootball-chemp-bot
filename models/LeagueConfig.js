@@ -9,6 +9,10 @@ const schema = new mongoose.Schema({
   closed: { type: Boolean, default: false }, // true — ro'yxatdan o'tish yopiq (admin paneldan boshqariladi)
   roundDays: { type: Number, default: 7 }, // bir tur necha kun (dedlayn har tur oxirgi kuni 23:59 Toshkent)
   rounds: { type: Number, enum: [1, 2], default: 2 }, // 1 — bir davra, 2 — uyda va mehmonda
+  // Tur qulfi: qura o'tgach true. true bo'lsa faqat openRounds dagi turlarga natija kiritiladi.
+  // false (eski ligalar) — barcha turlar ochiq, cheklov yo'q.
+  roundsLocked: { type: Boolean, default: false },
+  openRounds: { type: [Number], default: [] },
 });
 schema.index({ season: 1, league: 1 }, { unique: true });
 

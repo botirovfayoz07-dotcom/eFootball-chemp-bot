@@ -12,6 +12,7 @@ const schema = new mongoose.Schema({
   fileId: { type: String, default: '' },                  // Telegram file_id (skrinshot)
   readBy: { type: [Number], default: [] },                // o'qigan foydalanuvchilar
   adminRead: { type: Boolean, default: false },           // support: admin o'qiganmi
+  league: { type: String, default: '' },                  // support: murojaat qaysi ligaga (bo'sh — eski/umumiy murojaat, faqat katta admin)
   at: { type: Date, default: Date.now },
 });
 schema.index({ kind: 1, key: 1, at: 1 });

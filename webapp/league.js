@@ -440,7 +440,7 @@ window.LeagueView = (() => {
         else if (lg && lg.dataset.lg !== cur) centerOn(lg.dataset.lg, true);
         else if (c && !c.disabled) { selected = c.dataset.club; tg?.HapticFeedback?.selectionChanged(); updHero(); updBelow(); }
         else if (a === 'g-ok') gameAct(btn.dataset.gid);
-        else if (a === 'm-support') window.MatchView.openSupport();
+        else if (a === 'm-support') window.MatchView.openSupport(supportLeague());
         else if (a && a.startsWith('m-')) window.MatchView.act(a, btn.dataset.gid);
         else if (a === 'register') register();
         else if (a === 'back') { if (!back()) location.hash = '#official'; }
@@ -471,6 +471,8 @@ window.LeagueView = (() => {
     }
   }
   // ?open=games (o'yin hisobi xabaridagi tugma): Me → klub → Mening o'yinlarim
+  // Muammoli holatlar: tanlangan klubning ligasi (yordamchi admin shu ligada bo'lsa unga boradi)
+  const supportLeague = () => { const c = prof.clubs.find((x) => x.league + '|' + x.club === meSel) || prof.clubs[0]; return c?.league || null; };
   const preset = (name) => { pendingTab = name === 'profile' || name === 'support' ? 'me' : name; autoClub = name === 'profile'; autoSupport = name === 'support'; };
   const leave = () => { window.MatchView.close(); window.AppBg.hide(); pview = null; if (el) el.dataset.loaded = ''; tab = 'home'; view = 'geo'; country = null; meSel = null; openGame = null; loaded = false; };
   return { show, leave, back, preset };

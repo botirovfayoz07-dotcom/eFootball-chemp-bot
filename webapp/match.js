@@ -160,9 +160,10 @@ window.MatchView = (() => {
   };
   async function refresh(force) {
     if (!root || !S.mode) return;
-    const support = S.mode === 'support', r = await C.api(support ? '/api/support' : `/api/matches/${S.g.id}/chat`);
+    const support = S.mode === 'support', r = await C.api(support ? '/api/support?league=' + encodeURIComponent(S.league || '') : `/api/matches/${S.g.id}/chat`);
     if (!r.ok || !root) return;
     if (r.opp) S.opp = r.opp;
+    if (support && r.peer?.name) { const pe = root.querySelector('#mPeer'); if (pe) pe.textContent = r.peer.name; }
     const sig = r.messages.length + ':' + (r.messages[r.messages.length - 1]?.id || '');
     if (!force && sig === S.sig) return;
     S.sig = sig;
@@ -173,12 +174,14 @@ window.MatchView = (() => {
     if (near) box.scrollTop = box.scrollHeight;
     loadImgs(box);
   }
-  function openChat(g, support = false) {
-    S = { mode: support ? 'support' : 'chat', g, image: null, sig: '' };
+  function openChat(g, support = false, league = '') {
+    S = { mode: support ? 'support' : 'chat', g, image: null, sig: '', league: support ? (league || '') : '' };
     const x = t();
     const head = support
-      ? `<div class="m-head"><span class="m-av">🛟</span><div><b>${x.supportName}</b><small>${x.supportSub}</small></div></div>`
-            : `<div class="m-head"><span class="m-av">${esc((g.user || g.opponent || '?').replace('@', '')[0] || '?')}</span><div><b>${esc(g.opponent || '—')}</b><small>${esc(g.user || '')}${S.opp?.lastSeen ? ' · ' + ago(S.opp.lastSeen) : ''}</small></div></div>`;
+      ? `<div class="m-head"><span class="m-av">🛟</span><div><b id="mPeer">${x.supportName}</b><small>${x.supportSub}</small></div></div>`
+      : `<div class="m-head"><span class="m-av">${esc((g.user || g.opponent || '?').replace('@', '')[0] || '?')}</span><div><b>${esc(g.opponent || '—')}</b><small>${esc(g.user || '')}${S.opp?.lastSeen ? ' · ' + ago(S.opp.lastSeen) : ''}</small></div></div>`;
+    // Chat oynasi tuzilmasi: sarlavha + xabarlar + kiritish (yozish maydoni, skrinshot, yuborish)
+    show(`${head}<div class="m-msgs" id="mMsgs"></div><div id="mPrev" class="m-prev"></div><div class="m-send"><button class="m-ic" data-m="shot" aria-label="📎">📎</button><input id="mChatText" maxlength="800" placeholder="${esc(x.chatPh)}" autocomplete="off"><button class="m-ic go" data-m="chat-send" aria-label="send">➤</button></div><input type="file" id="mFile" accept="image/*" hidden>`);
     root.querySelector('.msheet').classList.add('chat');
     refresh(true);
     clearInterval(timer); timer = setInterval(() => refresh(false), 4000);
@@ -189,7 +192,7 @@ window.MatchView = (() => {
     const text = inp.value.trim(), support = S.mode === 'support';
     if (!text && !S.image) return;
     inp.value = ''; const image = S.image; S.image = null; const pv = root.querySelector('#mPrev'); if (pv) pv.innerHTML = '';
-    const r = support ? await C.post('/api/support', { text, image: image || '' }) : await C.post(`/api/matches/${S.g.id}/chat`, { text });
+    const r = support ? await C.post('/api/support', { text, image: image || '', league: S.league || '' }) : await C.post(`/api/matches/${S.g.id}/chat`, { text });
     if (!r.ok) { inp.value = text; S.image = image; return C.toast(t()[r.error] || t().fail); }
     refresh(true);
   }
@@ -257,7 +260,7 @@ window.MatchView = (() => {
       else if (a === 'm-bad') openDispute(g, 'dispute');
       else if (a === 'm-proof') openDispute(g, 'proof');
     },
-    openSupport() { openChat(null, true); },
+    openSupport(league) { openChat(null, true, league || ''); },
     close,
   };
 })();
