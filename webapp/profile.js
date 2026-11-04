@@ -81,8 +81,8 @@ window.ProfileView = (() => {
 
     return `<div class="g-label"><span>${t.tournaments}</span></div>
       <div class="cup-panels">
-        <div class="cup-panel">
-          <div class="cup-h">🏆 ${t.qual}</div>
+                <div class="cup-panel" data-act="cup-open">
+          <div class="cup-h">🏆 ${t.qual} <em>›</em></div>
           ${qLines}
           ${drawAt ? `<p class="cup-note">🎲 ${t.drawAt}: <b>${dt(drawAt)}</b> · <em data-cd="${drawAt}"></em></p>` : ''}
           ${my || `<p class="cup-note">${t.none}</p>`}
