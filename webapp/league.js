@@ -30,9 +30,9 @@ window.LeagueView = (() => {
   };
   // Do'kon xabarlari (toast)
   const ST = {
-    uz: { duplicate: "Bu chek allaqachon yuborilgan", dailyOk: "🎁 +{n} Coins olindi", claimed: "Bugungi bonus allaqachon olingan", refCopied: "Havola nusxalandi", coinSent: "Chek adminga yuborildi ✅ Tasdiqlangach Coins qo'shiladi", badImage: "Rasm noto'g'ri yoki juda katta", tooMany: "Tasdiqlanmagan to'lovlar ko'p, biroz kuting", noCoins: "Coins yetarli emas — avval Coins sotib oling", owned: 'Bu allaqachon sizda', bought: 'Sotib olindi ✅', copied: 'Karta raqami nusxalandi', sellOk: "So'rov adminga yuborildi. 24 soat ichida pulni tashlab beramiz ✅", badCard: "Karta raqami noto'g'ri (16 ta raqam)", gone: "Kubok holati o'zgargan", noPrice: "Bu kubok uchun narx hali belgilanmagan", fail: "Xatolik, qayta urinib ko'ring" },
-    en: { duplicate: "This receipt was already sent", dailyOk: "🎁 +{n} Coins claimed", claimed: "Today's bonus is already claimed", refCopied: "Link copied", coinSent: 'Receipt sent to the admin ✅ Coins are added once it is confirmed', badImage: 'The image is invalid or too large', tooMany: 'Too many unconfirmed payments, please wait', noCoins: 'Not enough Coins — buy Coins first', owned: 'You already own this', bought: 'Purchased ✅', copied: 'Card number copied', sellOk: 'Request sent to the admin. We will send the money within 24 hours ✅', badCard: 'Invalid card number (16 digits)', gone: 'The trophy status has changed', noPrice: 'The price for this trophy is not set yet', fail: 'Error, please try again' },
-    ru: { duplicate: 'Этот чек уже отправлен', dailyOk: '🎁 +{n} Coins получено', claimed: 'Бонус за сегодня уже получен', refCopied: 'Ссылка скопирована', coinSent: 'Чек отправлен админу ✅ Coins добавятся после подтверждения', badImage: 'Неверное или слишком большое изображение', tooMany: 'Слишком много неподтверждённых платежей, подождите', noCoins: 'Недостаточно Coins — сначала купите Coins', owned: 'Это уже у вас есть', bought: 'Куплено ✅', copied: 'Номер карты скопирован', sellOk: 'Заявка отправлена админу. Переведём деньги в течение 24 часов ✅', badCard: 'Неверный номер карты (16 цифр)', gone: 'Статус кубка изменился', noPrice: 'Цена за этот кубок пока не назначена', fail: 'Ошибка, попробуйте ещё раз' },
+    uz: { payOpened: "To'lov sahifasi ochildi. To'lovdan keyin Coins avtomatik qo'shiladi", duplicate: "Bu chek allaqachon yuborilgan", dailyOk: "🎁 +{n} Coins olindi", claimed: "Bugungi bonus allaqachon olingan", refCopied: "Havola nusxalandi", coinSent: "Chek adminga yuborildi ✅ Tasdiqlangach Coins qo'shiladi", badImage: "Rasm noto'g'ri yoki juda katta", tooMany: "Tasdiqlanmagan to'lovlar ko'p, biroz kuting", noCoins: "Coins yetarli emas — avval Coins sotib oling", owned: 'Bu allaqachon sizda', bought: 'Sotib olindi ✅', copied: 'Karta raqami nusxalandi', sellOk: "So'rov adminga yuborildi. 24 soat ichida pulni tashlab beramiz ✅", badCard: "Karta raqami noto'g'ri (16 ta raqam)", gone: "Kubok holati o'zgargan", noPrice: "Bu kubok uchun narx hali belgilanmagan", fail: "Xatolik, qayta urinib ko'ring" },
+    en: { payOpened: "The payment page is open. Coins are added automatically after payment", duplicate: "This receipt was already sent", dailyOk: "🎁 +{n} Coins claimed", claimed: "Today's bonus is already claimed", refCopied: "Link copied", coinSent: 'Receipt sent to the admin ✅ Coins are added once it is confirmed', badImage: 'The image is invalid or too large', tooMany: 'Too many unconfirmed payments, please wait', noCoins: 'Not enough Coins — buy Coins first', owned: 'You already own this', bought: 'Purchased ✅', copied: 'Card number copied', sellOk: 'Request sent to the admin. We will send the money within 24 hours ✅', badCard: 'Invalid card number (16 digits)', gone: 'The trophy status has changed', noPrice: 'The price for this trophy is not set yet', fail: 'Error, please try again' },
+    ru: { payOpened: 'Страница оплаты открыта. Coins добавятся автоматически после оплаты', duplicate: 'Этот чек уже отправлен', dailyOk: '🎁 +{n} Coins получено', claimed: 'Бонус за сегодня уже получен', refCopied: 'Ссылка скопирована', coinSent: 'Чек отправлен админу ✅ Coins добавятся после подтверждения', badImage: 'Неверное или слишком большое изображение', tooMany: 'Слишком много неподтверждённых платежей, подождите', noCoins: 'Недостаточно Coins — сначала купите Coins', owned: 'Это уже у вас есть', bought: 'Куплено ✅', copied: 'Номер карты скопирован', sellOk: 'Заявка отправлена админу. Переведём деньги в течение 24 часов ✅', badCard: 'Неверный номер карты (16 цифр)', gone: 'Статус кубка изменился', noPrice: 'Цена за этот кубок пока не назначена', fail: 'Ошибка, попробуйте ещё раз' },
   };
   const tg = window.Telegram?.WebApp;
   const EFL = window.EFL;
@@ -120,7 +120,7 @@ window.LeagueView = (() => {
   async function loadShop() {
     const r = await api('/api/shop');
     if (!r.ok) return;
-    shop = { ...shop, coins: r.coins, owned: r.owned || [], equipped: r.equipped || {}, card: r.card || '', holder: r.holder || '', trophies: r.trophies || [], daily: r.daily || {}, ref: r.ref || {} }; if (!modalOpen()) window.AppBg.setOwn(shop.equipped.pbg);
+    shop = { ...shop, coins: r.coins, owned: r.owned || [], equipped: r.equipped || {}, card: r.card || '', holder: r.holder || '', trophies: r.trophies || [], daily: r.daily || {}, ref: r.ref || {}, pay: r.pay || {} }; if (!modalOpen()) window.AppBg.setOwn(shop.equipped.pbg);
     if (tab === 'shop' && !modalOpen()) render();
   }
   function compress(file) {              // chek rasmini kichraytirib JPEG qiladi (serverga base64 ketadi)
@@ -190,6 +190,13 @@ window.LeagueView = (() => {
     if (!r.ok) { if (r.error === 'gone') { closeShop(); loadShop(); } return toast(s[r.error] || s.fail); }
     closeShop(); ok(); toast(s.sellOk);
     await Promise.all([loadShop(), loadProfile()]);
+  }
+  async function startAutoPay(provider, pack) {
+    const s = ST[lang], r = await post('/api/shop/pay', { pack, provider });
+    if (!r.ok) return toast(s[r.error] || s.fail);
+    closeShop();
+    if (tg?.openLink) tg.openLink(r.url); else window.open(r.url, '_blank');
+    toast(s.payOpened);
   }
   async function claimDaily() {
     const s = ST[lang], r = await post('/api/daily/claim', {});
@@ -449,6 +456,7 @@ window.LeagueView = (() => {
         else if (a === 'pickrcpt') { rcptPack = btn.dataset.pack; el.querySelector('#rcpt')?.click(); }
         else if (a === 'copycard') copyCard(btn.dataset.card);
         else if (a === 'daily') claimDaily();
+        else if (a === 'payauto') startAutoPay(btn.dataset.prov, btn.dataset.pack);
         else if (a === 'refcopy') copyLink(btn.dataset.link);
         else if (a === 'contact') contactAdmin();
         else if (a === 'mclose') closeShop();

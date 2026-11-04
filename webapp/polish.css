@@ -63,10 +63,9 @@
 /* ——— Admin: dedlayn bloki ——— */
 .ad-dl { margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,.12); display: grid; gap: 8px; }
 
-/* Kunlik bonus va do'st taklifi (Do'kon → Coins) */
-.bonus{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:8px 0;border-radius:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);}
-.bonus-ico{font-size:24px;line-height:1;flex:0 0 auto;}
-.bonus-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
-.bonus-info b{font-size:15px;}
-.bonus-info small{opacity:.78;font-size:12px;}
-.bonus .cos-btn{flex:0 0 auto;white-space:nowrap;}
+/* Kunlik bonus va do'st taklifi: paket kartochkasi ko'rinishida (Do'kon → Coins) */
+.bonus-tile{justify-content:flex-start;text-align:center;}
+.bonus-tile .bonus-ico{font-size:30px;line-height:1;margin-bottom:2px;}
+.bonus-tile > b{font:700 16px 'Rajdhani',sans-serif;color:#fff;line-height:1.2;}
+.bonus-tile > small{color:var(--muted);font-size:12px;line-height:1.3;}
+.bonus-tile .pack-buy:disabled{opacity:.55;cursor:default;}

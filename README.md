@@ -136,3 +136,19 @@ Server xatolari (API, bot, kutilmagan xatolar) adminlarga Telegramda yuboriladi.
 - Taklif qilgan odamga +`REF_BONUS` Coins, va xabar yuboriladi. Bitta odam uchun `REF_MAX` tagacha bonus beriladi.
 - O'zini o'zi taklif qilish mumkin emas. Bir kishi ikki marta bonus ololmaydi (`refPaid` bayrog'i).
 
+## Avtomatik to'lov: Payme va Click
+Do'kon → Coins → paket → **Payme orqali to'lash** yoki **Click orqali to'lash**. O'yinchi to'lov sahifasiga o'tadi, to'lovdan keyin Coins o'zi qo'shiladi (admin tasdig'i kerak emas). Qo'lda chek yuborish varianti ham qoladi.
+
+### Merchant kabinetidagi sozlamalar
+- **Payme Business** (merchant.paycom.uz): kassa ID si → `PAYME_MERCHANT_ID`, kalit → `PAYME_KEY`. Callback (Merchant API) manzili: `https://<domen>/payme`. Sinov uchun `PAYME_CHECKOUT_URL=https://checkout.test.paycom.uz` va sinov kassasi.
+- **Click** (merchant kabinet): `CLICK_SERVICE_ID`, `CLICK_MERCHANT_ID`, `CLICK_SECRET_KEY`. Prepare URL: `https://<domen>/click/prepare`, Complete URL: `https://<domen>/click/complete`.
+
+### Qanday ishlaydi
+- Payme: `CheckPerformTransaction` → `CreateTransaction` → `PerformTransaction` (Coins shu yerda qo'shiladi). Bajarilgan to'lov `CancelTransaction` bilan qaytarilishi mumkin, faqat Coins sarflanmagan bo'lsa. 12 soat ichida to'lanmagan tranzaksiya avtomatik bekor bo'ladi.
+- Click: `prepare` → `complete` (Coins shu yerda qo'shiladi). Imzo MD5 bilan tekshiriladi.
+- Ikkala holatda ham summa buyurtma summasiga qat'iy mos kelishi tekshiriladi, bir to'lov ikki marta Coins bermaydi, har bir o'zgarish `CoinLog` ga yoziladi.
+
+### Muhim
+- Payme login `Paycom` deb olingan (`PAYME_LOGIN`). Merchant kabinetda boshqacha bo'lsa, shuni yozing.
+- Click'da xato kodlari va so'rov formati hujjatlar bo'yicha tekshirilgan, lekin **haqiqiy to'lov sinovdan o'tkazilishi kerak**: avval sinov kassasida 1 ta kichik to'lov qiling va `CoinLog` da yozuv borligini tekshiring.
+

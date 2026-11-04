@@ -27,6 +27,7 @@ const createAlerter = require('./lib/alerts');
 const makeLimiters = require('./lib/security');
 const { logCoins, dailyStatus, claimDaily, referralInfo, captureReferral, payReferral, adjustCoins } = require('./lib/economy');
 const CoinLog = require('./models/CoinLog');
+const payments = require('./lib/payments');
 const { trackActivity } = registerAdminExtra;
 const mountDeadlines = require('./lib/deadlines');
 const DL = mountDeadlines;   // stamp / stampSeq / decide / clampDays
@@ -500,9 +501,21 @@ app.get('/api/shop', ah(async (req, res) => {
   res.json({
     coins: me?.coins || 0, owned: me?.cosmetics || [], equipped: eqOf(me),
     card: PAY_CARD, holder: PAY_HOLDER,
-    daily: dailyStatus(me), ref: referralInfo(me, u.id, await botName()),
+    daily: dailyStatus(me), ref: referralInfo(me, u.id, await botName()), pay: payments.enabled,
     trophies: trs.map((x) => ({ id: String(x._id), league: x.league, season: x.season, status: x.status, price: (x.status === 'selling' && x.sell?.price) || cup.get(x.league) || 0 })),
   });
+}));
+
+// Coins sotib olish — avtomatik: Payme yoki Click to'lov havolasi (to'lov tasdiqlangach Coins o'zi qo'shiladi)
+app.post('/api/shop/pay', limits.topup, ah(async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const pack = SHOP.PACKS.find((p) => p.id === req.body?.pack), prov = req.body?.provider;
+  if (!pack || !['payme', 'click'].includes(prov) || !payments.enabled[prov]) return res.status(400).json({ error: 'fail' });
+  const since = new Date(Date.now() - 12 * 3600e3);
+  if ((await TopUp.countDocuments({ telegramId: u.id, provider: prov, status: 'pending', createdAt: { $gt: since } })) >= 3) return res.status(429).json({ error: 'tooMany' });
+  const tu = await TopUp.create({ telegramId: u.id, coins: pack.coins, amount: pack.uzs, provider: prov });
+  res.json({ ok: true, url: payments.linkFor(prov, tu, `${MINI_APP_URL}?open=shop`) });
 }));
 
 // Coins sotib olish: kartaga o'tkazib, chek rasmini yuboradi -> adminga boradi -> admin tasdiqlasa Coins qo'shiladi
@@ -514,7 +527,7 @@ app.post('/api/shop/topup', limits.topup, ah(async (req, res) => {
   const buf = Buffer.from(img.slice(cut + 1), 'base64');
   if (buf.length < 1000 || buf.length > 5 * 1024 * 1024) return res.status(400).json({ error: 'badImage' });
   if (!ADMINS.length || !PAY_CARD) return res.status(503).json({ error: 'fail' });
-  if ((await TopUp.countDocuments({ telegramId: u.id, status: 'pending' })) >= 3) return res.status(429).json({ error: 'tooMany' });
+  if ((await TopUp.countDocuments({ telegramId: u.id, status: 'pending', provider: { $nin: ['payme', 'click'] } })) >= 3) return res.status(429).json({ error: 'tooMany' });
   // Chek firibgarligi: bir xil rasm (sha256) ikki marta ishlatilmaydi
   const imageHash = crypto.createHash('sha256').update(buf).digest('hex');
   if (await TopUp.exists({ imageHash })) return res.status(409).json({ error: 'duplicate' });
@@ -1087,6 +1100,9 @@ function startSeasonWatcher() {
   const id = setInterval(tick, 60 * 1000);
   if (id.unref) id.unref();
 }
+
+// Payme va Click callback'lari (tashqi tizimlar chaqiradi; /api limitiga kirmaydi)
+payments.mount(app, { notifyUser: (tid, texts) => say(tid, texts, 'shop'), alert });
 
 // Kutilmagan xatolar: konsolga va adminga Telegramda
 app.use((err, req, res, _next) => { alert('express ' + req.method + ' ' + req.path, err); res.status(500).json({ error: 'fail' }); });
