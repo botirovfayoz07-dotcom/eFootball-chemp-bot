@@ -389,23 +389,29 @@ app.get('/api/profile/view', ah(async (req, res) => {
   });
 }));
 
-// Live: hozir ochiq (hali tugallanmagan) o'yinlar. Liga: ochiq tur. FA Cup: hozirgi bosqich (1-7 tur). Community Shield: fa-cup 8-tur.
+// Live: hozirgi tur. Liga: ochiq turlar ichida eng kichik tur, unda hali o'ynalmagan o'yin bor (yoki oxirgi tur).
+// FA Cup: 1-7 turlardagi hozirgi bosqich. Community Shield: fa-cup 8-tur. Tur ichidagi barcha o'yinlar (o'ynalgan ham) qaytadi.
 const LIVE_MAP = { 'premier-league': { db: 'premier-league', kind: 'league' }, championship: { db: 'championship', kind: 'league' }, 'fa-cup': { db: 'fa-cup', kind: 'cup' }, 'community-shield': { db: 'fa-cup', kind: 'shield' } };
 app.get('/api/live/:id', ah(async (req, res) => {
   if (!tgUser(req)) return res.status(401).json({ error: 'auth' });
   const cfgL = LIVE_MAP[req.params.id];
   if (!cfgL) return res.status(404).json({ error: 'fail' });
-  let ms = await Match.find({ season, league: cfgL.db, status: { $in: ['scheduled', 'pending', 'disputed'] } }).sort({ round: 1, _id: 1 }).lean();
-  if (cfgL.kind === 'shield') ms = ms.filter((m) => m.round === 8);
-  else if (cfgL.kind === 'cup') { ms = ms.filter((m) => m.round < 8); if (ms.length) { const r0 = ms[0].round; ms = ms.filter((m) => m.round === r0); } }
-  else { const cfg = await LeagueConfig.findOne({ season, league: cfgL.db }).select('roundsLocked openRounds').lean(); ms = ms.filter((m) => roundOpen(cfg, m.round)); }
+  const all = await Match.find({ season, league: cfgL.db, status: { $ne: 'cancelled' } }).sort({ round: 1, _id: 1 }).lean();
+  let pool;
+  if (cfgL.kind === 'shield') pool = all.filter((m) => m.round === 8);
+  else if (cfgL.kind === 'cup') pool = all.filter((m) => m.round < 8);
+  else { const cfg = await LeagueConfig.findOne({ season, league: cfgL.db }).select('roundsLocked openRounds').lean(); pool = all.filter((m) => roundOpen(cfg, m.round)); }
+  const unfinished = (m) => ['scheduled', 'pending', 'disputed'].includes(m.status);
+  const rounds = [...new Set(pool.map((m) => m.round))].sort((a, b) => a - b);
+  const cur = rounds.find((r) => pool.some((m) => m.round === r && unfinished(m))) ?? rounds[rounds.length - 1];
+  const ms = cur === undefined ? [] : pool.filter((m) => m.round === cur);
   const ids = [...new Set(ms.flatMap((m) => [m.home, m.away]))];
   const [regs, users] = await Promise.all([Registration.find({ season, telegramId: { $in: ids } }).lean(), User.find({ telegramId: { $in: ids } }).lean()]);
   const reg = new Map();
   regs.forEach((r) => { if (!reg.has(r.telegramId) || r.league === cfgL.db) reg.set(r.telegramId, r); });
   const usr = new Map(users.map((x) => [x.telegramId, x]));
-  const side = (tid) => { const u = usr.get(tid), r = reg.get(tid); return { user: u?.username ? '@' + u.username : u?.firstName || String(tid), club: r ? EFL.clubName(r.league, r.club) : '' }; };
-  res.json({ ok: true, rows: ms.map((m) => ({ id: String(m._id), round: m.round, status: m.status, deadline: m.deadline, home: side(m.home), away: side(m.away) })) });
+  const side = (tid) => { const u = usr.get(tid), r = reg.get(tid); return { user: u?.username ? '@' + u.username : u?.firstName || String(tid), club: r ? EFL.clubName(r.league, r.club) : '', clubId: r?.club || '', league: r?.league || cfgL.db }; };
+  res.json({ ok: true, round: cur ?? null, rows: ms.map((m) => ({ id: String(m._id), round: m.round, status: m.status, deadline: m.deadline, score: m.hg != null && m.ag != null ? `${m.hg} : ${m.ag}` : null, home: side(m.home), away: side(m.away) })) });
 }));
 app.get('/api/rankings/:league', async (req, res) => {
   if (!tgUser(req)) return res.status(401).json({ error: 'auth' });

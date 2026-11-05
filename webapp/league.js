@@ -59,7 +59,7 @@ window.LeagueView = (() => {
   const badge = (t, l) => (stat(l.id).closed ? `<span class="l-badge full">${t.closed}</span>` : `<span class="l-badge ${isFull(l) ? 'full' : 'open'}">${isFull(l) ? t.full : t.open}</span>`);
 
   // Pastki menyu: Ma'lumotlar · Me · Do'kon — faqat ro'yxatdan o'tgandan keyin
-  const navHtml = (t, active) => `<nav class="l-nav">${['ℹ️', '👤', '🛒', '📺'].map((i, k) => `<button class="${k === active ? 'on' : ''}" data-act="${['info', 'me', 'shop', 'live'][k]}"><span>${i}</span><small>${t.nav[k]}</small></button>`).join('')}</nav>`;
+  const navHtml = (t, active) => `<nav class="l-nav">${['ℹ️', '👤', '⚽', '🛒', '📺'].map((i, k) => `<button class="${k === active ? 'on' : ''}" data-act="${['info', 'me', 'club', 'shop', 'live'][k]}"><span>${i}</span><small>${[t.nav[0], t.nav[1], ({ uz: 'Klublarim', en: 'My club', ru: 'Клубы' })[lang], t.nav[2], t.nav[3]][k]}</small></button>`).join('')}</nav>`;
   const nav = (t, active) => (data.mine ? navHtml(t, active) : '');
   const backBtn = (act = 'back') => `<button class="back" data-act="${act}"><span>‹</span> ${T[lang].back}</button>`;
 
@@ -109,8 +109,9 @@ window.LeagueView = (() => {
   const renderMe = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { clubs: prof.clubs, collection: prof.collection, equipped: prof.equipped, sel: meSel, openGame, supportUnread: prof.supportUnread, cups: prof.cups, staff: !!window.IS_STAFF })}</div>${nav(T[lang], 1)}`; };
   const openTg = (u) => { const url = 'https://t.me/' + u; if (tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank'); };
   window.addEventListener('staffready', () => { if (loaded && tab === 'me') renderMe(); });
-  const renderShop = () => { el.innerHTML = `<div class="page l-page">${window.ShopView.html(lang, { ...shop, lots })}</div>${nav(T[lang], 2)}`; };
-  async function loadProfile() { const [r, cs] = await Promise.all([api('/api/profile'), api('/api/cup/state')]); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {}, supportUnread: r.supportUnread || 0, cups: cs.ok ? cs : null }; window.AppBg.setOwn(prof.equipped.pbg); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me') render(); if (autoSupport) { autoSupport = false; window.MatchView.openSupport(); } if (autoChat) { const cid = autoChat; autoChat = null; window.MatchView.openMatchChat(cid); } } }
+  const renderClub = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.clubsHtml(lang, { clubs: prof.clubs, sel: meSel, openGame, staff: !!window.IS_STAFF })}</div>${nav(T[lang], 2)}`; };
+  const renderShop = () => { el.innerHTML = `<div class="page l-page">${window.ShopView.html(lang, { ...shop, lots })}</div>${nav(T[lang], 3)}`; };
+  async function loadProfile() { const [r, cs] = await Promise.all([api('/api/profile'), api('/api/cup/state')]); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {}, supportUnread: r.supportUnread || 0, cups: cs.ok ? cs : null }; window.AppBg.setOwn(prof.equipped.pbg); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me' || tab === 'club') render(); if (autoSupport) { autoSupport = false; window.MatchView.openSupport(); } if (autoChat) { const cid = autoChat; autoChat = null; window.MatchView.openMatchChat(cid); } } }
   async function loadLots() { const r = await api('/api/auctions'); if (r.ok) { lots = r.lots || []; if (tab === 'shop' && !modalOpen()) render(); } }
 
   // ——— Do'kon: Coins sotib olish, kosmetika, Sell (kubokni adminga sotish) ———
@@ -237,19 +238,21 @@ window.LeagueView = (() => {
     const cur = live.id;
     if (!live.rows.length) { live.loading = true; if (tab === 'live') render(); }
     const r = await api('/api/live/' + cur);
-    if (cur === live.id) { live.loading = false; if (r.ok) live.rows = r.rows; if (tab === 'live') render(); }
+    if (cur === live.id) { live.loading = false; if (r.ok) { live.rows = r.rows; live.round = r.round; } if (tab === 'live') render(); }
   }
   const liveHtml = () => {
     const t = T[lang];
     const chips = LIVE_TABS.map(([id, name]) => `<button class="chip${live.id === id ? ' on' : ''}" data-lchip="${id}">${esc(name)}</button>`).join('');
-    const stLbl = (s) => (s === 'pending' ? 'natija kutilmoqda' : s === 'disputed' ? 'bahsli' : "o'ynalmoqda");
+    const stLbl = (s) => (s === 'confirmed' ? "o'ynaldi" : s === 'pending' ? 'natija kutilmoqda' : s === 'disputed' ? 'bahsli' : "o'ynalmagan");
     const fmt = (d) => new Date(d).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-    const body = live.loading ? `<div class="pf-empty"><p>...</p></div>` : live.rows.length ? live.rows.map((m) => `<div class="g-card live-m"><div class="live-side"><b>${esc(m.home.user)}</b><small>${esc(m.home.club)}</small></div><span class="live-vs">vs</span><div class="live-side"><b>${esc(m.away.user)}</b><small>${esc(m.away.club)}</small></div></div><small class="live-meta">${m.round}-tur · ${stLbl(m.status)}${m.deadline ? ' · ' + fmt(m.deadline) : ''}</small>`).join('') : `<div class="pf-empty"><span>📺</span><p>Hozir ochiq o'yin yo'q</p></div>`;
-    return `<div class="page l-page">${backBtn()}<div class="g-label"><span>Live</span></div><div class="chips">${chips}</div>${body}</div>${nav(t, 3)}`;
+    const side = (p) => `<div class="live-side">${EFL.crest(p.league, p.clubId, p.club, 'live-crest')}<b>${esc(p.user)}</b><small>${esc(p.club)}</small></div>`;
+    const head = live.round ? `<div class="live-head"><b>${live.round}-tur</b><span>hozirgi tur</span></div>` : '';
+    const body = live.loading ? `<div class="pf-empty"><p>...</p></div>` : live.rows.length ? live.rows.map((m) => `<div class="g-card live-m">${side(m.home)}<div class="live-mid">${m.score ? `<b class="live-score">${m.score}</b>` : '<span class="live-vs">vs</span>'}</div>${side(m.away)}</div><small class="live-meta">${stLbl(m.status)}${m.deadline && m.status !== 'confirmed' ? ' · ' + fmt(m.deadline) : ''}</small>`).join('') : `<div class="pf-empty"><span>📺</span><p>Hozir ochiq tur yo'q</p></div>`;
+    return `<div class="page l-page">${backBtn()}<div class="g-label"><span>Live</span></div><div class="chips">${chips}</div>${head}${body}</div>${nav(t, 4)}`;
   };
   function setTab(n) {
     tab = n; meSel = null; pview = null; window.scrollTo(0, 0); render();
-    if (n === 'info') loadRank(); else if (n === 'me') loadProfile(); else if (n === 'shop') { loadShop(); loadLots(); } else if (n === 'live') loadLive();
+    if (n === 'info') loadRank(); else if (n === 'me' || n === 'club') loadProfile(); else if (n === 'shop') { loadShop(); loadLots(); } else if (n === 'live') loadLive();
   }
 
   const closeModal = () => el.querySelector('#aucModal')?.remove();
@@ -374,7 +377,7 @@ window.LeagueView = (() => {
   function back() {
     if (tab === 'home' && view === 'country') { view = 'geo'; selected = null; window.scrollTo(0, 0); render(); return true; }
     if (pview) { pview = null; window.scrollTo(0, 0); render(); return true; }
-    if (tab === 'me' && meSel) { meSel = null; window.scrollTo(0, 0); render(); return true; }
+    if ((tab === 'me' || tab === 'club') && meSel) { meSel = null; window.scrollTo(0, 0); render(); return true; }
     return false;
   }
 
@@ -387,6 +390,7 @@ window.LeagueView = (() => {
     if (tab === 'info') { el.innerHTML = infoHtml(); return; }
     if (tab === 'live') { el.innerHTML = liveHtml(); return; }
     if (tab === 'me') return renderMe();
+    if (tab === 'club') return renderClub();
     if (tab === 'shop') return renderShop();
     el.innerHTML = view === 'country' && country ? countryHtml() : geoHtml();
     const tr = el.querySelector('#lTrack');
@@ -399,7 +403,7 @@ window.LeagueView = (() => {
     if (r.ok) data = { mine: r.mine, stats: Object.fromEntries(r.leagues.map((l) => [l.id, { players: l.players, taken: l.taken, closed: !!l.closed }])) };
     selected = null;
     render();
-    if (tab === 'info') loadRank(); else if (tab === 'me') loadProfile();
+    if (tab === 'info') loadRank(); else if (tab === 'me' || tab === 'club') loadProfile();
   }
 
   // O'yin hisobini tasdiqlash (natija kiritish, «Yolg'on» + isbot va chat — match.js dagi alohida oynalarda)
@@ -472,7 +476,7 @@ window.LeagueView = (() => {
         else if (a === 'back') { if (!back()) location.hash = '#official'; }
         else if (a === 'staffpanel') { window.ADMIN_START_TAB = 'rounds'; location.hash = '#admin'; }
         else if (a === 'meback') { meSel = null; openGame = null; window.scrollTo(0, 0); render(); }
-        else if (a === 'info' || a === 'me' || a === 'shop' || a === 'live') setTab(a);
+        else if (a === 'info' || a === 'me' || a === 'club' || a === 'shop' || a === 'live') setTab(a);
         else if (a === 'leave') leaveClub();
         else if (a === 'auction') openAuction();
         else if (a === 'aucno') closeModal();
@@ -501,7 +505,7 @@ window.LeagueView = (() => {
   // ?open=games (o'yin hisobi xabaridagi tugma): Me → klub → Mening o'yinlarim
   // Muammoli holatlar: tanlangan klubning ligasi (yordamchi admin shu ligada bo'lsa unga boradi)
   const supportLeague = () => { const c = prof.clubs.find((x) => x.league + '|' + x.club === meSel) || prof.clubs[0]; return c?.league || null; };
-  const preset = (name, arg) => { pendingTab = name === 'profile' || name === 'support' || name === 'chat' ? 'me' : name; autoClub = name === 'profile'; autoSupport = name === 'support'; autoChat = name === 'chat' ? arg : null; };
+  const preset = (name, arg) => { pendingTab = name === 'profile' ? 'club' : name === 'support' || name === 'chat' ? 'me' : name; autoClub = name === 'profile'; autoSupport = name === 'support'; autoChat = name === 'chat' ? arg : null; };
   const leave = () => { window.MatchView.close(); window.AppBg.hide(); pview = null; if (el) el.dataset.loaded = ''; tab = 'home'; view = 'geo'; country = null; meSel = null; openGame = null; loaded = false; };
   return { show, leave, back, preset };
 })();

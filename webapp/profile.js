@@ -99,6 +99,18 @@ window.ProfileView = (() => {
       </div>`;
   }
 
+  // Klublarim (alohida tab): ro'yxat; klub bosilsa klub ichi (html() ning sel tarmog'i)
+  function clubsHtml(lang, st) {
+    const t = T[lang], EFL = window.EFL;
+    const sel = st.sel && (st.clubs || []).find((c) => key(c) === st.sel);
+    if (sel) return html(lang, st);
+    const tiles = (st.clubs || []).map((c) => {
+      const name = EFL.clubName(c.league, c.club);
+      return `<button class="mc" data-mc="${esc(key(c))}">${EFL.crest(c.league, c.club, name)}<b>${esc(name)}</b><small>${esc(EFL.byId[c.league]?.name || '')}</small>${c.auction ? '<em></em>' : ''}</button>`;
+    }).join('');
+    const adminTile = `<button class="mc" data-act="staffpanel"><span style="font-size:40px;line-height:1">🛠</span><b>Admin panel</b><small>Turlar · dedlayn</small></button>`;
+    return `<div class="g-label"><span>${t.clubs}</span></div>${tiles || st.staff ? `<div class="myclubs">${tiles}${st.staff ? adminTile : ''}</div>` : `<div class="pf-empty"><span>⚽</span><p>${t.noClubs}</p></div>`}`;
+  }
   // st: { clubs, collection, sel, openGame, cups }
   function html(lang, st) {
     const t = T[lang], EFL = window.EFL, u = window.Telegram?.WebApp?.initDataUnsafe?.user || {};
@@ -139,8 +151,6 @@ window.ProfileView = (() => {
       <button class="sup-card" data-act="m-support"><span class="sup-ic">🛟</span><span class="sup-tx"><b>${window.MatchView.T[lang].supportCard}</b><small>${window.MatchView.T[lang].supportDesc}</small></span>${st.supportUnread ? `<i class="gm-badge">${st.supportUnread}</i>` : `<em>›</em>`}</button>
       <div class="g-label"><span>${t.collection}</span></div>
       ${coll ? `<div class="coll">${coll}</div>` : `<div class="pf-empty"><span>🏆</span><p>${t.collEmpty}</p></div>`}
-      <div class="g-label"><span>${t.clubs}</span></div>
-      ${tiles || st.staff ? `<div class="myclubs">${tiles}${st.staff ? adminTile : ''}</div>` : `<div class="pf-empty"><span>⚽</span><p>${t.noClubs}</p></div>`}
       ${cupPanels(t, st, EFL)}`;
   }
 
@@ -164,5 +174,5 @@ window.ProfileView = (() => {
       <div class="g-label"><span>${t.clubs}</span></div>
       ${tiles ? `<div class="myclubs">${tiles}</div>` : `<div class="pf-empty"><span>⚽</span><p>${t.noClubs}</p></div>`}`;
   }
-  return { html, publicHtml, T };
+  return { html, clubsHtml, publicHtml, T };
 })();
