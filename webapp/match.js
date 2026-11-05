@@ -163,7 +163,7 @@ window.MatchView = (() => {
   const msgHtml = (x) => {
     const cls = x.mine ? 'me' : 'op';
     if (x.type === 'room') return `<div class="m-b ${cls} room">🎮 ${t().room}: <b>${esc(x.text)}</b> <button class="m-copy" data-m="copy" data-v="${esc(x.text)}">📋</button><small>${hm(x.at)}</small></div>`;
-    return `<div class="m-b ${cls}">${x.fileId ? `<img class="m-img" data-fid="${esc(x.fileId)}" data-m="zoom" alt="">` : ''}${x.text ? `<span>${esc(x.text)}</span>` : ''}<small>${hm(x.at)}</small></div>`;
+    return `<div class="m-b ${cls}">${x.fileId ? `<img class="m-img" data-fid="${esc(x.fileId)}" data-m="zoom" alt="">` : ''}${x.text ? `<span>${esc(x.text)}</span>` : ''}<small>${hm(x.at)}${x.mine ? `<i class="m-tick${x.read ? ' read' : ''}">${x.read ? '✓✓' : '✓'}</i>` : ''}</small></div>`;
   };
   // Sarlavha holati: yozyapti... / online / oxirgi marta … oldin
   const statusText = (o) => {
@@ -183,7 +183,7 @@ window.MatchView = (() => {
     if (r.opp) S.opp = r.opp;
     if (!support) { const st = root.querySelector('.m-st'); if (st) { st.textContent = statusText(S.opp); st.classList.toggle('typing', !!S.opp?.typing); } }
     if (support && r.peer?.name) { const pe = root.querySelector('#mPeer'); if (pe) pe.textContent = r.peer.name; }
-    const sig = r.messages.length + ':' + (r.messages[r.messages.length - 1]?.id || '');
+    const sig = r.messages.length + ':' + (r.messages[r.messages.length - 1]?.id || '') + ':' + r.messages.filter((m) => m.mine && m.read).length;
     if (!force && sig === S.sig) return;
     S.sig = sig;
     const box = root.querySelector('#mMsgs');

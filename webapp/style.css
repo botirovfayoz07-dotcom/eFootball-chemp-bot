@@ -686,3 +686,10 @@ body.has-bg .pf-info h2 { text-shadow: 0 2px 10px rgba(0,0,0,.95); }
 .sell-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 10px; border-radius: 18px; background: #12152a; border: 1px solid rgba(255,255,255,.1); text-align: center; }
 .sell-card .sell-img img { width: 84px; height: 84px; object-fit: contain; }
 .sell-card .sell-price { color: #94a3b8; }
+.live-m { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px; }
+.live-side { display: flex; flex-direction: column; flex: 1; min-width: 0; text-align: center; }
+.live-side small { color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-vs { color: #a78bfa; font-weight: 700; }
+.live-meta { display: block; color: #94a3b8; margin: -4px 0 12px 4px; }
+.m-tick { margin-left: 4px; font-style: normal; font-size: 11px; color: #94a3b8; letter-spacing: -2px; }
+.m-tick.read { color: #38bdf8; }

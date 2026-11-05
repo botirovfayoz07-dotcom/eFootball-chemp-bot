@@ -2,7 +2,7 @@ window.LeagueView = (() => {
   const T = {
     uz: { continents: { europe: 'Europe', asia: 'Asia', africa: 'Africa' }, pickCountry: 'Davlatni tanlang', cups: 'Turnir tanlash', cupsLabel: 'Kuboklar', format: 'Turnir formati', cupTypes: { league: 'Liga', league2: '2-liga', cup: 'Kubok', supercup: 'Superkubok' }, noLeagues: "Bu davlatning turnirlari tez orada qo'shiladi", back: 'Ortga', full: "TO'LIQ", open: 'OCHIQ', players: "O'yinchilar", max: 'Maksimal', season: 'Mavsum', register: "Ro'yxatdan o'tish", pick: 'Klubni tanlang',
       clubs: 'Ligadagi klublar', rules: 'Qoidalar', notice: "E'lon", details: 'Batafsil', prize: 'Sovrin', yourLeague: 'Siz qatnashayotgan liga', place: "O'rin",
-      nav: ["Ma'lumotlar", 'Me', "Do'kon"], soon: 'Tez orada', ok: "Ro'yxatdan o'tdingiz ✅", taken: 'Bu klub band', already: "Siz allaqachon ro'yxatdan o'tgansiz", fail: "Xatolik, qayta urinib ko'ring", fullErr: "Liga to'lgan", closed: 'YOPIQ 🔒', closedErr: "Bu liga hozircha yopiq",
+      nav: ["Ma'lumotlar", 'Me', "Do'kon", 'Live'], soon: 'Tez orada', ok: "Ro'yxatdan o'tdingiz ✅", taken: 'Bu klub band', already: "Siz allaqachon ro'yxatdan o'tgansiz", fail: "Xatolik, qayta urinib ko'ring", fullErr: "Liga to'lgan", closed: 'YOPIQ 🔒', closedErr: "Bu liga hozircha yopiq",
       aucTitle: "Klubni auksionga qo'yish", aucPrice: 'Narxni kiriting', aucConfirm: 'Tasdiqlash', aucCancel: 'Bekor qilish', aucOk: "Klub auksionga qo'yildi ✅", aucOff: 'Klub auksiondan olindi', badPrice: "Narx noto'g'ri",
       leaveConfirm: "Klubdan voz kechasizmi? Klub yana ro'yxatdan o'tish bo'limiga qaytadi.", leftOk: 'Klubdan voz kechdingiz',
       rulesList: ["O'yin **8 daqiqa** davom etadi.", 'Ikkitalik himoya yoqish **mumkin emas**.', `O'yinchilar holati **"Excellent"** bo'lishi kerak.`, 'Extra time va penalti **yo\'q**.', 'Dedline har kuni tungi soat **23:30** da.', "Agar raqib javob bermasa yoki hisobni noto'g'ri kiritsa — **rasm yoki video bilan adminga murojaat qiling**."],
@@ -11,7 +11,7 @@ window.LeagueView = (() => {
       prizeText: 'Sovrinlar masalasida homiylarga mutanosib ravishda pul ham beriladi.' },
     en: { continents: { europe: 'Europe', asia: 'Asia', africa: 'Africa' }, pickCountry: 'Choose a country', cups: 'Choose a tournament', cupsLabel: 'Cups', format: 'Tournament format', cupTypes: { league: 'League', league2: '2nd tier', cup: 'Cup', supercup: 'Super Cup' }, noLeagues: "This country's tournaments are coming soon", back: 'Back', full: 'FULL', open: 'OPEN', players: 'Players', max: 'Maximum', season: 'Season', register: 'Sign up', pick: 'Pick a club',
       clubs: 'Clubs in the league', rules: 'Rules', notice: 'Notice', details: 'Details', prize: 'Prize', yourLeague: 'Your league', place: 'Place',
-      nav: ['Info', 'Me', 'Shop'], soon: 'Coming soon', ok: 'You are signed up ✅', taken: 'This club is taken', already: 'You are already signed up', fail: 'Error, please try again', fullErr: 'League is full', closed: 'CLOSED 🔒', closedErr: 'This league is closed for now',
+      nav: ['Info', 'Me', 'Shop', 'Live'], soon: 'Coming soon', ok: 'You are signed up ✅', taken: 'This club is taken', already: 'You are already signed up', fail: 'Error, please try again', fullErr: 'League is full', closed: 'CLOSED 🔒', closedErr: 'This league is closed for now',
       aucTitle: 'Put the club up for auction', aucPrice: 'Enter the price', aucConfirm: 'Confirm', aucCancel: 'Cancel', aucOk: 'The club is on auction ✅', aucOff: 'The club was taken off auction', badPrice: 'Invalid price',
       leaveConfirm: 'Give up the club? It will go back to the sign-up list.', leftOk: 'You gave up the club',
       rulesList: ['A match lasts **8 minutes**.', 'Double defence is **not allowed**.', 'Player condition must be **"Excellent"**.', 'No extra time or penalties.', 'The deadline is every day at **23:30**.', "If your opponent doesn't respond or enters the score wrongly — **contact the admin with a photo or video**."],
@@ -20,7 +20,7 @@ window.LeagueView = (() => {
       prizeText: 'Prize money is also paid out in proportion to sponsor funding.' },
     ru: { continents: { europe: 'Европа', asia: 'Азия', africa: 'Африка' }, pickCountry: 'Выберите страну', cups: 'Выбор турнира', cupsLabel: 'Кубки', format: 'Формат турнира', cupTypes: { league: 'Лига', league2: '2-я лига', cup: 'Кубок', supercup: 'Суперкубок' }, noLeagues: 'Турниры этой страны скоро появятся', back: 'Назад', full: 'ЗАПОЛНЕНА', open: 'ОТКРЫТА', players: 'Игроки', max: 'Максимум', season: 'Сезон', register: 'Записаться', pick: 'Выберите клуб',
       clubs: 'Клубы лиги', rules: 'Правила', notice: 'Объявление', details: 'Подробнее', prize: 'Призы', yourLeague: 'Ваша лига', place: 'Место',
-      nav: ['Инфо', 'Я', 'Магазин'], soon: 'Скоро', ok: 'Вы записаны ✅', taken: 'Этот клуб занят', already: 'Вы уже записаны', fail: 'Ошибка, попробуйте ещё раз', fullErr: 'Лига заполнена', closed: 'ЗАКРЫТА 🔒', closedErr: 'Эта лига пока закрыта',
+      nav: ['Инфо', 'Я', 'Магазин', 'Live'], soon: 'Скоро', ok: 'Вы записаны ✅', taken: 'Этот клуб занят', already: 'Вы уже записаны', fail: 'Ошибка, попробуйте ещё раз', fullErr: 'Лига заполнена', closed: 'ЗАКРЫТА 🔒', closedErr: 'Эта лига пока закрыта',
       aucTitle: 'Выставить клуб на аукцион', aucPrice: 'Укажите цену', aucConfirm: 'Подтвердить', aucCancel: 'Отмена', aucOk: 'Клуб выставлен на аукцион ✅', aucOff: 'Клуб снят с аукциона', badPrice: 'Неверная цена',
       leaveConfirm: 'Отказаться от клуба? Он вернётся в список для записи.', leftOk: 'Вы отказались от клуба',
       rulesList: ['Матч длится **8 минут**.', 'Двойную защиту включать **нельзя**.', 'Состояние игроков должно быть **«Excellent»**.', 'Дополнительного времени и пенальти **нет**.', 'Дедлайн каждый день в **23:30**.', 'Если соперник не отвечает или неверно вводит счёт — **обратитесь к админу с фото или видео**.'],
@@ -59,7 +59,7 @@ window.LeagueView = (() => {
   const badge = (t, l) => (stat(l.id).closed ? `<span class="l-badge full">${t.closed}</span>` : `<span class="l-badge ${isFull(l) ? 'full' : 'open'}">${isFull(l) ? t.full : t.open}</span>`);
 
   // Pastki menyu: Ma'lumotlar · Me · Do'kon — faqat ro'yxatdan o'tgandan keyin
-  const navHtml = (t, active) => `<nav class="l-nav">${['ℹ️', '👤', '🛒'].map((i, k) => `<button class="${k === active ? 'on' : ''}" data-act="${['info', 'me', 'shop'][k]}"><span>${i}</span><small>${t.nav[k]}</small></button>`).join('')}</nav>`;
+  const navHtml = (t, active) => `<nav class="l-nav">${['ℹ️', '👤', '🛒', '📺'].map((i, k) => `<button class="${k === active ? 'on' : ''}" data-act="${['info', 'me', 'shop', 'live'][k]}"><span>${i}</span><small>${t.nav[k]}</small></button>`).join('')}</nav>`;
   const nav = (t, active) => (data.mine ? navHtml(t, active) : '');
   const backBtn = (act = 'back') => `<button class="back" data-act="${act}"><span>‹</span> ${T[lang].back}</button>`;
 
@@ -92,14 +92,14 @@ window.LeagueView = (() => {
       <div class="g-card inf-league"><span class="inf-logo">${chain([EFL.leagueSrc(l.id)])}</span>
         <div class="inf-txt"><b>${esc(l.name)}</b><small>${c ? c.flag + ' ' + esc(c.name[lang]) : ''}</small><span class="inf-club">${EFL.crest(l.id, m.club, name)}<i>${esc(name)}</i></span></div>
         <div class="inf-pos"><b>${row ? '#' + row.pos : '—'}</b><small>${t.place}</small></div></div>
-      ${window.RatingView.html(lang, { ...rank, single: true })}
+      ${window.RatingView.html(lang, { ...rank, single: false })}
       ${formatHtml(l.country, l.id)}
       ${notesHtml(t)}</div>${nav(t, 0)}`;
   }
-  async function loadRank() {
-    const id = data.mine?.league;
-    if (!id) return;
-    if (rank.league !== id) rank = { league: id, chip: id, group: String(EFL.byId[id].group), rows: [], single: true, loading: true };
+  async function loadRank(pick) {
+    if (pick) rank = { league: pick, chip: pick, group: String(EFL.byId[pick].group), rows: [], single: false, loading: true };
+    else if (!rank.league) { const m = data.mine?.league; if (!m) return; rank = { league: m, chip: m, group: String(EFL.byId[m].group), rows: [], single: false, loading: true }; }
+    const id = rank.league;
     if (!rank.rows.length) { rank.loading = true; if (tab === 'info') render(); }
     const r = await api('/api/rankings/' + id);
     if (id === rank.league) { rank.loading = false; if (r.ok) rank.rows = r.rows; if (tab === 'info') render(); }
@@ -229,9 +229,27 @@ window.LeagueView = (() => {
     if (!r.ok) return toast(T[lang].fail);
     pview = r; window.scrollTo(0, 0); render();
   }
+  // Live: liga/kubok tanlanadi, shu bo'limning hozir ochiq o'yinlari ko'rinadi
+  const LIVE_TABS = [['premier-league', 'Premier League'], ['championship', 'Championship'], ['fa-cup', 'FA Cup'], ['community-shield', 'Community Shield']];
+  let live = { id: 'premier-league', rows: [], loading: false };
+  async function loadLive(id) {
+    if (id) live = { id, rows: [], loading: true };
+    const cur = live.id;
+    if (!live.rows.length) { live.loading = true; if (tab === 'live') render(); }
+    const r = await api('/api/live/' + cur);
+    if (cur === live.id) { live.loading = false; if (r.ok) live.rows = r.rows; if (tab === 'live') render(); }
+  }
+  const liveHtml = () => {
+    const t = T[lang];
+    const chips = LIVE_TABS.map(([id, name]) => `<button class="chip${live.id === id ? ' on' : ''}" data-lchip="${id}">${esc(name)}</button>`).join('');
+    const stLbl = (s) => (s === 'pending' ? 'natija kutilmoqda' : s === 'disputed' ? 'bahsli' : "o'ynalmoqda");
+    const fmt = (d) => new Date(d).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const body = live.loading ? `<div class="pf-empty"><p>...</p></div>` : live.rows.length ? live.rows.map((m) => `<div class="g-card live-m"><div class="live-side"><b>${esc(m.home.user)}</b><small>${esc(m.home.club)}</small></div><span class="live-vs">vs</span><div class="live-side"><b>${esc(m.away.user)}</b><small>${esc(m.away.club)}</small></div></div><small class="live-meta">${m.round}-tur · ${stLbl(m.status)}${m.deadline ? ' · ' + fmt(m.deadline) : ''}</small>`).join('') : `<div class="pf-empty"><span>📺</span><p>Hozir ochiq o'yin yo'q</p></div>`;
+    return `<div class="page l-page">${backBtn()}<div class="g-label"><span>Live</span></div><div class="chips">${chips}</div>${body}</div>${nav(t, 3)}`;
+  };
   function setTab(n) {
     tab = n; meSel = null; pview = null; window.scrollTo(0, 0); render();
-    if (n === 'info') loadRank(); else if (n === 'me') loadProfile(); else if (n === 'shop') { loadShop(); loadLots(); }
+    if (n === 'info') loadRank(); else if (n === 'me') loadProfile(); else if (n === 'shop') { loadShop(); loadLots(); } else if (n === 'live') loadLive();
   }
 
   const closeModal = () => el.querySelector('#aucModal')?.remove();
@@ -367,6 +385,7 @@ window.LeagueView = (() => {
     if (!data.mine && tab !== 'home') { tab = 'home'; meSel = null; pview = null; }
     if (pview) { el.innerHTML = `<div class="page l-page">${window.ProfileView.publicHtml(lang, pview)}</div>${nav(T[lang], 0)}`; return; }
     if (tab === 'info') { el.innerHTML = infoHtml(); return; }
+    if (tab === 'live') { el.innerHTML = liveHtml(); return; }
     if (tab === 'me') return renderMe();
     if (tab === 'shop') return renderShop();
     el.innerHTML = view === 'country' && country ? countryHtml() : geoHtml();
@@ -434,9 +453,12 @@ window.LeagueView = (() => {
       el.addEventListener('input', (e) => { if (e.target.id === 'sellCard') e.target.value = e.target.value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim(); });
       el.addEventListener('click', (e) => {
         if (e.target.id === 'shopModal') return closeShop();
-        const q = (s) => e.target.closest(s), ct = q('[data-cont]'), cn = q('[data-country]'), lg = q('[data-lg]'), c = q('[data-club]'), mc = q('[data-mc]'), tgu = q('[data-tgu]'), pv = q('[data-pv]'), btn = q('[data-act]'), a = btn?.dataset.act;
+        const q = (s) => e.target.closest(s), ct = q('[data-cont]'), cn = q('[data-country]'), lg = q('[data-lg]'), c = q('[data-club]'), mc = q('[data-mc]'), tgu = q('[data-tgu]'), lch = q('[data-lchip]'), chp = q('[data-chip]'), grp = q('[data-grp]'), pv = q('[data-pv]'), btn = q('[data-act]'), a = btn?.dataset.act;
         if (ct) { const k = EFL.CONTINENTS.find((x) => x.id === ct.dataset.cont); if (k?.open) { cont = k.id; render(); } else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
         else if (cn) { const k = EFL.countryById[cn.dataset.country]; if (k?.open) enterCountry(k.id); else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
+        else if (lch) loadLive(lch.dataset.lchip);
+        else if (chp) { const c = chp.dataset.chip; if (c === 'scorers') { rank.chip = 'scorers'; render(); } else loadRank(c); }
+        else if (grp) { const first = EFL.LEAGUES.find((l) => String(l.group) === grp.dataset.grp); if (first) loadRank(first.id); }
         else if (tgu) openTg(tgu.dataset.tgu);
         else if (mc) { meSel = mc.dataset.mc; openGame = null; window.scrollTo(0, 0); render(); }
         else if (pv) openPv(pv.dataset.pv);
@@ -450,7 +472,7 @@ window.LeagueView = (() => {
         else if (a === 'back') { if (!back()) location.hash = '#official'; }
         else if (a === 'staffpanel') { window.ADMIN_START_TAB = 'rounds'; location.hash = '#admin'; }
         else if (a === 'meback') { meSel = null; openGame = null; window.scrollTo(0, 0); render(); }
-        else if (a === 'info' || a === 'me' || a === 'shop') setTab(a);
+        else if (a === 'info' || a === 'me' || a === 'shop' || a === 'live') setTab(a);
         else if (a === 'leave') leaveClub();
         else if (a === 'auction') openAuction();
         else if (a === 'aucno') closeModal();
