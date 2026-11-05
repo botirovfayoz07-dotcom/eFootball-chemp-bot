@@ -48,6 +48,7 @@ window.LeagueView = (() => {
 
   // tab: home (davlat -> ro'yxatdan o'tish; faqat ro'yxatdan o'tmaganlar) | info | me | shop (ro'yxatdan o'tgach)
   let autoChat = null;
+  let unread = { total: 0, clubs: {} };   // o'qilmagan chat xabarlari (qizil belgilar uchun)
   let tab = 'home', view = 'geo', country = null, cont = 'europe', loaded = false, meSel = null, openGame = null, pendingTab = null, autoClub = false, autoSupport = false,
     prof = { clubs: [], collection: [], equipped: {} }, lots = [], shop = { tab: 'coins', coins: 0, owned: [], equipped: {}, card: '', holder: '', trophies: [] }, prev = null, rcptPack = null, pview = null, rank = { league: null, chip: null, group: '1', rows: [], single: true },
     data = { mine: null, stats: {} }, // stats: { [ligaId]: { players, taken[] } }
@@ -59,7 +60,7 @@ window.LeagueView = (() => {
   const badge = (t, l) => (stat(l.id).closed ? `<span class="l-badge full">${t.closed}</span>` : `<span class="l-badge ${isFull(l) ? 'full' : 'open'}">${isFull(l) ? t.full : t.open}</span>`);
 
   // Pastki menyu: Ma'lumotlar · Me · Do'kon — faqat ro'yxatdan o'tgandan keyin
-  const navHtml = (t, active) => `<nav class="l-nav">${['ℹ️', '👤', '⚽', '🛒', '📺'].map((i, k) => `<button class="${k === active ? 'on' : ''}" data-act="${['info', 'me', 'club', 'shop', 'live'][k]}"><span>${i}</span><small>${[t.nav[0], t.nav[1], ({ uz: 'Klublarim', en: 'My club', ru: 'Клубы' })[lang], t.nav[2], t.nav[3]][k]}</small></button>`).join('')}</nav>`;
+  const navHtml = (t, active) => `<nav class="l-nav">${['ℹ️', '👤', '⚽', '🛒', '📺'].map((i, k) => `<button class="${k === active ? 'on' : ''}" data-act="${['info', 'me', 'club', 'shop', 'live'][k]}">${k === 2 && data.mine ? `<span>${EFL.crest(data.mine.league, data.mine.club, EFL.clubName(data.mine.league, data.mine.club), 'nav-crest')}</span>` : `<span>${i}</span>`}${data.mine && k === 2 && unread.total ? `<i class="nav-badge">${unread.total > 99 ? '99+' : unread.total}</i>` : ''}<small>${[t.nav[0], t.nav[1], ({ uz: 'Klubim', en: 'My club', ru: 'Клуб' })[lang], t.nav[2], t.nav[3]][k]}</small></button>`).join('')}</nav>`;
   const nav = (t, active) => (data.mine ? navHtml(t, active) : '');
   const backBtn = (act = 'back') => `<button class="back" data-act="${act}"><span>‹</span> ${T[lang].back}</button>`;
 
@@ -106,12 +107,45 @@ window.LeagueView = (() => {
   }
 
   // ——— Me va Do'kon ———
-  const renderMe = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { clubs: prof.clubs, collection: prof.collection, equipped: prof.equipped, sel: meSel, openGame, supportUnread: prof.supportUnread, cups: prof.cups, staff: !!window.IS_STAFF })}</div>${nav(T[lang], 1)}`; };
+  const renderMe = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { clubs: prof.clubs, unread: unread.clubs, collection: prof.collection, equipped: prof.equipped, sel: meSel, openGame, supportUnread: prof.supportUnread, cups: prof.cups, staff: !!window.IS_STAFF })}</div>${nav(T[lang], 1)}`; };
   const openTg = (u) => { const url = 'https://t.me/' + u; if (tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank'); };
   window.addEventListener('staffready', () => { if (loaded && tab === 'me') renderMe(); });
-  const renderClub = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.clubsHtml(lang, { clubs: prof.clubs, sel: meSel, openGame, staff: !!window.IS_STAFF })}</div>${nav(T[lang], 2)}`; };
+  const renderClub = () => { if (!meSel && prof.clubs.length === 1) meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; el.innerHTML = `<div class="page l-page">${window.ProfileView.clubsHtml(lang, { clubs: prof.clubs, unread: unread.clubs, sel: meSel, openGame, staff: !!window.IS_STAFF })}</div>${nav(T[lang], 2)}`; };
   const renderShop = () => { el.innerHTML = `<div class="page l-page">${window.ShopView.html(lang, { ...shop, lots })}</div>${nav(T[lang], 3)}`; };
-  async function loadProfile() { const [r, cs] = await Promise.all([api('/api/profile'), api('/api/cup/state')]); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {}, supportUnread: r.supportUnread || 0, cups: cs.ok ? cs : null }; window.AppBg.setOwn(prof.equipped.pbg); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me' || tab === 'club') render(); if (autoSupport) { autoSupport = false; window.MatchView.openSupport(); } if (autoChat) { const cid = autoChat; autoChat = null; window.MatchView.openMatchChat(cid); } } }
+  // ——— Qizil belgilar: raqib/ishtirokchidan o'qilmagan xabarlar soni ———
+  const syncUnreadFromProfile = () => {
+    const clubs = {}; let total = 0;
+    (prof.clubs || []).forEach((c) => { const n = (c.games || []).reduce((a, g) => a + (g.unread || 0), 0); clubs[c.league + '|' + c.club] = n; total += n; });
+    unread = { total, clubs };
+    paintBadges();
+  };
+  // Sahifani qayta chizmasdan (yozayotgan matn yo'qolmasin) belgilarni joyida yangilaydi
+  function paintBadges() {
+    if (!el) return;
+    const put = (host, n) => {
+      if (!host) return;
+      const cls = host.classList.contains('mc') ? 'mc-badge' : 'nav-badge';
+      let b = host.querySelector('.' + cls);
+      if (!n) { b?.remove(); return; }
+      if (!b) { b = document.createElement('i'); b.className = cls; if (cls === 'nav-badge') host.querySelector('span')?.after(b); else host.appendChild(b); }
+      b.textContent = n > 99 ? '99+' : String(n);
+    };
+    put(el.querySelector('.l-nav button[data-act="club"]'), unread.total);
+    el.querySelectorAll('.mc[data-mc]').forEach((b) => put(b, unread.clubs[b.dataset.mc] || 0));
+  }
+  async function loadUnread() {
+    if (!data.mine || document.hidden) return;
+    const r = await api('/api/unread');
+    if (!r.ok) return;
+    const changed = r.total !== unread.total;
+    unread = { total: r.total || 0, clubs: r.clubs || {} };
+    paintBadges();
+    if (changed && unread.total) tg?.HapticFeedback?.impactOccurred('light');
+  }
+  setInterval(loadUnread, 12000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) loadUnread(); });
+
+  async function loadProfile() { const [r, cs] = await Promise.all([api('/api/profile'), api('/api/cup/state')]); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {}, supportUnread: r.supportUnread || 0, cups: cs.ok ? cs : null }; window.AppBg.setOwn(prof.equipped.pbg); syncUnreadFromProfile(); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me' || tab === 'club') render(); if (autoSupport) { autoSupport = false; window.MatchView.openSupport(); } if (autoChat) { const cid = autoChat; autoChat = null; window.MatchView.openMatchChat(cid); } } }
   async function loadLots() { const r = await api('/api/auctions'); if (r.ok) { lots = r.lots || []; if (tab === 'shop' && !modalOpen()) render(); } }
 
   // ——— Do'kon: Coins sotib olish, kosmetika, Sell (kubokni adminga sotish) ———
@@ -251,7 +285,7 @@ window.LeagueView = (() => {
     return `<div class="page l-page">${backBtn()}<div class="g-label"><span>Live</span></div><div class="chips">${chips}</div>${head}${body}</div>${nav(t, 4)}`;
   };
   function setTab(n) {
-    tab = n; meSel = null; pview = null; window.scrollTo(0, 0); render();
+    tab = n; meSel = null; pview = null; window.scrollTo(0, 0); render(); loadUnread();
     if (n === 'info') loadRank(); else if (n === 'me' || n === 'club') loadProfile(); else if (n === 'shop') { loadShop(); loadLots(); } else if (n === 'live') loadLive();
   }
 

@@ -16,6 +16,8 @@ window.ProfileView = (() => {
   };
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const key = (c) => c.league + '|' + c.club;
+  // Klubdagi o'qilmagan xabarlar: tezkor hisoblagich (st.unread) bo'lsa shu, bo'lmasa o'yinlar bo'yicha yig'indi
+  const unreadN = (st, c) => (st.unread && st.unread[key(c)] != null ? st.unread[key(c)] : (c.games || []).reduce((a, g) => a + (g.unread || 0), 0));
 
   const btn = (act, id, label, cls = '') => `<button class="gm-btn sm ${cls}" data-act="${act}" data-gid="${esc(id)}">${label}</button>`;
   // O'yin qatori (ixcham): tur · mening klubim  hisob  raqib klubi · holat/tugma · chat. Natija kiritish — alohida oynada
@@ -102,14 +104,14 @@ window.ProfileView = (() => {
   // Klublarim (alohida tab): ro'yxat; klub bosilsa klub ichi (html() ning sel tarmog'i)
   function clubsHtml(lang, st) {
     const t = T[lang], EFL = window.EFL;
-    const sel = st.sel && (st.clubs || []).find((c) => key(c) === st.sel);
-    if (sel) return html(lang, st);
+    const only = (st.clubs || []).length === 1 ? key(st.clubs[0]) : null;
+    const sel = (st.sel || only) && (st.clubs || []).find((c) => key(c) === (st.sel || only));
+    if (sel) return html(lang, { ...st, sel: key(sel), noBack: !!only });
     const tiles = (st.clubs || []).map((c) => {
       const name = EFL.clubName(c.league, c.club);
-      return `<button class="mc" data-mc="${esc(key(c))}">${EFL.crest(c.league, c.club, name)}<b>${esc(name)}</b><small>${esc(EFL.byId[c.league]?.name || '')}</small>${c.auction ? '<em></em>' : ''}</button>`;
+      return `<button class="mc" data-mc="${esc(key(c))}">${EFL.crest(c.league, c.club, name)}<b>${esc(name)}</b><small>${esc(EFL.byId[c.league]?.name || '')}</small>${unreadN(st, c) ? `<i class="mc-badge">${unreadN(st, c) > 99 ? '99+' : unreadN(st, c)}</i>` : ''}${c.auction ? '<em></em>' : ''}</button>`;
     }).join('');
-    const adminTile = `<button class="mc" data-act="staffpanel"><span style="font-size:40px;line-height:1">🛠</span><b>Admin panel</b><small>Turlar · dedlayn</small></button>`;
-    return `<div class="g-label"><span>${t.clubs}</span></div>${tiles || st.staff ? `<div class="myclubs">${tiles}${st.staff ? adminTile : ''}</div>` : `<div class="pf-empty"><span>⚽</span><p>${t.noClubs}</p></div>`}`;
+    return `<div class="g-label"><span>${t.clubs}</span></div>${tiles ? `<div class="myclubs">${tiles}</div>` : `<div class="pf-empty"><span>⚽</span><p>${t.noClubs}</p></div>`}`;
   }
   // st: { clubs, collection, sel, openGame, cups }
   function html(lang, st) {
@@ -120,7 +122,7 @@ window.ProfileView = (() => {
     if (sel) {                       // ——— klub ichida ———
       const name = EFL.clubName(sel.league, sel.club), lg = EFL.byId[sel.league]?.name || '';
       const games = (sel.games || []).map((g) => gameHtml(t, g, sel, lang)).join('');
-      return `<button class="back" data-act="meback"><span>‹</span> ${t.back}</button>
+      return `${st.noBack ? '' : `<button class="back" data-act="meback"><span>‹</span> ${t.back}</button>`}
         <div class="cl-top">
           <button class="cl-btn leave" data-act="leave">🚪 ${t.leave}</button>
           <button class="cl-btn auc${sel.auction ? ' on' : ''}" data-act="${sel.auction ? 'unauction' : 'auction'}">${sel.auction ? '↩ ' + t.unauction : '🔨 ' + t.auction}</button>
@@ -142,10 +144,9 @@ window.ProfileView = (() => {
     const eq = st.equipped || {};
     const tiles = (st.clubs || []).map((c) => {
       const name = EFL.clubName(c.league, c.club);
-      return `<button class="mc" data-mc="${esc(key(c))}">${EFL.crest(c.league, c.club, name)}<b>${esc(name)}</b><small>${esc(EFL.byId[c.league]?.name || '')}</small>${c.auction ? '<em>🔨</em>' : ''}</button>`;
+      return `<button class="mc" data-mc="${esc(key(c))}">${EFL.crest(c.league, c.club, name)}<b>${esc(name)}</b><small>${esc(EFL.byId[c.league]?.name || '')}</small>${unreadN(st, c) ? `<i class="mc-badge">${unreadN(st, c) > 99 ? '99+' : unreadN(st, c)}</i>` : ''}${c.auction ? '<em>🔨</em>' : ''}</button>`;
     }).join('');
-    const adminTile = `<button class="mc" data-act="staffpanel"><span style="font-size:40px;line-height:1">🛠</span><b>Admin panel</b><small>Turlar · dedlayn</small></button>`;
-    return `<button class="back" data-act="back"><span>‹</span> ${t.back}</button>
+    return `<div class="pf-top"><button class="back" data-act="back"><span>‹</span> ${t.back}</button>${st.staff ? `<button class="adm-thin" data-act="staffpanel">🛠 Admin panel</button>` : ''}</div>
       <div class="pf-card ${window.ShopView.bgClass(eq.bg)}"${u.username ? ` data-tgu="${esc(u.username)}" style="cursor:pointer"` : ''}><div class="pf-ava${eq.frame ? ' fr-' + eq.frame : ''}">${avatar}</div>
         <div class="pf-info"><h2>${esc(u.first_name || '')}</h2>${u.username ? `<a>@${esc(u.username)}</a>` : ''}</div></div>
       <button class="sup-card" data-act="m-support"><span class="sup-ic">🛟</span><span class="sup-tx"><b>${window.MatchView.T[lang].supportCard}</b><small>${window.MatchView.T[lang].supportDesc}</small></span>${st.supportUnread ? `<i class="gm-badge">${st.supportUnread}</i>` : `<em>›</em>`}</button>

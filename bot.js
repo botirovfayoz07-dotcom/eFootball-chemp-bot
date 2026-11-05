@@ -369,6 +369,23 @@ app.get('/api/profile', ah(async (req, res) => {
   res.json({ clubs, collection, equipped: eqOf(me), supportUnread });
 }));
 
+// Klublarim belgisi uchun: har bir klub bo'yicha o'qilmagan chat xabarlari (raqib yozganlari). Yengil — tez-tez so'raladi
+app.get('/api/unread', ah(async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const regs = await Registration.find({ season, telegramId: u.id }).select('league club').lean();
+  if (!regs.length) return res.json({ total: 0, clubs: {} });
+  const ms = await Match.find({ season, league: { $in: regs.map((r) => r.league) }, status: { $ne: 'cancelled' }, $or: [{ home: u.id }, { away: u.id }] }).select('_id league').lean();
+  const leagueOf = new Map(ms.map((m) => [String(m._id), m.league]));
+  const agg = ms.length ? await ChatMessage.aggregate([{ $match: { kind: 'match', key: { $in: [...leagueOf.keys()] }, readBy: { $ne: u.id } } }, { $group: { _id: '$key', n: { $sum: 1 } } }]) : [];
+  const byLeague = {};
+  agg.forEach((x) => { const lg = leagueOf.get(x._id); if (lg) byLeague[lg] = (byLeague[lg] || 0) + x.n; });
+  const clubs = {};
+  let total = 0;
+  regs.forEach((r) => { const n = byLeague[r.league] || 0; clubs[r.league + '|' + r.club] = n; total += n; });
+  res.json({ total, clubs });
+}));
+
 // Boshqa ishtirokchi profili (faqat ko'rish): reyting jadvalidagi klub bo'yicha egasi topiladi (Telegram ID oshkor qilinmaydi)
 app.get('/api/profile/view', ah(async (req, res) => {
   if (!tgUser(req)) return res.status(401).json({ error: 'auth' });

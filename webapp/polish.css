@@ -78,3 +78,18 @@
 .ad-cl.taken{border-color:rgba(255,90,90,.55);}
 .ad-cl.free{border-color:rgba(80,220,120,.55);}
 
+
+/* Qizil belgilar: o'qilmagan xabarlar soni (klub kartasi va pastki menyudagi «Klublarim») */
+.mc-badge, .l-nav .nav-badge { background: #ef4444; color: #fff; font: 700 11px 'Rajdhani', sans-serif; font-style: normal; line-height: 1; display: grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; box-shadow: 0 0 0 2px rgba(10,12,24,.9); pointer-events: none; }
+.mc-badge { position: absolute; top: 6px; left: 8px; }
+.mc em { right: 8px; }
+.l-nav button { position: relative; }
+.l-nav .nav-badge { position: absolute; top: 2px; left: calc(50% + 6px); }
+
+/* Pastki menyuda klub logotipi va Me tepasidagi ingichka Admin panel */
+.l-nav .nav-crest { display: grid; place-items: center; width: 26px; height: 26px; line-height: 1; }
+.l-nav .nav-crest img { width: 24px; height: 24px; object-fit: contain; }
+.l-nav .nav-crest b { font-size: 16px; }
+.pf-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.adm-thin { background: rgba(8,10,22,.75); color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 14px; padding: 6px 12px; font: 600 13px 'Rajdhani', sans-serif; letter-spacing: .04em; cursor: pointer; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.adm-thin:active { transform: scale(.96); }
