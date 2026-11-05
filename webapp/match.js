@@ -63,6 +63,12 @@ window.MatchView = (() => {
   const hm = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   // ——— varaq (bottom sheet) ———
+  // «yozyapti...» signali: yozish paytida har 3 soniyada bir marta yuboriladi
+  let lastTyping = 0;
+  const typingPing = () => {
+    if (!S.g || S.mode !== 'chat' || Date.now() - lastTyping < 3000) return;
+    lastTyping = Date.now(); C.post(`/api/matches/${S.g.id}/typing`, {}).catch(() => {});
+  };
   function show(inner) {
     if (!root) {
       root = document.createElement('div');
@@ -70,6 +76,7 @@ window.MatchView = (() => {
       root.addEventListener('click', onClick);
       root.addEventListener('change', onChange);
       root.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'mChatText') { e.preventDefault(); chatSend(); } });
+      root.addEventListener('input', (e) => { if (e.target.id === 'mChatText') typingPing(); });
       document.body.appendChild(root);
     }
     root.innerHTML = `<div class="msheet-bg" data-m="close"></div><div class="msheet"><i class="msheet-handle"></i><button class="msheet-x" data-m="close">✕</button>${inner}</div>`;
@@ -158,11 +165,23 @@ window.MatchView = (() => {
     if (x.type === 'room') return `<div class="m-b ${cls} room">🎮 ${t().room}: <b>${esc(x.text)}</b> <button class="m-copy" data-m="copy" data-v="${esc(x.text)}">📋</button><small>${hm(x.at)}</small></div>`;
     return `<div class="m-b ${cls}">${x.fileId ? `<img class="m-img" data-fid="${esc(x.fileId)}" data-m="zoom" alt="">` : ''}${x.text ? `<span>${esc(x.text)}</span>` : ''}<small>${hm(x.at)}</small></div>`;
   };
+  // Sarlavha holati: yozyapti... / online / oxirgi marta … oldin
+  const statusText = (o) => {
+    if (!o) return '';
+    if (o.typing) return 'yozyapti...';
+    if (!o.lastSeen) return '';
+    const m = Math.round((Date.now() - new Date(o.lastSeen).getTime()) / 60000);
+    if (m < 2) return 'online';
+    if (m < 60) return `oxirgi marta ${m} daqiqa oldin`;
+    if (m < 1440) return `oxirgi marta ${Math.round(m / 60)} soat oldin`;
+    return `oxirgi marta ${new Date(o.lastSeen).toLocaleDateString('uz-UZ')}`;
+  };
   async function refresh(force) {
     if (!root || !S.mode) return;
     const support = S.mode === 'support', r = await C.api(support ? '/api/support?league=' + encodeURIComponent(S.league || '') : `/api/matches/${S.g.id}/chat`);
     if (!r.ok || !root) return;
     if (r.opp) S.opp = r.opp;
+    if (!support) { const st = root.querySelector('.m-st'); if (st) { st.textContent = statusText(S.opp); st.classList.toggle('typing', !!S.opp?.typing); } }
     if (support && r.peer?.name) { const pe = root.querySelector('#mPeer'); if (pe) pe.textContent = r.peer.name; }
     const sig = r.messages.length + ':' + (r.messages[r.messages.length - 1]?.id || '');
     if (!force && sig === S.sig) return;
@@ -179,12 +198,12 @@ window.MatchView = (() => {
     const x = t();
     const head = support
       ? `<div class="m-head"><span class="m-av">🛟</span><div><b id="mPeer">${x.supportName}</b><small>${x.supportSub}</small></div></div>`
-      : `<div class="m-head"><span class="m-av">${esc((g.user || g.opponent || '?').replace('@', '')[0] || '?')}</span><div><b>${esc(g.opponent || '—')}</b><small>${esc(g.user || '')}${S.opp?.lastSeen ? ' · ' + ago(S.opp.lastSeen) : ''}</small></div></div>`;
+      : `<div class="m-head"><span class="m-av">${esc((g.user || g.opponent || '?').replace('@', '')[0] || '?')}</span><div><b>${esc(g.opponent || '—')}</b><small>${esc(g.user || '')}</small><small class="m-st">${esc(statusText(S.opp))}</small></div></div>`;
     // Chat oynasi tuzilmasi: sarlavha + xabarlar + kiritish (yozish maydoni, skrinshot, yuborish)
     show(`${head}<div class="m-msgs" id="mMsgs"></div><div id="mPrev" class="m-prev"></div><div class="m-send"><button class="m-ic" data-m="shot" aria-label="📎">📎</button><input id="mChatText" maxlength="800" placeholder="${esc(x.chatPh)}" autocomplete="off"><button class="m-ic go" data-m="chat-send" aria-label="send">➤</button></div><input type="file" id="mFile" accept="image/*" hidden>`);
     root.querySelector('.msheet').classList.add('chat');
     refresh(true);
-    clearInterval(timer); timer = setInterval(() => refresh(false), 4000);
+    clearInterval(timer); timer = setInterval(() => refresh(false), 2500);
   }
   async function chatSend() {
     const inp = root?.querySelector('#mChatText');

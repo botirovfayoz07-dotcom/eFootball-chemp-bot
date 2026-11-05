@@ -797,9 +797,20 @@ async function chatMatch(req, res) {
   return { u, m, oppId: m.home === u.id ? m.away : m.home };
 }
 
+// Onlayn holati va «yozyapti...» (xotirada: bitta server jarayoni uchun yetarli)
+const typingMap = new Map();
+const isTyping = (key, uid) => Date.now() - (typingMap.get(key + '|' + uid) || 0) < 4000;
+const touchPresence = (uid) => User.updateOne({ telegramId: uid, $or: [{ lastSeen: null }, { lastSeen: { $lt: new Date(Date.now() - 60000) } }] }, { $set: { lastSeen: new Date() } }).catch(() => {});
+app.post('/api/matches/:id/typing', ah(async (req, res) => {
+  const c = await chatMatch(req, res); if (!c) return;
+  typingMap.set(String(c.m._id) + '|' + c.u.id, Date.now());
+  touchPresence(c.u.id);
+  res.json({ ok: true });
+}));
 app.get('/api/matches/:id/chat', ah(async (req, res) => {
   const c = await chatMatch(req, res); if (!c) return;
   const key = String(c.m._id);
+  touchPresence(c.u.id);
   await ChatMessage.updateMany({ kind: 'match', key, readBy: { $ne: c.u.id } }, { $addToSet: { readBy: c.u.id } });
   const [list, opp] = await Promise.all([
     ChatMessage.find({ kind: 'match', key }).sort({ at: -1 }).limit(100).lean(),
@@ -812,7 +823,7 @@ app.get('/api/matches/:id/chat', ah(async (req, res) => {
     })),
     opp: {
       name: opp?.firstName || '', username: opp?.username || '',
-      photo: opp?.photoUrl || '', lastSeen: opp?.lastSeen || null,
+      photo: opp?.photoUrl || '', lastSeen: opp?.lastSeen || null, typing: isTyping(key, c.oppId),
     },
   });
 }));
