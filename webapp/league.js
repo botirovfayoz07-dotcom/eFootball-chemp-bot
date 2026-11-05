@@ -105,7 +105,9 @@ window.LeagueView = (() => {
   }
 
   // ——— Me va Do'kon ———
-  const renderMe = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { clubs: prof.clubs, collection: prof.collection, equipped: prof.equipped, sel: meSel, openGame, supportUnread: prof.supportUnread, cups: prof.cups })}</div>${nav(T[lang], 1)}`; };
+  const renderMe = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { clubs: prof.clubs, collection: prof.collection, equipped: prof.equipped, sel: meSel, openGame, supportUnread: prof.supportUnread, cups: prof.cups, staff: !!window.IS_STAFF })}</div>${nav(T[lang], 1)}`; };
+  const openTg = (u) => { const url = 'https://t.me/' + u; if (tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank'); };
+  window.addEventListener('staffready', () => { if (loaded && tab === 'me') renderMe(); });
   const renderShop = () => { el.innerHTML = `<div class="page l-page">${window.ShopView.html(lang, { ...shop, lots })}</div>${nav(T[lang], 2)}`; };
   async function loadProfile() { const [r, cs] = await Promise.all([api('/api/profile'), api('/api/cup/state')]); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {}, supportUnread: r.supportUnread || 0, cups: cs.ok ? cs : null }; window.AppBg.setOwn(prof.equipped.pbg); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me') render(); if (autoSupport) { autoSupport = false; window.MatchView.openSupport(); } } }
   async function loadLots() { const r = await api('/api/auctions'); if (r.ok) { lots = r.lots || []; if (tab === 'shop' && !modalOpen()) render(); } }
@@ -431,9 +433,10 @@ window.LeagueView = (() => {
       el.addEventListener('input', (e) => { if (e.target.id === 'sellCard') e.target.value = e.target.value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim(); });
       el.addEventListener('click', (e) => {
         if (e.target.id === 'shopModal') return closeShop();
-        const q = (s) => e.target.closest(s), ct = q('[data-cont]'), cn = q('[data-country]'), lg = q('[data-lg]'), c = q('[data-club]'), mc = q('[data-mc]'), pv = q('[data-pv]'), btn = q('[data-act]'), a = btn?.dataset.act;
+        const q = (s) => e.target.closest(s), ct = q('[data-cont]'), cn = q('[data-country]'), lg = q('[data-lg]'), c = q('[data-club]'), mc = q('[data-mc]'), tgu = q('[data-tgu]'), pv = q('[data-pv]'), btn = q('[data-act]'), a = btn?.dataset.act;
         if (ct) { const k = EFL.CONTINENTS.find((x) => x.id === ct.dataset.cont); if (k?.open) { cont = k.id; render(); } else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
         else if (cn) { const k = EFL.countryById[cn.dataset.country]; if (k?.open) enterCountry(k.id); else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
+        else if (tgu) openTg(tgu.dataset.tgu);
         else if (mc) { meSel = mc.dataset.mc; openGame = null; window.scrollTo(0, 0); render(); }
         else if (pv) openPv(pv.dataset.pv);
         else if (a === 'pvback') { pview = null; render(); }
@@ -444,6 +447,7 @@ window.LeagueView = (() => {
         else if (a && a.startsWith('m-')) window.MatchView.act(a, btn.dataset.gid);
         else if (a === 'register') register();
         else if (a === 'back') { if (!back()) location.hash = '#official'; }
+        else if (a === 'staffpanel') { window.ADMIN_START_TAB = 'rounds'; location.hash = '#admin'; }
         else if (a === 'meback') { meSel = null; openGame = null; window.scrollTo(0, 0); render(); }
         else if (a === 'info' || a === 'me' || a === 'shop') setTab(a);
         else if (a === 'leave') leaveClub();

@@ -132,14 +132,15 @@ window.ProfileView = (() => {
       const name = EFL.clubName(c.league, c.club);
       return `<button class="mc" data-mc="${esc(key(c))}">${EFL.crest(c.league, c.club, name)}<b>${esc(name)}</b><small>${esc(EFL.byId[c.league]?.name || '')}</small>${c.auction ? '<em>🔨</em>' : ''}</button>`;
     }).join('');
+    const adminTile = `<button class="mc" data-act="staffpanel"><span style="font-size:40px;line-height:1">🛠</span><b>Admin panel</b><small>Turlar · dedlayn</small></button>`;
     return `<button class="back" data-act="back"><span>‹</span> ${t.back}</button>
-      <div class="pf-card ${window.ShopView.bgClass(eq.bg)}"><div class="pf-ava${eq.frame ? ' fr-' + eq.frame : ''}">${avatar}</div>
+      <div class="pf-card ${window.ShopView.bgClass(eq.bg)}"${u.username ? ` data-tgu="${esc(u.username)}" style="cursor:pointer"` : ''}><div class="pf-ava${eq.frame ? ' fr-' + eq.frame : ''}">${avatar}</div>
         <div class="pf-info"><h2>${esc(u.first_name || '')}</h2>${u.username ? `<a>@${esc(u.username)}</a>` : ''}</div></div>
       <button class="sup-card" data-act="m-support"><span class="sup-ic">🛟</span><span class="sup-tx"><b>${window.MatchView.T[lang].supportCard}</b><small>${window.MatchView.T[lang].supportDesc}</small></span>${st.supportUnread ? `<i class="gm-badge">${st.supportUnread}</i>` : `<em>›</em>`}</button>
       <div class="g-label"><span>${t.collection}</span></div>
       ${coll ? `<div class="coll">${coll}</div>` : `<div class="pf-empty"><span>🏆</span><p>${t.collEmpty}</p></div>`}
       <div class="g-label"><span>${t.clubs}</span></div>
-      ${tiles ? `<div class="myclubs">${tiles}</div>` : `<div class="pf-empty"><span>⚽</span><p>${t.noClubs}</p></div>`}
+      ${tiles || st.staff ? `<div class="myclubs">${tiles}${st.staff ? adminTile : ''}</div>` : `<div class="pf-empty"><span>⚽</span><p>${t.noClubs}</p></div>`}
       ${cupPanels(t, st, EFL)}`;
   }
 

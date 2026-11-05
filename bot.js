@@ -1004,19 +1004,21 @@ app.post('/api/admin/support/:uid', staffOnly, ah(async (req, res) => {
 }));
 
 app.get('/api/admin/overview', staffOnly, ah(async (req, res) => {
-  const [regs, cfgs, maxRounds, groups] = await Promise.all([
+  const [regs, cfgs, maxRounds, groups, dls] = await Promise.all([
     Registration.find({ season }).select('league').lean(),
     LeagueConfig.find({ season }).lean(),
     Match.aggregate([{ $match: { season } }, { $group: { _id: '$league', max: { $max: '$round' } } }]),
     Match.aggregate([{ $match: { season, status: { $ne: 'cancelled' } } }, { $group: { _id: { league: '$league', status: '$status' }, n: { $sum: 1 } } }]),
+    Match.aggregate([{ $match: { season, status: { $in: ['scheduled', 'pending', 'disputed'] }, deadline: { $ne: null } } }, { $group: { _id: { league: '$league', round: '$round' }, d: { $min: '$deadline' } } }]),
   ]);
   const cfg = new Map(cfgs.map((c) => [c.league, c]));
   const roundMax = new Map(maxRounds.map((x) => [x._id, x.max]));
+  const dlMap = {}; dls.forEach((x) => { (dlMap[x._id.league] ||= {})[x._id.round] = x.d; });
   const cnt = {};
   groups.forEach((g) => { const c = (cnt[g._id.league] ||= { total: 0, confirmed: 0, action: 0 }); c.total += g.n; if (g._id.status === 'confirmed') c.confirmed += g.n; if (g._id.status === 'pending' || g._id.status === 'disputed') c.action += g.n; });
   const leagues = EFL.LEAGUES.map((l) => {
     const c = cfg.get(l.id), n = cnt[l.id] || { total: 0, confirmed: 0, action: 0 };
-    return { id: l.id, name: l.name, group: l.group, max: l.max, closed: !!c?.closed, players: regs.filter((r) => r.league === l.id).length, drawAt: c?.drawAt || null, drawnAt: c?.drawnAt || null, rounds: c?.rounds || 2, roundDays: c?.roundDays || 7, ...lockInfo(c, roundMax.get(l.id) || 0), ...n };
+    return { id: l.id, name: l.name, group: l.group, max: l.max, closed: !!c?.closed, players: regs.filter((r) => r.league === l.id).length, drawAt: c?.drawAt || null, drawnAt: c?.drawnAt || null, rounds: c?.rounds || 2, roundDays: c?.roundDays || 7, roundDeadlines: dlMap[l.id] || {}, ...lockInfo(c, roundMax.get(l.id) || 0), ...n };
   });
   const support = await ChatMessage.countDocuments({ kind: 'support', admin: false, adminRead: false, ...(req.superAdmin ? {} : { league: { $in: req.helperLeagues } }) });
   const vis = req.superAdmin ? leagues : leagues.filter((l) => canLeague(req, l.id));
@@ -1187,6 +1189,18 @@ app.post('/api/admin/league/:id/draw-cancel', staffOnly, ah(async (req, res) => 
   await LeagueConfig.updateOne({ season, league: league.id }, { $set: { drawnAt: null, drawAt: null, roundsLocked: false, openRounds: [] } }, { upsert: true });
   await recalc(league.id);
   res.json({ ok: true });
+}));
+// Bitta turning dedlayni: shu turdagi tugallanmagan o'yinlarga qo'yiladi (faqat belgilangan tur)
+app.post('/api/admin/league/:id/round-deadline', staffOnly, ah(async (req, res) => {
+  if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });
+  const league = EFL.byId[req.params.id];
+  if (!league) return res.status(400).json({ error: 'fail' });
+  const round = Number(req.body?.round);
+  if (!Number.isInteger(round) || round < 1) return res.status(400).json({ error: 'fail' });
+  const at = new Date(req.body?.deadline);
+  if (isNaN(at) || at <= new Date()) return res.status(400).json({ error: 'time' });
+  const r = await Match.updateMany({ season, league: league.id, round, status: { $in: ['scheduled', 'pending', 'disputed'] } }, { $set: { deadline: at, notified: [] } });
+  res.json({ ok: true, matches: r.modifiedCount ?? r.nModified ?? 0 });
 }));
 // Eski (dedlaynsiz) o'yinlarga dedlayn berish: tugallanmagan turlar «hozirdan» ketma-ket sanaladi
 app.post('/api/admin/league/:id/deadlines', staffOnly, ah(async (req, res) => {

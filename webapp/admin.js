@@ -81,9 +81,14 @@ window.AdminView = (() => {
   }
 
   // ——— Qura ———
-  const daysSel = (v) => `<label class="ad-lbl">Tur davomiyligi (kun) — dedlayn har tur oxirgi kuni 23:59<select data-rdays>${[1, 2, 3, 5, 7, 10, 14].map((d) => `<option value="${d}" ${d === (v || 7) ? 'selected' : ''}>${d} kun</option>`).join('')}</select></label>`;
   // ——— Turlarni ochish/yopish: faqat ochiq turdagi o'yinlarga natija kiritiladi ———
   // l.roundCount — jami turlar soni, l.openRounds — ochiq turlar (qolganlari yopiq)
+  // Har bir turning dedlayni: shu turdagi tugallanmagan o'yinlarga qo'yiladi
+  function rdlHtml(l) {
+    const dl = l.roundDeadlines || {}, n = l.roundCount || 0;
+    const rows = Array.from({ length: n }, (_, i) => i + 1).map((r) => `<div class="ad-rdl"><b>${r}-tur</b><input type="datetime-local" data-rdt value="${dl[r] ? fmtLocal(dl[r]) : ''}"><button class="ad-btn ok sm" data-act="rdl" data-lg="${l.id}" data-round="${r}">Saqlash</button><small>${dl[r] ? '⏰ ' + fmtShow(dl[r]) : "Dedlayn yo'q"}</small></div>`).join('');
+    return `<div class="g-label"><span>Tur dedlaynlari</span></div>${rows}<p class="ad-hint">Dedlayn o'tgach, hisob kiritilmagan o'yinda avtomatik natija chiqadi. Dedlayn shu turdagi barcha tugallanmagan o'yinlarga qo'llanadi.</p>`;
+  }
   function roundsHtml(l) {
     const open = new Set((l.openRounds || []).map(Number));
     const n = l.roundCount || 0;
@@ -91,7 +96,7 @@ window.AdminView = (() => {
     const btns = Array.from({ length: n }, (_, i) => i + 1).map((r) => `<button class="ad-round ${open.has(r) ? 'on' : ''}" data-act="rtoggle" data-lg="${l.id}" data-round="${r}" data-open="${open.has(r) ? '' : '1'}">${r}-tur ${open.has(r) ? '🔓' : '🔒'}</button>`).join('');
     return `<div class="g-label"><span>Turlar (natija kiritish)</span></div><div class="ad-rounds">${btns}</div>
       <div class="ad-row"><button class="ad-btn ok sm" data-act="rall" data-lg="${l.id}" data-open="1">Hammasini ochish</button><button class="ad-btn bad sm" data-act="rall" data-lg="${l.id}" data-open="">Hammasini yopish</button></div>
-      <p class="ad-hint">Yopiq turda foydalanuvchilar natija kirita olmaydi. Admin har doim o'zi kiritishi mumkin. Yangi qura o'tkazilganda barcha turlar yopiq bo'ladi.</p>`;
+      <p class="ad-hint">Yopiq turda foydalanuvchilar natija kirita olmaydi. Admin har doim o'zi kiritishi mumkin. Yangi qura o'tkazilganda barcha turlar yopiq bo'ladi.</p>${rdlHtml(l)}`;
   }
 
   // ——— Turlar paneli: barcha qura o'tkazilgan ligalar, har bir turni alohida ochish/yopish ———
@@ -105,10 +110,9 @@ window.AdminView = (() => {
       const drawn = !!l.drawnAt;
       const body = drawn
         ? `<p class="ad-ok">🎲 Qura o'tkazilgan: ${fmtShow(l.drawnAt)} · ${l.total} ta o'yin (${l.confirmed} tasdiqlangan)</p><button class="ad-btn ghost" data-act="redo" data-lg="${l.id}">Qayta qura (hisob kiritilmagan bo'lsa)</button><button class="ad-btn bad sm" data-act="draw-cancel" data-lg="${l.id}">✖ Qurani bekor qilish</button>
-           <div class="ad-dl">${daysSel(l.roundDays)}<button class="ad-btn ghost sm" data-act="deadlines" data-lg="${l.id}">⏰ Dedlaynsiz o'yinlarga dedlayn berish</button><p class="ad-hint">Dedlayn o'tgach, hisob kiritilmagan o'yinda avtomatik: faol tomonga 3:0, hech kim kelmagan bo'lsa bekor. Dedlaydan keyin qisqa muhlat beriladi (standart 12 soat).</p></div>`
+           `
         : `<label class="ad-lbl">Qura vaqti<input type="datetime-local" data-dt value="${l.drawAt ? fmtLocal(l.drawAt) : ''}"></label>
            <label class="ad-lbl">Davralar<select data-rounds><option value="2" ${l.rounds === 2 ? 'selected' : ''}>2 davra (uyda va mehmonda)</option><option value="1" ${l.rounds === 1 ? 'selected' : ''}>1 davra</option></select></label>
-           ${daysSel(l.roundDays)}
            ${l.drawAt ? `<p class="ad-hint">⏰ Avtomatik qura: ${fmtShow(l.drawAt)}</p>` : ''}
            <div class="ad-row"><button class="ad-btn" data-act="settime" data-lg="${l.id}">Vaqtni saqlash</button><button class="ad-btn ok" data-act="draw" data-lg="${l.id}">🎲 Hozir qura qilish</button></div>${l.drawAt ? `<button class="ad-btn ghost" data-act="cleartime" data-lg="${l.id}">Vaqtni o'chirish</button>` : ''}`;
       return `<div class="g-card ad-lg" data-lgbox="${l.id}"><h3>${esc(l.name)} <small>${l.players}/${l.max}</small></h3>${body}</div>`;
@@ -437,6 +441,11 @@ window.AdminView = (() => {
       if (!(await confirmBox("Natija o'chirilsinmi? O'yin qayta «kiritilmagan» holatiga qaytadi, jadval qayta hisoblanadi."))) return;
       return done(await post(`/api/admin/matches/${box.dataset.mid}/reset`, {}), "Natija o'chirildi 🗑", loadMatches);
     }
+    if (act === 'rdl') {
+      const v = a.closest('.ad-rdl').querySelector('[data-rdt]').value;
+      if (!v) return toast('Vaqtni tanlang');
+      return done(await post(`/api/admin/league/${a.dataset.lg}/round-deadline`, { round: Number(a.dataset.round), deadline: new Date(v).toISOString() }), 'Tur dedlayni saqlandi ✅', loadOverview);
+    }
     if (act === 'settime' || act === 'cleartime' || act === 'draw') {
       const box = a.closest('[data-lgbox]'), v = box.querySelector('[data-dt]')?.value, rounds = Number(box.querySelector('[data-rounds]')?.value || 2), roundDays = Number(box.querySelector('[data-rdays]')?.value || 7);
       if (act === 'settime') { if (!v) return toast('Vaqtni tanlang'); return done(await post(`/api/admin/league/${lg}/draw-time`, { drawAt: new Date(v).toISOString(), rounds, roundDays }), 'Qura vaqti saqlandi ✅'); }
@@ -489,6 +498,7 @@ window.AdminView = (() => {
 
   function show(root, toastFn) {
     el = root; toast = toastFn;
+    if (window.ADMIN_START_TAB) { tab = window.ADMIN_START_TAB; window.ADMIN_START_TAB = null; }
     if (!el.dataset.bound) { el.dataset.bound = '1'; el.addEventListener('click', onClick); el.addEventListener('change', onChange); el.addEventListener('input', onInput); el.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'spText') { e.preventDefault(); el.querySelector('[data-act="spsend"]')?.click(); } }); }
     render();
     if (el.dataset.loaded !== '1') { el.dataset.loaded = '1'; loadOverview(); loadMatches(); }
