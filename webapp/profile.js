@@ -157,7 +157,7 @@ window.ProfileView = (() => {
       return `<div class="mc">${EFL.crest(c.league, c.club, name)}<b>${esc(name)}</b><small>${esc(EFL.byId[c.league]?.name || '')}${c.pos ? ' · #' + c.pos : ''}</small></div>`;
     }).join('');
     return `<button class="back" data-act="pvback"><span>‹</span> ${t.back}</button>
-      <div class="pf-card ${window.ShopView.bgClass(eq.bg)}"><div class="pf-ava ph${eq.frame ? ' fr-' + eq.frame : ''}"><b>${esc((d.name || d.username || '?')[0])}</b>${d.photo ? `<img src="${esc(d.photo)}" alt="" onerror="this.remove()">` : ''}</div>
+      <div class="pf-card ${window.ShopView.bgClass(eq.bg)}"${d.username ? ` data-tgu="${esc(d.username)}" style="cursor:pointer"` : ''}><div class="pf-ava ph${eq.frame ? ' fr-' + eq.frame : ''}"><b>${esc((d.name || d.username || '?')[0])}</b>${d.photo ? `<img src="${esc(d.photo)}" alt="" onerror="this.remove()">` : ''}</div>
         <div class="pf-info"><h2>${esc(d.name || '')}</h2>${d.username ? `<a>@${esc(d.username)}</a>` : ''}</div></div>
       <div class="g-label"><span>${t.collection}</span></div>
       ${coll ? `<div class="coll">${coll}</div>` : `<div class="pf-empty"><span>🏆</span><p>${t.collEmpty}</p></div>`}
