@@ -47,6 +47,7 @@ window.LeagueView = (() => {
   const chain = (srcs) => `<img src="${esc(srcs[0])}" data-f="${esc(srcs.slice(1).join('|'))}" loading="lazy" alt="" onerror="${FALLBACK}">`;
 
   // tab: home (davlat -> ro'yxatdan o'tish; faqat ro'yxatdan o'tmaganlar) | info | me | shop (ro'yxatdan o'tgach)
+  let autoChat = null;
   let tab = 'home', view = 'geo', country = null, cont = 'europe', loaded = false, meSel = null, openGame = null, pendingTab = null, autoClub = false, autoSupport = false,
     prof = { clubs: [], collection: [], equipped: {} }, lots = [], shop = { tab: 'coins', coins: 0, owned: [], equipped: {}, card: '', holder: '', trophies: [] }, prev = null, rcptPack = null, pview = null, rank = { league: null, chip: null, group: '1', rows: [], single: true },
     data = { mine: null, stats: {} }, // stats: { [ligaId]: { players, taken[] } }
@@ -109,7 +110,7 @@ window.LeagueView = (() => {
   const openTg = (u) => { const url = 'https://t.me/' + u; if (tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank'); };
   window.addEventListener('staffready', () => { if (loaded && tab === 'me') renderMe(); });
   const renderShop = () => { el.innerHTML = `<div class="page l-page">${window.ShopView.html(lang, { ...shop, lots })}</div>${nav(T[lang], 2)}`; };
-  async function loadProfile() { const [r, cs] = await Promise.all([api('/api/profile'), api('/api/cup/state')]); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {}, supportUnread: r.supportUnread || 0, cups: cs.ok ? cs : null }; window.AppBg.setOwn(prof.equipped.pbg); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me') render(); if (autoSupport) { autoSupport = false; window.MatchView.openSupport(); } } }
+  async function loadProfile() { const [r, cs] = await Promise.all([api('/api/profile'), api('/api/cup/state')]); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {}, supportUnread: r.supportUnread || 0, cups: cs.ok ? cs : null }; window.AppBg.setOwn(prof.equipped.pbg); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me') render(); if (autoSupport) { autoSupport = false; window.MatchView.openSupport(); } if (autoChat) { const cid = autoChat; autoChat = null; window.MatchView.openMatchChat(cid); } } }
   async function loadLots() { const r = await api('/api/auctions'); if (r.ok) { lots = r.lots || []; if (tab === 'shop' && !modalOpen()) render(); } }
 
   // ——— Do'kon: Coins sotib olish, kosmetika, Sell (kubokni adminga sotish) ———
@@ -468,6 +469,7 @@ window.LeagueView = (() => {
         else if (a === 'pvnav') navPreview(Number(btn.dataset.d));
         else if (a === 'pvbuy') buyItem(btn.dataset.id);
         else if (a === 'equip') equipItem(btn.dataset.kind, btn.dataset.id);
+        else if (a === 'sellcup') { const tr = shop.trophies.find((x) => x.league === btn.dataset.league && x.status !== 'selling'); if (tr) openSell(tr.id); else toast(window.ShopView.T[lang].notOwned); }
         else if (a === 'sell') openSell(btn.dataset.tid);
         else if (a === 'sellgo') confirmSell(btn.dataset.tid);
         else if (a === 'buy') { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); }
@@ -477,7 +479,7 @@ window.LeagueView = (() => {
   // ?open=games (o'yin hisobi xabaridagi tugma): Me → klub → Mening o'yinlarim
   // Muammoli holatlar: tanlangan klubning ligasi (yordamchi admin shu ligada bo'lsa unga boradi)
   const supportLeague = () => { const c = prof.clubs.find((x) => x.league + '|' + x.club === meSel) || prof.clubs[0]; return c?.league || null; };
-  const preset = (name) => { pendingTab = name === 'profile' || name === 'support' ? 'me' : name; autoClub = name === 'profile'; autoSupport = name === 'support'; };
+  const preset = (name, arg) => { pendingTab = name === 'profile' || name === 'support' || name === 'chat' ? 'me' : name; autoClub = name === 'profile'; autoSupport = name === 'support'; autoChat = name === 'chat' ? arg : null; };
   const leave = () => { window.MatchView.close(); window.AppBg.hide(); pview = null; if (el) el.dataset.loaded = ''; tab = 'home'; view = 'geo'; country = null; meSel = null; openGame = null; loaded = false; };
   return { show, leave, back, preset };
 })();

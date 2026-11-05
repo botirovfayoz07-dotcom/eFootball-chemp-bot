@@ -553,6 +553,7 @@ app.get('/api/shop', ah(async (req, res) => {
     coins: me?.coins || 0, owned: me?.cosmetics || [], equipped: eqOf(me),
     card: PAY_CARD, holder: PAY_HOLDER,
     daily: dailyStatus(me), ref: referralInfo(me, u.id, await botName()), pay: payments.enabled,
+    cupPrices: cps.filter((x) => x.price > 0).map((x) => ({ league: x.league, price: x.price })),
     trophies: trs.map((x) => ({ id: String(x._id), league: x.league, season: x.season, status: x.status, price: (x.status === 'selling' && x.sell?.price) || cup.get(x.league) || 0 })),
   });
 }));
@@ -855,7 +856,7 @@ app.post('/api/matches/:id/chat', limits.chat, ah(async (req, res) => {
 
   if (first && !buf) {
     const who = await whoIs(c.m.league, c.u.id), shown = type === 'room' ? `🎮 ${text}` : text.slice(0, 120);
-    say(c.oppId, { uz: `💬 ${who}: ${shown}`, en: `💬 ${who}: ${shown}`, ru: `💬 ${who}: ${shown}` }, 'games');
+    say(c.oppId, { uz: `💬 ${who}: ${shown}`, en: `💬 ${who}: ${shown}`, ru: `💬 ${who}: ${shown}` }, 'chat/' + key);
   }
   res.json({ ok: true, fileId });
 }));

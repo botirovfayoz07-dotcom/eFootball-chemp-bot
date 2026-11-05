@@ -682,3 +682,7 @@ body.has-bg .pf-info h2 { text-shadow: 0 2px 10px rgba(0,0,0,.95); }
 .ad-rounds { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 .ad-round { border: 1px solid var(--line, #444); background: transparent; color: inherit; border-radius: 10px; padding: 6px 10px; font-size: 13px; cursor: pointer; }
 .ad-round.on { background: rgba(60, 200, 120, .18); border-color: #3cc878; }
+.sell-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
+.sell-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 10px; border-radius: 18px; background: #12152a; border: 1px solid rgba(255,255,255,.1); text-align: center; }
+.sell-card .sell-img img { width: 84px; height: 84px; object-fit: contain; }
+.sell-card .sell-price { color: #94a3b8; }

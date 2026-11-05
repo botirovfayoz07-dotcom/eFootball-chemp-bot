@@ -280,6 +280,7 @@ window.MatchView = (() => {
       else if (a === 'm-proof') openDispute(g, 'proof');
     },
     openSupport(league) { openChat(null, true, league || ''); },
+    openMatchChat(gid) { const g = C.game(gid); if (g) openChat(g); },
     close,
   };
 })();

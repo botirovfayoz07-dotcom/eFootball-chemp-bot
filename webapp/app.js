@@ -135,6 +135,7 @@
   const openParam = new URLSearchParams(location.search).get('open');
   if (openParam === 'games' && !location.hash) { window.LeagueView.preset('profile'); history.replaceState(null, '', '#league'); }
   if (openParam === 'support' && !location.hash) { window.LeagueView.preset('support'); history.replaceState(null, '', '#league'); }
+  if (openParam && openParam.startsWith('chat/') && !location.hash) { window.LeagueView.preset('chat', openParam.slice(5)); history.replaceState(null, '', '#league'); }
   if (openParam === 'admin' && !location.hash) history.replaceState(null, '', '#admin');
   // ?open=ut/<id> — turnirni ochish; ?open=join/<KOD> — taklif kodi bo'yicha turnirga qo'shilish
   if (openParam && !location.hash) {
