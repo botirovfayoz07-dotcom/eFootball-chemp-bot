@@ -93,3 +93,8 @@
 .pf-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .adm-thin { background: rgba(8,10,22,.75); color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 14px; padding: 6px 12px; font: 600 13px 'Rajdhani', sans-serif; letter-spacing: .04em; cursor: pointer; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .adm-thin:active { transform: scale(.96); }
+
+/* Klub logotipi menyuda boshqa ikonkalar bilan bir balandlikda tursin */
+.l-nav .nav-crest { height: 23px; width: 23px; overflow: visible; }
+.l-nav .nav-crest, .l-nav .nav-crest * { line-height: 1; font-size: 15px; }
+.l-nav .nav-crest img { width: 23px; height: 23px; display: block; }

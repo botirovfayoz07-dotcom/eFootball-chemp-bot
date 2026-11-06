@@ -4,7 +4,7 @@ window.AdminView = (() => {
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const api = (path, opts = {}) => fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', 'x-init-data': tg?.initData || '' } }).then(async (r) => ({ ok: r.ok, ...(await r.json().catch(() => ({}))) })).catch(() => ({ ok: false }));
   const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body || {}) });
-  const ERR = { drawn: "Qura allaqachon o'tkazilgan", few: 'Kamida 2 ishtirokchi kerak', played: "Hisoblar kiritilgan — qayta qura qilib bo'lmaydi", nouser: "Foydalanuvchi topilmadi (botga /start bosgan bo'lishi kerak)", already: "U shu mavsumda allaqachon ro'yxatda", taken: 'Bu klub band', full: "Liga to'lgan", badScore: "Hisobni to'g'ri kiriting (0–99)", gone: "Topilmadi yoki holati o'zgargan", forbidden: "Ruxsat yo'q", stage: "Bosqich topilmadi", nodraw: "Avval qura tashlang", none: "Tasdiqlangan o'yinlar yo'q", last: "Bu oxirgi bosqich", time: "Vaqt noto'g'ri", fail: "Xatolik, qayta urinib ko'ring" };
+  const ERR = { hasgames: "Bu klubda allaqachon o'yinlar bor", active: 'Eski egasi hali ligada', nogames: "Bekor qilingan o'yin topilmadi", drawn: "Qura allaqachon o'tkazilgan", few: 'Kamida 2 ishtirokchi kerak', played: "Hisoblar kiritilgan — qayta qura qilib bo'lmaydi", nouser: "Foydalanuvchi topilmadi (botga /start bosgan bo'lishi kerak)", already: "U shu mavsumda allaqachon ro'yxatda", taken: 'Bu klub band', full: "Liga to'lgan", badScore: "Hisobni to'g'ri kiriting (0–99)", gone: "Topilmadi yoki holati o'zgargan", forbidden: "Ruxsat yo'q", stage: "Bosqich topilmadi", nodraw: "Avval qura tashlang", none: "Tasdiqlangan o'yinlar yo'q", last: "Bu oxirgi bosqich", time: "Vaqt noto'g'ri", fail: "Xatolik, qayta urinib ko'ring" };
   const ST = { scheduled: 'Kutilmoqda', pending: 'Raqib tasdig\'i kutilmoqda', disputed: '⚠️ Bahsli (yolg\'on)', confirmed: 'Tasdiqlangan' };
 
   let el, toast, tab = 'results', tours = null, ov = null, mt = { league: '', status: 'action', list: [], total: 0 }, pl = { league: '', data: null }, cups = null, sp = { threads: null, open: null, name: '', league: '', leagueName: '', msgs: [] }, spTimer = null, cupState = null;
@@ -179,7 +179,8 @@ window.AdminView = (() => {
   function playersHtml() {
     const d = pl.data;
     const list = !d ? SK('rows', 3) : `${d.players.map((p) => `<div class="g-card ad-pl"><span><b>${esc(p.club)}</b><small>${esc(p.user)} · ${p.pts} ball · ${p.games} o'yin</small></span><button class="ad-btn ok" data-act="award" data-tid="${p.telegramId}" data-name="${esc(p.club)}">🏆 Kubok</button><button class="ad-btn bad" data-act="remove" data-tid="${p.telegramId}" data-name="${esc(p.club)}">Chiqarish</button></div>`).join('') || '<p class="ad-hint">Ishtirokchi yo\'q</p>'}
-      <div class="g-label"><span>Qo'shish (${d.players.length}/${d.max})</span></div>
+${(d.needy || []).length ? `<div class="g-label"><span>♻️ O'yinlarni tiklash</span></div>${d.needy.map((n) => `<div class="g-card ad-rec" data-to="${n.telegramId}"><span><b>${esc(n.club)}</b><small>${esc(n.user)} · o'yini yo'q</small></span><select data-from>${(d.orphans || []).map((o) => `<option value="${o.telegramId}">${esc(o.user)} (${o.games} o'yin)</option>`).join('')}</select><button class="ad-btn ok" data-act="restore">Tiklash</button></div>`).join('')}<p class="ad-hint">Klubdan voz kechgan eski egasini tanlang: uning o'yinlari va natijalari yangi egasiga qaytadi.</p>` : ''}
+            <div class="g-label"><span>Qo'shish (${d.players.length}/${d.max})</span></div>
       <div class="g-card ad-add"><input type="text" data-user placeholder="@username yoki Telegram ID"><select data-club>${d.free.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select><button class="ad-btn ok" data-act="add">➕ Qo'shish</button><p class="ad-hint">Foydalanuvchi botga kamida bir marta /start bosgan bo'lishi kerak. Qura o'tgan bo'lsa, unga qolganlar bilan o'yinlar qo'shiladi.</p></div>`;
     return `<div class="ad-filters"><select data-f="plleague">${leagueOpts(pl.league, false)}</select></div>${list}`;
   }
@@ -477,6 +478,12 @@ window.AdminView = (() => {
     if (act === 'remove') {
       if (!(await confirmBox(`${a.dataset.name} ligadan chiqarilsinmi? Uning barcha o'yinlari bekor qilinadi, natijalari jadvaldan olib tashlanadi.`))) return;
       return done(await post(`/api/admin/league/${pl.league}/remove`, { telegramId: Number(a.dataset.tid) }), 'Ishtirokchi chiqarildi', loadPlayers);
+    }
+    if (act === 'restore') {
+      const box = a.closest('.ad-rec'), from = Number(box.querySelector('[data-from]').value), to = Number(box.dataset.to);
+      if (!from || !to) return toast('Eski egasini tanlang');
+      if (!(await confirmBox("Tanlangan eski egasining o'yinlari va natijalari shu klubga qaytarilsinmi?"))) return;
+      return done(await post(`/api/admin/league/${pl.league}/restore`, { from, to }), "O'yinlar tiklandi ✅", loadPlayers);
     }
     if (act === 'add') {
       const box = a.closest('.ad-add'), user = box.querySelector('[data-user]').value.trim(), club = box.querySelector('[data-club]').value;

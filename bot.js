@@ -1319,7 +1319,59 @@ app.get('/api/admin/league/:id/players', staffOnly, ah(async (req, res) => {
     max: league.max,
     players: regs.filter((r) => !r.vacant).sort(rankSort).map((r) => ({ telegramId: r.telegramId, club: EFL.clubName(league.id, r.club), user: nm.get(r.telegramId) || '', pts: r.pts, games: r.w + r.d + r.l })),
     free: league.clubs.filter((c) => !taken.has(c.id)).map((c) => ({ id: c.id, name: c.name })),
+    ...(await recoverInfo(league.id, regs)),
   });
+}));
+
+// Eski usulda (o'yinlari bekor qilinib) voz kechilgan klublar: o'yinsiz qolgan klub egalari va o'yinlari egasiz qolgan eski ishtirokchilar
+async function recoverInfo(leagueId, regs) {
+  const [cms, act] = await Promise.all([
+    Match.find({ season, league: leagueId, status: 'cancelled', 'auto.kind': { $ne: 'void' } }).select('home away hg').lean(),
+    Match.find({ season, league: leagueId, status: { $ne: 'cancelled' } }).select('home away').lean(),
+  ]);
+  const regIds = new Set(regs.map((r) => r.telegramId)), activeIds = new Set(act.flatMap((m) => [m.home, m.away]));
+  const cnt = new Map();
+  cms.forEach((m) => [m.home, m.away].forEach((id) => { if (!regIds.has(id)) cnt.set(id, (cnt.get(id) || 0) + 1); }));
+  const needy = act.length ? regs.filter((r) => !r.vacant && !activeIds.has(r.telegramId)) : [];
+  if (!needy.length || !cnt.size) return { needy: [], orphans: [] };
+  const users = await User.find({ telegramId: { $in: [...cnt.keys(), ...needy.map((r) => r.telegramId)] } }).lean();
+  const nm = new Map(users.map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || String(x.telegramId)]));
+  return {
+    needy: needy.map((r) => ({ telegramId: r.telegramId, club: EFL.clubName(leagueId, r.club), user: nm.get(r.telegramId) || String(r.telegramId) })),
+    orphans: [...cnt].map(([id, n]) => ({ telegramId: id, user: nm.get(id) || String(id), games: n })),
+  };
+}
+
+// Eski egasining bekor qilingan o'yinlarini yangi egasiga qaytarish (natijalari bilan)
+app.post('/api/admin/league/:id/restore', staffOnly, ah(async (req, res) => {
+  if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });
+  const league = EFL.byId[req.params.id], from = Number(req.body?.from), to = Number(req.body?.to);
+  if (!league || !from || !to || from === to) return res.status(400).json({ error: 'fail' });
+  const base = { season, league: league.id };
+  if (!(await Registration.exists({ ...base, telegramId: to }))) return res.status(404).json({ error: 'gone' });
+  if (await Registration.exists({ ...base, telegramId: from })) return res.status(409).json({ error: 'active' });
+  if (await Match.exists({ ...base, status: { $ne: 'cancelled' }, $or: [{ home: to }, { away: to }] })) return res.status(409).json({ error: 'hasgames' });
+  const ms = await Match.find({ ...base, status: 'cancelled', 'auto.kind': { $ne: 'void' }, $or: [{ home: from }, { away: from }] }).lean();
+  if (!ms.length) return res.status(404).json({ error: 'nogames' });
+  const regIds = new Set((await Registration.find(base).select('telegramId').lean()).map((r) => r.telegramId));
+  const ops = ms.map((m) => {
+    const set = { updatedAt: new Date() };
+    if (m.home === from) set.home = to;
+    if (m.away === from) set.away = to;
+    if (m.reportedBy === from) set.reportedBy = to;
+    // ikkala tomon ham hozir ro'yxatda bo'lsa o'yin tiklanadi (aks holda ikkinchi egasi tiklanganda)
+    if (regIds.has(set.home ?? m.home) && regIds.has(set.away ?? m.away)) {
+      set.status = m.confirmedBy ? 'confirmed' : (m.reportedBy && m.hg != null) ? 'pending' : m.claim ? 'disputed' : 'scheduled';
+    }
+    return { updateOne: { filter: { _id: m._id }, update: { $set: set } } };
+  });
+  await Match.bulkWrite(ops);
+  const keys = ms.map((m) => String(m._id));
+  await ChatMessage.updateMany({ kind: 'match', key: { $in: keys }, from }, { $set: { from: to } });
+  await ChatMessage.updateMany({ kind: 'match', key: { $in: keys }, readBy: from }, { $addToSet: { readBy: to } });
+  await ChatMessage.updateMany({ kind: 'match', key: { $in: keys }, readBy: from }, { $pull: { readBy: from } });
+  await recalc(league.id);
+  res.json({ ok: true, restored: ms.length });
 }));
 
 // Ishtirokchini o'yindan chiqarish: uning o'yinlari bekor qilinadi (natijalari ham jadvaldan olib tashlanadi)
