@@ -88,6 +88,8 @@ bot.action(/^lang_(uz|en|ru)$/, async (ctx) => {
 // Mini app fayllarini (webapp/) HTTPS domen orqali beradi
 const app = express();
 app.use(express.json({ limit: '8mb' })); // Coins chek rasmi (base64) uchun
+// Kubok sahifasi skripti lib/ ichida turadi — brauzerga /cup-page.js sifatida beriladi
+app.get('/cup-page.js', (req, res) => res.sendFile(path.join(__dirname, 'lib', 'cup-page.js')));
 app.use(express.static(path.join(__dirname, 'webapp')));
 // Serverni proxy (Render, Railway, Nginx) orqasida ishlatsangiz .env da TRUST_PROXY=1 qo'ying — aks holda IP limit noto'g'ri ishlaydi
 if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || 1);
@@ -401,18 +403,21 @@ app.get('/api/profile/view', ah(async (req, res) => {
     clubs.push({ league: r.league, club: r.club, pos: regs.findIndex((x) => x.telegramId === r.telegramId) + 1 });
   }
   res.json({
-    name: usr?.firstName || '', username: usr?.username || '', photo: usr?.photoUrl || '', equipped: eqOf(usr),
+    name: usr?.firstName || '', username: usr?.username || '', tgId: reg.telegramId > 0 ? reg.telegramId : 0, photo: usr?.photoUrl || '', equipped: eqOf(usr),
     collection: [...trs.map((x) => ({ kind: 'trophy', cup: x.league, season: x.season })), ...(usr?.cosmetics || []).map((id) => ({ kind: 'item', id }))],
     clubs,
   });
 }));
 
 // Live: hozirgi tur. Liga: ochiq turlar ichida eng kichik tur, unda hali o'ynalmagan o'yin bor (yoki oxirgi tur).
-// FA Cup: 1-7 turlardagi hozirgi bosqich. Community Shield: fa-cup 8-tur. Tur ichidagi barcha o'yinlar (o'ynalgan ham) qaytadi.
-const LIVE_MAP = { 'premier-league': { db: 'premier-league', kind: 'league' }, championship: { db: 'championship', kind: 'league' }, 'fa-cup': { db: 'fa-cup', kind: 'cup' }, 'community-shield': { db: 'fa-cup', kind: 'shield' } };
+// Kubok (FA Cup / Copa del Rey): 1-7 turlardagi hozirgi bosqich. Supercup (Community Shield / Supercopa): kubokning 8-turi. Tur ichidagi barcha o'yinlar (o'ynalgan ham) qaytadi.
+const LIVE_MAP = {
+  'premier-league': { db: 'premier-league', kind: 'league' }, championship: { db: 'championship', kind: 'league' }, 'fa-cup': { db: 'fa-cup', kind: 'cup' }, 'community-shield': { db: 'fa-cup', kind: 'shield' },
+  laliga: { db: 'laliga', kind: 'league' }, 'laliga-2': { db: 'laliga-2', kind: 'league' }, 'copa-del-rey': { db: 'copa-del-rey', kind: 'cup' }, supercopa: { db: 'copa-del-rey', kind: 'shield' },
+};
 app.get('/api/live/:id', ah(async (req, res) => {
   if (!tgUser(req)) return res.status(401).json({ error: 'auth' });
-  const cfgL = LIVE_MAP[req.params.id];
+  const cfgL = LIVE_MAP[req.params.id] || (EFL.byId[req.params.id] ? { db: req.params.id, kind: 'league' } : null);
   if (!cfgL) return res.status(404).json({ error: 'fail' });
   const all = await Match.find({ season, league: cfgL.db, status: { $ne: 'cancelled' } }).sort({ round: 1, _id: 1 }).lean();
   let pool;
@@ -788,8 +793,9 @@ app.post('/api/matches/:id/report', limits.chat, ah(async (req, res) => {
   if (await roundGate(res, m0.league, m0.round)) return;
 
   // ⬇️⬇️ FA Cup: tur ochilmaguncha / dedlayn o'tgach hisob kiritib bo'lmaydi
-  if (m0.league === 'fa-cup') {
-    const d = await Cup.findOne({ season, round: m0.round, cup: { $in: ['fa-cup', 'shield'] } }).lean();
+  if (cupLogic.FAMILIES[m0.league]) {
+    const fm = cupLogic.fam(m0.league);
+    const d = await Cup.findOne({ season, round: m0.round, cup: { $in: [fm.id, fm.shieldKey] } }).lean();
     if (!d || !d.startedAt) return res.status(409).json({ error: 'notstarted' });
     if (d.deadline && new Date(d.deadline) < new Date()) return res.status(409).json({ error: 'deadline' });
   }
@@ -1436,7 +1442,7 @@ const cupApi = require('./lib/cup-api')(app, { tgUser, ah, adminOnly, season, no
 const deadlines = mountDeadlines({ Match, Cup, ChatMessage, LeagueConfig, season, EFL, notify, whoIs, recalc, notifyAdmins });
 
 // ——— Mavsum starti: PL + Championship + FA Cup + Community Shield birga ———
-const AUTO_CUPS = ['fa-cup', 'community-shield'];
+const AUTO_CUPS = ['fa-cup', 'community-shield', 'copa-del-rey', 'supercopa'];
 let openedFor = null;
 
 async function ensureSeasonOpened(cal) {
@@ -1449,7 +1455,7 @@ async function ensureSeasonOpened(cal) {
       { $set: { openedAt: new Date(), cupsStartedAt: new Date(), cups: AUTO_CUPS } });
        if (r?.modifiedCount) {
       console.log(`⏱ Mavsum ${cal.number} boshlandi — ligalar + ${AUTO_CUPS.join(', ')}`);
-      notifyAdmins('🎲 Mavsum boshlandi!\nFA Cup qura marosimi vaqtini kiriting: Admin panel → 🎲 FA Cup → "Qura vaqti"');
+      notifyAdmins('🎲 Mavsum boshlandi!\nFA Cup va Copa del Rey qura marosimi vaqtini kiriting: Admin panel → 🎲 Kubok → "Qura vaqti"');
     }
     openedFor = cal.number;
   } catch (_) { /* DB hali ulanmagan */ }

@@ -7,7 +7,7 @@ window.AdminView = (() => {
   const ERR = { hasgames: "Yangi egasi allaqachon o'yin o'ynagan, tiklab bo'lmaydi", active: 'Eski egasi hali ligada', nogames: "Bekor qilingan o'yin topilmadi", drawn: "Qura allaqachon o'tkazilgan", few: 'Kamida 2 ishtirokchi kerak', played: "Hisoblar kiritilgan — qayta qura qilib bo'lmaydi", nouser: "Foydalanuvchi topilmadi (botga /start bosgan bo'lishi kerak)", already: "U shu mavsumda allaqachon ro'yxatda", taken: 'Bu klub band', full: "Liga to'lgan", badScore: "Hisobni to'g'ri kiriting (0–99)", gone: "Topilmadi yoki holati o'zgargan", forbidden: "Ruxsat yo'q", stage: "Bosqich topilmadi", nodraw: "Avval qura tashlang", none: "Tasdiqlangan o'yinlar yo'q", last: "Bu oxirgi bosqich", time: "Vaqt noto'g'ri", fail: "Xatolik, qayta urinib ko'ring" };
   const ST = { scheduled: 'Kutilmoqda', pending: 'Raqib tasdig\'i kutilmoqda', disputed: '⚠️ Bahsli (yolg\'on)', confirmed: 'Tasdiqlangan' };
 
-  let el, toast, tab = 'results', tours = null, ov = null, mt = { league: '', status: 'action', list: [], total: 0 }, pl = { league: '', data: null }, cups = null, sp = { threads: null, open: null, name: '', league: '', leagueName: '', msgs: [] }, spTimer = null, cupState = null;
+  let el, toast, tab = 'results', tours = null, ov = null, mt = { league: '', status: 'action', list: [], total: 0 }, pl = { league: '', data: null }, cups = null, sp = { threads: null, open: null, name: '', league: '', leagueName: '', msgs: [] }, spTimer = null, cupState = null, cupSel = 'fa-cup';
 
   const fmtLocal = (d) => { const x = new Date(d), p = (n) => String(n).padStart(2, '0'); return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}T${p(x.getHours())}:${p(x.getMinutes())}`; };
   const fmtShow = (d) => new Date(d).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -51,7 +51,7 @@ window.AdminView = (() => {
 
   function tabsHtml() {
     const n = ov?.action || 0;
-    return `<div class="ad-tabs">${[['stats', '📊 Statistika'], ['broadcast', '📢 Xabar'], ['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['rounds', '🔁 Turlar'], ['cup', '🎲 FA Cup'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar'], ['cups', 'Kubok narxi'], ['open', 'Ligalar holati'], ['clubs', '🏟 Klublar'], ['support', `Xabarlar${ov?.support ? ` <i>${ov.support}</i>` : ''}`], ['helpers', '👥 Yordamchilar']].filter(([k]) => (ov?.superAdmin ? true : HELPER_TABS.includes(k))).map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
+    return `<div class="ad-tabs">${[['stats', '📊 Statistika'], ['broadcast', '📢 Xabar'], ['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['rounds', '🔁 Turlar'], ['cup', '🎲 Kubok'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar'], ['cups', 'Kubok narxi'], ['open', 'Ligalar holati'], ['clubs', '🏟 Klublar'], ['support', `Xabarlar${ov?.support ? ` <i>${ov.support}</i>` : ''}`], ['helpers', '👥 Yordamchilar']].filter(([k]) => (ov?.superAdmin ? true : HELPER_TABS.includes(k))).map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
   }
 
   // ——— Natijalar ———
@@ -121,8 +121,9 @@ window.AdminView = (() => {
 
   // ——— FA Cup: saralash + pley-off ———
   function cupHtml() {
-    if (!cupState) return SK('rows', 3);
-    return `<p class="ad-hint">Saralash: Premier Liga 20→10, Championship 24→12→6, keyin 16 klub. Qura vaqti kelganda avtomatik o'tadi. <b>Start</b> bosilmaguncha o'yinchilar faqat raqibni ko'radi.</p>` +
+    const pick = `<div class="chips">${[['fa-cup', 'FA Cup (Angliya)'], ['copa-del-rey', 'Copa del Rey (Ispaniya)']].map(([id, n]) => `<button class="chip${cupSel === id ? ' on' : ''}" data-act="cup-pick" data-cup="${id}">${n}</button>`).join('')}</div>`;
+    if (!cupState) return pick + SK('rows', 3);
+    return pick + `<p class="ad-hint">Saralash: 1-liga 20→10, 2-liga →yarmi→yarmi (6 ta), keyin 16 klub. Qura vaqti kelganda avtomatik o'tadi. <b>Start</b> bosilmaguncha o'yinchilar faqat raqibni ko'radi.</p>` +
       cupState.stages.map((s) => {
         const drawn = !!s.drawnAt;
         return `<div class="g-card ad-lg" data-cupstage="${s.stage}">
@@ -146,13 +147,13 @@ window.AdminView = (() => {
         </div>`;
             }).join('') +
       `<div class="g-card ad-lg">
-        <h3>🛡 Community Shield <small>2 finalist</small></h3>
-        <p class="ad-hint">Premier Liga g'olibi va FA Cup g'olibi o'rtasidagi o'yin. Ikkalasi ham aniqlanganda yaratiladi. Bitta klub ikkalasini yutgan bo'lsa — o'yinsiz g'olib.</p>
-        <button class="ad-btn ghost" data-act="cup-shield">🛡 Community Shield yaratish</button>
+        <h3>🛡 ${esc(cupState.shieldName || 'Community Shield')} <small>2 finalist</small></h3>
+        <p class="ad-hint">1-liga g'olibi va kubok g'olibi o'rtasidagi o'yin. Ikkalasi ham aniqlanganda yaratiladi. Bitta klub ikkalasini yutgan bo'lsa — o'yinsiz g'olib.</p>
+        <button class="ad-btn ghost" data-act="cup-shield">🛡 ${esc(cupState.shieldName || 'Community Shield')} yaratish</button>
       </div>`;
   
   }
-  async function loadCup() { const r = await api('/api/admin/cup'); if (r.ok) { cupState = r; if (tab === 'cup') render(); } }
+  async function loadCup() { const want = cupSel, r = await api('/api/admin/cup?cup=' + want); if (want !== cupSel) return; if (r.ok) { cupState = r; if (tab === 'cup') render(); } }
 
     // ——— Qura marosimi: juftliklar birma-bir chiqadi ———
   function reveal(pairs, stage, after) {
@@ -359,34 +360,35 @@ ${(d.needy || []).length ? `<div class="g-label"><span>♻️ O'yinlarni tiklash
       return render();
     }
         if (act === 'cup-shield') {
-      const r = await post('/api/admin/cup/shield');
-      if (!r.ok) return toast(r.error === 'pl_not_finished' ? 'Premier Liga hali tugamagan' : 'Finalchilar hali aniqlanmagan');
-      toast('Community Shield yaratildi 🛡'); return loadCup();
+      const r = await post('/api/admin/cup/shield', { cup: cupSel });
+      if (!r.ok) return toast(r.error === 'pl_not_finished' ? '1-liga hali tugamagan' : 'Finalchilar hali aniqlanmagan');
+      toast((cupState?.shieldName || 'Community Shield') + ' yaratildi 🛡'); return loadCup();
     }
+    if (act === 'cup-pick') { cupSel = a.dataset.cup; cupState = null; render(); return loadCup(); }
     if (act.startsWith('cup-')) {
       const box = a.closest('[data-cupstage]'), stage = box.dataset.cupstage;
       if (act === 'cup-time') {
         const v = box.querySelector('[data-dt]')?.value;
         if (!v) return toast('Vaqtni tanlang');
-        return done(await post('/api/admin/cup/draw-time', { stage, drawAt: new Date(v).toISOString() }), 'Qura vaqti saqlandi ✅', loadCup);
+        return done(await post('/api/admin/cup/draw-time', { cup: cupSel, stage, drawAt: new Date(v).toISOString() }), 'Qura vaqti saqlandi ✅', loadCup);
       }
             if (act === 'cup-draw') {
         if (!(await confirmBox("Qurani hozir o'tkazamizmi? Ishtirokchilar tasodifiy juftlanadi."))) return;
-        const r = await post('/api/admin/cup/draw', { stage });
+        const r = await post('/api/admin/cup/draw', { cup: cupSel, stage });
         if (!r.ok) return toast(ERR[r.error] || ERR.fail);
-        const p = await api('/api/admin/cup/pairs?stage=' + stage);
+        const p = await api('/api/admin/cup/pairs?cup=' + cupSel + '&stage=' + stage);
         return reveal(p.pairs || [], stage, loadCup);
       }
       if (act === 'cup-start') {
         const hours = Number(box.querySelector('[data-hours]')?.value || 0);
-        return done(await post('/api/admin/cup/start', { stage, hours }), 'Tur ochildi ▶️', loadCup);
+        return done(await post('/api/admin/cup/start', { cup: cupSel, stage, hours }), 'Tur ochildi ▶️', loadCup);
       }
       if (act === 'cup-advance') {
-        return done(await post('/api/admin/cup/advance', { stage }), "Keyingi bosqichga o'tildi ➡️", loadCup);
+        return done(await post('/api/admin/cup/advance', { cup: cupSel, stage }), "Keyingi bosqichga o'tildi ➡️", loadCup);
       }
       if (act === 'cup-reset') {
         if (!(await confirmBox("Bosqich tozalanadi: o'yinlar o'chadi, qayta qura mumkin bo'ladi. Davom etilsinmi?"))) return;
-        return done(await post('/api/admin/cup/reset', { stage }), 'Tozalandi 🧹', loadCup);
+        return done(await post('/api/admin/cup/reset', { cup: cupSel, stage }), 'Tozalandi 🧹', loadCup);
       }
     }
     if (act === 'bc-test' || act === 'bc-send') {

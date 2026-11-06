@@ -150,6 +150,34 @@
         },
       ],
     },
+    es: {
+      leagues: {
+        laliga: {
+          uz: ['20 ta klub', "1–4-o'rinlar: Chempionlar ligasi (UEFA CL) ro'yxatiga kiradi", "5–6-o'rinlar: Yevropa ligasiga kiradi", "7-o'rin: Konferensiya ligasiga o'tadi", "Oxirgi 3 o'rin: LaLiga 2 ga tushadi"],
+          en: ['20 clubs', '1st–4th: enter the Champions League (UEFA CL) list', '5th–6th: enter the Europa League', '7th: goes to the Conference League', 'Bottom 3: relegated to LaLiga 2'],
+          ru: ['20 клубов', '1–4 места: попадают в список Лиги чемпионов (УЕФА)', '5–6 места: попадают в Лигу Европы', '7 место: выходит в Лигу конференций', 'Последние 3 места: вылетают в Ла Лигу 2'],
+        },
+        'laliga-2': {
+          uz: ['22 ta klub (2-liga)', "1–2-o'rinlar: LaLigaga chiqadi", "Oxirgi 4 o'rin: pastki ligaga tushadi"],
+          en: ['22 clubs (2nd tier)', '1st–2nd: promoted to LaLiga', 'Bottom 4: relegated'],
+          ru: ['22 клуба (2-я лига)', '1–2 места: выходят в Ла Лигу', 'Последние 4 места: вылетают'],
+        },
+      },
+      cups: [
+        {
+          id: 'copa-del-rey', name: 'Copa del Rey',
+          uz: ["LaLiga 2 dan 6 ta klub saralanadi: 22 klub tasodifiy o'zaro o'ynaydi → 11 ta qoladi, ular yana tasodifiy o'ynaydi (toq bo'lgani uchun bitta klub o'yinsiz o'tadi) → 6 ta qoladi", "LaLigadan 10 ta klub saralanadi: 20 klub tasodifiy o'zaro o'ynaydi → 10 ta qoladi", "Jami 6 + 10 = 16 klub Copa del Rey'da o'ynaydi", "G'olib Yevropa ligasi ro'yxatiga kiradi"],
+          en: ['6 clubs qualify from LaLiga 2: all 22 clubs play each other at random → 11 remain, then they are paired at random again (one club gets a bye because the number is odd) → 6 remain', '10 clubs qualify from LaLiga: all 20 clubs play each other at random → 10 remain', 'In total 6 + 10 = 16 clubs play the Copa del Rey', 'The winner enters the Europa League list'],
+          ru: ['Из Ла Лиги 2 проходят 6 клубов: 22 клуба играют друг с другом случайным образом → остаются 11, затем их снова случайно разбивают на пары (один клуб проходит без игры, так как число нечётное) → остаются 6', 'Из Ла Лиги проходят 10 клубов: 20 клубов играют случайным образом → остаются 10', 'Всего 6 + 10 = 16 клубов играют в Кубке Испании', 'Победитель попадает в список Лиги Европы'],
+        },
+        {
+          id: 'supercopa', name: 'Supercopa de España',
+          uz: ["LaLiga g'olibi va Copa del Rey g'olibi o'rtasidagi o'yin", "Agar ikkala kubokni bitta klub yutgan bo'lsa, Supercopa g'olibi avtomatik shu klub bo'ladi"],
+          en: ['A match between the LaLiga winner and the Copa del Rey winner', 'If one club won both, it automatically becomes the Supercopa winner'],
+          ru: ['Матч между победителем Ла Лиги и обладателем Кубка Испании', 'Если оба трофея выиграл один клуб, он автоматически становится обладателем Суперкубка'],
+        },
+      ],
+    },
   };
 
   const countryById = Object.fromEntries(COUNTRIES.map((c) => [c.id, c]));

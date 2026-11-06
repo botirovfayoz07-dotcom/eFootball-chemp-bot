@@ -14,6 +14,7 @@ const schema = new mongoose.Schema({
   round: { type: Number, required: true },     // Match.round bilan bir xil
   teams: { type: [Number], default: [] },      // shu bosqich ishtirokchilari (Telegram ID)
   winners: { type: [Number], default: [] },    // g'oliblar (keyingi bosqichga)
+  byes: { type: [Number], default: [] },       // toq son: o'yinsiz keyingi bosqichga o'tganlar
   drawAt: { type: Date, default: null },       // admin belgilagan qura vaqti
   drawnAt: { type: Date, default: null },      // qura o'tkazilgan vaqt
   startedAt: { type: Date, default: null },    // tur starti (qulf ochiladi)

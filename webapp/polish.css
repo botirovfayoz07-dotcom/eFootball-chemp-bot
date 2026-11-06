@@ -98,3 +98,13 @@
 .l-nav .nav-crest { height: 23px; width: 23px; overflow: visible; }
 .l-nav .nav-crest, .l-nav .nav-crest * { line-height: 1; font-size: 15px; }
 .l-nav .nav-crest img { width: 23px; height: 23px; display: block; }
+
+/* Do'kon → Sell: egasi bor kubok yorqin va bosiladi, qolganlari xira */
+.sell-card { position: relative; }
+.sell-card.own { border-color: rgba(34,197,94,.55); box-shadow: 0 0 18px rgba(34,197,94,.18); }
+.sell-card.own[data-act] { cursor: pointer; }
+.sell-card.own[data-act]:active { transform: scale(.97); }
+.sell-card.dim { opacity: .5; }
+.sell-card .sell-no { color: #94a3b8; font-size: 13px; margin: 0; }
+.sell-card .sell-n { position: absolute; top: 8px; right: 10px; background: #22c55e; color: #fff; font: 700 12px 'Rajdhani', sans-serif; font-style: normal; border-radius: 10px; padding: 2px 7px; }
+.sell-card .sell-btn { pointer-events: none; }

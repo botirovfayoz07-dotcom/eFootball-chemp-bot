@@ -8,7 +8,7 @@ window.ShopView = (() => {
       prevTitle: "Profilingizda shunday ko'rinadi", prevHint: "Boshqalarini ko'rish uchun ‹ › ni bosing. Sotib olmaguncha hech narsa o'zgarmaydi.", notReg: "Ro'yxatdan o'tmagan",
       auction: 'Auksion', empty: "Hozircha auksionda klub yo'q", aBuy: 'Sotib olish', cancel: 'Auksiondan olish', games: "o'yin",
       sellIntro: "Yutgan kubogingizni adminga soting: «Sotish» ni bosing va karta raqamingizni yuboring. Pul 24 soat ichida kartangizga o'tkaziladi, shundan so'ng kubok ro'yxatingizdan chiqariladi.",
-      notOwned: "Sizda bu kubok mavjud emas", sellPrice: 'Narx', noPrice: 'Narx hali belgilanmagan', sellFor: 'Sotish narxi', sellEmpty: "Sotadigan kubok yo'q. Ligada g'olib bo'lsangiz, kubok shu yerda paydo bo'ladi.", sell: 'Sotish', sellWait: "⏳ Admin pulni o'tkazishini kutmoqda (24 soat ichida)", season: 'Mavsum',
+      notOwned: "Sizda bu kubok mavjud emas", sellPrice: 'Narx', noPrice: 'Narx hali belgilanmagan', sellFor: 'Sotish narxi', sellEmpty: "Sotadigan kubok yo'q. Ligada g'olib bo'lsangiz, kubok shu yerda paydo bo'ladi.", sell: 'Sotish', sellNoPrice: "Narx belgilanmagan", sellWait: "⏳ Admin pulni o'tkazishini kutmoqda (24 soat ichida)", season: 'Mavsum',
       sellTitle: 'Kubokni adminga sotish', sellLabel: "Admin pulni qaysi kartaga tashlasin? Karta raqamini kiriting", sellSend: 'Adminga yuborish', sellNote: "Karta raqami adminga yuboriladi. Pul 24 soat ichida o'tkazib beriladi." },
     en: { title: 'Shop', balance: 'Your balance', payVia: (n) => `Pay with ${n}`, payOr: 'or send a receipt photo', bonusLabel: 'Bonuses', dailyTitle: 'Daily bonus', dailyHint: (n) => `Today +${n} Coins`, dailyBtn: 'Claim', dailyDone: 'Claimed today ✓', streak: (n) => `${n}-day streak`, refTitle: 'Invite friends', refHint: (n) => `+${n} Coins · once the friend joins a league`, refCount: (n) => `Invited: ${n}`, tabs: { coins: 'Coins', cosmetics: 'Cosmetics', auction: 'Auction', sell: 'Sell' }, packs: 'Packages',
       transfer: (a) => `Transfer <b>${a}</b> UZS to the card`, holder: 'Card holder', copy: 'Copy', step2: 'Send a photo of the payment receipt', send: 'Send receipt photo',
@@ -17,7 +17,7 @@ window.ShopView = (() => {
       prevTitle: 'How it looks on your profile', prevHint: 'Use ‹ › to try others. Nothing changes until you buy.', notReg: 'Not registered',
       auction: 'Auction', empty: 'No clubs on auction yet', aBuy: 'Buy', cancel: 'Take off auction', games: 'games',
       sellIntro: 'Sell the trophy you won to the admin: tap “Sell” and send your card number. The money is sent to your card within 24 hours, then the trophy is removed from your list.',
-      notOwned: "You don't have this trophy", sellPrice: 'Price', noPrice: 'Price not set yet', sellFor: 'Selling price', sellEmpty: 'No trophies to sell. If you win a league, the trophy appears here.', sell: 'Sell', sellWait: '⏳ Waiting for the admin to send the money (within 24 hours)', season: 'Season',
+      notOwned: "You don't have this trophy", sellPrice: 'Price', noPrice: 'Price not set yet', sellFor: 'Selling price', sellEmpty: 'No trophies to sell. If you win a league, the trophy appears here.', sell: 'Sell', sellNoPrice: 'No price set', sellWait: '⏳ Waiting for the admin to send the money (within 24 hours)', season: 'Season',
       sellTitle: 'Sell the trophy to the admin', sellLabel: 'Which card should the admin send the money to? Enter the card number', sellSend: 'Send to admin', sellNote: 'Your card number goes to the admin. The money is sent within 24 hours.' },
     ru: { title: 'Магазин', balance: 'Ваш баланс', payVia: (n) => `Оплатить через ${n}`, payOr: 'или отправьте фото чека', bonusLabel: 'Бонусы', dailyTitle: 'Ежедневный бонус', dailyHint: (n) => `Сегодня +${n} Coins`, dailyBtn: 'Получить', dailyDone: 'Получено сегодня ✓', streak: (n) => `Серия: ${n} дн.`, refTitle: 'Пригласить друзей', refHint: (n) => `+${n} Coins · когда друг запишется в лигу`, refCount: (n) => `Приглашено: ${n}`, tabs: { coins: 'Coins', cosmetics: 'Косметика', auction: 'Аукцион', sell: 'Sell' }, packs: 'Пакеты',
       transfer: (a) => `Переведите <b>${a}</b> UZS на карту`, holder: 'Владелец карты', copy: 'Копия', step2: 'Отправьте фото чека об оплате', send: 'Отправить фото чека',
@@ -26,7 +26,7 @@ window.ShopView = (() => {
       prevTitle: 'Так это выглядит в вашем профиле', prevHint: 'Листайте ‹ ›, чтобы посмотреть другие. Пока не купите — ничего не меняется.', notReg: 'Не зарегистрирован',
       auction: 'Аукцион', empty: 'Пока нет клубов на аукционе', aBuy: 'Купить', cancel: 'Снять с аукциона', games: 'игр',
       sellIntro: 'Продайте выигранный кубок админу: нажмите «Продать» и отправьте номер карты. Деньги придут на карту в течение 24 часов, после чего кубок исчезнет из вашего списка.',
-      notOwned: "У вас нет этого кубка", sellPrice: 'Цена', noPrice: 'Цена пока не назначена', sellFor: 'Цена продажи', sellEmpty: 'Нет кубков для продажи. Если вы выиграете лигу, кубок появится здесь.', sell: 'Продать', sellWait: '⏳ Ждём, пока админ переведёт деньги (в течение 24 часов)', season: 'Сезон',
+      notOwned: "У вас нет этого кубка", sellPrice: 'Цена', noPrice: 'Цена пока не назначена', sellFor: 'Цена продажи', sellEmpty: 'Нет кубков для продажи. Если вы выиграете лигу, кубок появится здесь.', sell: 'Продать', sellNoPrice: 'Цена не задана', sellWait: '⏳ Ждём, пока админ переведёт деньги (в течение 24 часов)', season: 'Сезон',
       sellTitle: 'Продать кубок админу', sellLabel: 'На какую карту админу перевести деньги? Введите номер карты', sellSend: 'Отправить админу', sellNote: 'Номер карты уйдёт админу. Деньги переводятся в течение 24 часов.' },
   };
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -99,11 +99,19 @@ window.ShopView = (() => {
   // ——— Sell: yutilgan kuboklarni adminga sotish ———
   function sellHtml(st, t) {
     const EFL = window.EFL;
-    const cards = (st.cupPrices || []).filter((c) => EFL.byId[c.league]).map((c) => {
-      const name = EFL.byId[c.league].name;
-      const mine = (st.trophies || []).filter((x) => x.league === c.league);
-      const act = mine.length && mine.every((x) => x.status === 'selling') ? `<p class="sell-wait">${t.sellWait}</p>` : `<button class="sell-btn" data-act="sellcup" data-league="${esc(c.league)}">${t.sell}</button>`;
-      return `<div class="sell-card"><span class="sell-img">${cupImg(c.league)}</span><b>${esc(name)}</b><small class="sell-price">${t.sellPrice}: <b>${fmt(c.price)} UZS</b></small>${act}</div>`;
+    const priced = new Map((st.cupPrices || []).map((c) => [c.league, c.price]));
+    const own = (lg) => (st.trophies || []).filter((x) => x.league === lg);
+    // Admin narx qo'ygan kuboklar + foydalanuvchida bor kuboklar; egasi bor kuboklar birinchi turadi
+    const ids = [...new Set([...priced.keys(), ...(st.trophies || []).map((x) => x.league)])].filter((id) => EFL.byId[id]);
+    ids.sort((a, b) => (own(b).length > 0) - (own(a).length > 0));
+    const cards = ids.map((id) => {
+      const mine = own(id), price = priced.get(id) || 0, free = mine.filter((x) => x.status !== 'selling');
+      const can = free.length && price;
+      const state = mine.length && !free.length ? `<p class="sell-wait">${t.sellWait}</p>`
+        : can ? `<span class="sell-btn">${t.sell}</span>`
+        : mine.length ? `<p class="sell-wait">${t.sellNoPrice}</p>`
+        : `<p class="sell-no">${t.notOwned}</p>`;
+      return `<div class="sell-card${mine.length ? ' own' : ' dim'}"${can ? ` data-act="sellcup" data-league="${esc(id)}"` : ''}>${mine.length > 1 ? `<i class="sell-n">×${mine.length}</i>` : ''}<span class="sell-img">${cupImg(id)}</span><b>${esc(EFL.byId[id].name)}</b>${price ? `<small class="sell-price">${t.sellPrice}: <b>${fmt(price)} UZS</b></small>` : ''}${state}</div>`;
     }).join('');
     return `<p class="shop-note">${t.sellIntro}</p>${cards ? `<div class="sell-grid">${cards}</div>` : `<div class="pf-empty"><span>🏆</span><p>${t.sellEmpty}</p></div>`}`;
   }

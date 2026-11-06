@@ -265,10 +265,16 @@ window.LeagueView = (() => {
     pview = r; window.scrollTo(0, 0); render();
   }
   // Live: liga/kubok tanlanadi, shu bo'limning hozir ochiq o'yinlari ko'rinadi
-  const LIVE_TABS = [['premier-league', 'Premier League'], ['championship', 'Championship'], ['fa-cup', 'FA Cup'], ['community-shield', 'Community Shield']];
-  let live = { id: 'premier-league', rows: [], loading: false };
+  // Live: reytingdagi kabi tanlanadi — 1-liga / 2-liga / Kuboklar, ichida barcha ligalar (logotip bilan)
+  const LIVE_CUP_IDS = ['fa-cup', 'community-shield', 'copa-del-rey', 'supercopa'];
+  const liveCupInfo = (id) => EFL.COUNTRIES.flatMap((c) => c.cups || []).find((k) => k.id === id);
+  const liveGroupOf = (id) => (LIVE_CUP_IDS.includes(id) ? 'cup' : String(EFL.byId[id]?.group || 1));
+  const liveItems = (g) => (g === 'cup' ? LIVE_CUP_IDS.map((id) => ({ id, name: liveCupInfo(id)?.name || id, cup: true })) : EFL.LEAGUES.filter((l) => String(l.group) === g).map((l) => ({ id: l.id, name: l.name })));
+  const liveDefault = () => data.mine?.league || 'premier-league';
+  let live = { id: '', group: '1', rows: [], loading: false };
   async function loadLive(id) {
-    if (id) live = { id, rows: [], loading: true };
+    if (!id && !live.id) id = liveDefault();
+    if (id) live = { id, group: liveGroupOf(id), rows: [], loading: true };
     const cur = live.id;
     if (!live.rows.length) { live.loading = true; if (tab === 'live') render(); }
     const r = await api('/api/live/' + cur);
@@ -276,13 +282,15 @@ window.LeagueView = (() => {
   }
   const liveHtml = () => {
     const t = T[lang];
-    const chips = LIVE_TABS.map(([id, name]) => `<button class="chip${live.id === id ? ' on' : ''}" data-lchip="${id}">${esc(name)}</button>`).join('');
+    const lt = { uz: ['1-liga', '2-liga', 'Kuboklar'], en: ['1st tier', '2nd tier', 'Cups'], ru: ['1-я лига', '2-я лига', 'Кубки'] }[lang] || ['1-liga', '2-liga', 'Kuboklar'];
+    const chips = liveItems(live.group).map((it) => `<button class="chip${live.id === it.id ? ' on' : ''}" data-lchip="${it.id}">${it.cup ? chain(EFL.cupSrcs(it.id)) : `<img src="${esc(EFL.leagueSrc(it.id))}" alt="" onerror="this.remove()">`}${esc(it.name)}</button>`).join('');
+    const seg = `<div class="seg">${['1', '2', 'cup'].map((g, i) => `<button class="${live.group === g ? 'on' : ''}" data-lgrp="${g}">${lt[i]}</button>`).join('')}</div>`;
     const stLbl = (s) => (s === 'confirmed' ? "o'ynaldi" : s === 'pending' ? 'natija kutilmoqda' : s === 'disputed' ? 'bahsli' : "o'ynalmagan");
     const fmt = (d) => new Date(d).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     const side = (p) => `<div class="live-side">${EFL.crest(p.league, p.clubId, p.club, 'live-crest')}<b>${esc(p.user)}</b><small>${esc(p.club)}</small></div>`;
     const head = live.round ? `<div class="live-head"><b>${live.round}-tur</b><span>hozirgi tur</span></div>` : '';
     const body = live.loading ? `<div class="pf-empty"><p>...</p></div>` : live.rows.length ? live.rows.map((m) => `<div class="g-card live-m">${side(m.home)}<div class="live-mid">${m.score ? `<b class="live-score">${m.score}</b>` : '<span class="live-vs">vs</span>'}</div>${side(m.away)}</div><small class="live-meta">${stLbl(m.status)}${m.deadline && m.status !== 'confirmed' ? ' · ' + fmt(m.deadline) : ''}</small>`).join('') : `<div class="pf-empty"><span>📺</span><p>Hozir ochiq tur yo'q</p></div>`;
-    return `<div class="page l-page">${backBtn()}<div class="g-label"><span>Live</span></div><div class="chips">${chips}</div>${head}${body}</div>${nav(t, 4)}`;
+    return `<div class="page l-page">${backBtn()}<div class="g-label"><span>Live</span></div>${seg}<div class="chips">${chips}</div>${head}${body}</div>${nav(t, 4)}`;
   };
   function setTab(n) {
     tab = n; meSel = null; pview = null; window.scrollTo(0, 0); render(); loadUnread();
@@ -491,13 +499,15 @@ window.LeagueView = (() => {
       el.addEventListener('input', (e) => { if (e.target.id === 'sellCard') e.target.value = e.target.value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim(); });
       el.addEventListener('click', (e) => {
         if (e.target.id === 'shopModal') return closeShop();
-        const q = (s) => e.target.closest(s), ct = q('[data-cont]'), cn = q('[data-country]'), lg = q('[data-lg]'), c = q('[data-club]'), mc = q('[data-mc]'), tgu = q('[data-tgu]'), lch = q('[data-lchip]'), chp = q('[data-chip]'), grp = q('[data-grp]'), pv = q('[data-pv]'), btn = q('[data-act]'), a = btn?.dataset.act;
+        const q = (s) => e.target.closest(s), ct = q('[data-cont]'), cn = q('[data-country]'), lg = q('[data-lg]'), c = q('[data-club]'), mc = q('[data-mc]'), tgu = q('[data-tgu]'), tgi = q('[data-tgid]'), lch = q('[data-lchip]'), lgp = q('[data-lgrp]'), chp = q('[data-chip]'), grp = q('[data-grp]'), pv = q('[data-pv]'), btn = q('[data-act]'), a = btn?.dataset.act;
         if (ct) { const k = EFL.CONTINENTS.find((x) => x.id === ct.dataset.cont); if (k?.open) { cont = k.id; render(); } else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
         else if (cn) { const k = EFL.countryById[cn.dataset.country]; if (k?.open) enterCountry(k.id); else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
         else if (lch) loadLive(lch.dataset.lchip);
+        else if (lgp) { const first = liveItems(lgp.dataset.lgrp)[0]; if (first) loadLive(first.id); }
         else if (chp) { const c = chp.dataset.chip; if (c === 'scorers') { rank.chip = 'scorers'; render(); } else loadRank(c); }
         else if (grp) { const first = EFL.LEAGUES.find((l) => String(l.group) === grp.dataset.grp); if (first) loadRank(first.id); }
         else if (tgu) openTg(tgu.dataset.tgu);
+        else if (tgi) { const url = 'tg://user?id=' + tgi.dataset.tgid; if (tg?.openLink) { try { tg.openLink(url); } catch (_) { window.location.href = url; } } else window.location.href = url; }
         else if (mc) { meSel = mc.dataset.mc; openGame = null; window.scrollTo(0, 0); render(); }
         else if (pv) openPv(pv.dataset.pv);
         else if (a === 'pvback') { pview = null; render(); }

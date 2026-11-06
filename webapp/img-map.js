@@ -439,7 +439,6 @@ window.EFL_IMG = {
   // Kubok rasmi: avval cards/kubok/<id>.png (rasmiy kubok surati), so'ng yuklangan liga/kubok logotipi, oxirida 🏆
   // Yuklangan haqiqiy kubok rasmlari (webapp/cards/kubok/): kubok id -> fayl nomi
   const CUP_FILES = {
-    laliga: 'La_Liga.jpg', 'laliga-2': 'Laliga2.jpeg', 'copa-del-rey': 'copadelrey.jpg', supercopa: 'supercoppa de espanna.jpg',
     'serie-a': 'seriaA.jpg', 'serie-b': 'seriaB.jpg', 'coppa-italia': 'coppaItalia.jpg', supercoppa: 'supercoppa iatliano.jpg',
     bundesliga: 'bundesliga.jpeg', 'bundesliga-2': '2.budesliga.jpg', 'dfb-pokal': 'dfb pokal.jpg', 'dfl-supercup': 'Dfl-super-cup-pokal.png',
     'ligue-1': 'ligue1.jpg', 'ligue-2': 'ligue2.jpg', 'coupe-de-france': 'coupa de france.jpg', 'trophee-des-champions': 'trophee des champions.jpg',
