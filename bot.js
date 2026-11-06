@@ -1333,14 +1333,13 @@ app.get('/api/admin/league/:id/players', staffOnly, ah(async (req, res) => {
 
 // Eski usulda (o'yinlari bekor qilinib) voz kechilgan klublar: o'yinsiz qolgan klub egalari va o'yinlari egasiz qolgan eski ishtirokchilar
 async function recoverInfo(leagueId, regs) {
-  const [cms, act] = await Promise.all([
-    Match.find({ season, league: leagueId, status: 'cancelled', 'auto.kind': { $ne: 'void' } }).select('home away hg').lean(),
-    Match.find({ season, league: leagueId, status: { $ne: 'cancelled' } }).select('home away').lean(),
-  ]);
-  const regIds = new Set(regs.map((r) => r.telegramId)), activeIds = new Set(act.flatMap((m) => [m.home, m.away]));
+  const all = await Match.find({ season, league: leagueId }).select('home away status auto').lean();
+  const regIds = new Set(regs.map((r) => r.telegramId));
   const cnt = new Map();
-  cms.forEach((m) => [m.home, m.away].forEach((id) => { if (!regIds.has(id)) cnt.set(id, (cnt.get(id) || 0) + 1); }));
-  const needy = act.length ? regs.filter((r) => !r.vacant && !activeIds.has(r.telegramId)) : [];
+  all.filter((m) => m.status === 'cancelled' && m.auto?.kind !== 'void').forEach((m) => [m.home, m.away].forEach((id) => { if (!regIds.has(id)) cnt.set(id, (cnt.get(id) || 0) + 1); }));
+  // Qura o'tgandan keyin qo'shilgan ishtirokchilar (o'yinlari tiklanishi mumkin): ro'yxatdan o'tgan vaqti birinchi o'yin yaratilganidan keyin
+  const first = all.length ? Math.min(...all.map((m) => m._id.getTimestamp().getTime())) : Infinity;
+  const needy = regs.filter((r) => !r.vacant && new Date(r.createdAt).getTime() > first);
   if (!needy.length || !cnt.size) return { needy: [], orphans: [] };
   const users = await User.find({ telegramId: { $in: [...cnt.keys(), ...needy.map((r) => r.telegramId)] } }).lean();
   const nm = new Map(users.map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || String(x.telegramId)]));
@@ -1358,7 +1357,9 @@ app.post('/api/admin/league/:id/restore', staffOnly, ah(async (req, res) => {
   const base = { season, league: league.id };
   if (!(await Registration.exists({ ...base, telegramId: to }))) return res.status(404).json({ error: 'gone' });
   if (await Registration.exists({ ...base, telegramId: from })) return res.status(409).json({ error: 'active' });
-  if (await Match.exists({ ...base, status: { $ne: 'cancelled' }, $or: [{ home: to }, { away: to }] })) return res.status(409).json({ error: 'hasgames' });
+  // Yangi egasiga admin qo'shganda avtomatik yaratilgan (hali o'ynalmagan) o'yinlar eski o'yinlar o'rniga bekor qilinadi; o'ynalgan o'yin bo'lsa tiklab bo'lmaydi
+  const own = await Match.find({ ...base, status: { $ne: 'cancelled' }, $or: [{ home: to }, { away: to }] }).select('status').lean();
+  if (own.some((m) => m.status !== 'scheduled')) return res.status(409).json({ error: 'hasgames' });
   const ms = await Match.find({ ...base, status: 'cancelled', 'auto.kind': { $ne: 'void' }, $or: [{ home: from }, { away: from }] }).lean();
   if (!ms.length) return res.status(404).json({ error: 'nogames' });
   const regIds = new Set((await Registration.find(base).select('telegramId').lean()).map((r) => r.telegramId));
@@ -1373,6 +1374,7 @@ app.post('/api/admin/league/:id/restore', staffOnly, ah(async (req, res) => {
     }
     return { updateOne: { filter: { _id: m._id }, update: { $set: set } } };
   });
+  if (own.length) await Match.updateMany({ _id: { $in: own.map((m) => m._id) } }, { $set: { status: 'cancelled', auto: { kind: 'replaced', at: new Date() }, updatedAt: new Date() } });
   await Match.bulkWrite(ops);
   const keys = ms.map((m) => String(m._id));
   await ChatMessage.updateMany({ kind: 'match', key: { $in: keys }, from }, { $set: { from: to } });
