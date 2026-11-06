@@ -476,7 +476,7 @@ ${(d.needy || []).length ? `<div class="g-label"><span>♻️ O'yinlarni tiklash
       return toast(r.error === 'already' ? 'Bu kubok unga allaqachon berilgan' : ERR[r.error] || ERR.fail);
     }
     if (act === 'remove') {
-      if (!(await confirmBox(`${a.dataset.name} ligadan chiqarilsinmi? Uning barcha o'yinlari bekor qilinadi, natijalari jadvaldan olib tashlanadi.`))) return;
+      if (!(await confirmBox(`${a.dataset.name} ligadan chiqarilsinmi? Klub o'yinlari va natijalari bilan bo'sh qoladi, keyin qo'shilgan ishtirokchi shu holatdan davom etadi.`))) return;
       return done(await post(`/api/admin/league/${pl.league}/remove`, { telegramId: Number(a.dataset.tid) }), 'Ishtirokchi chiqarildi', loadPlayers);
     }
     if (act === 'restore') {

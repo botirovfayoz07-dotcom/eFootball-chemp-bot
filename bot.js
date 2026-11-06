@@ -507,21 +507,29 @@ async function takeOverVacant(leagueId, club, newId) {
   return v;
 }
 
+// Klubni bo'sh qoldirish (egasi voz kechsa yoki admin chiqarsa): ochko, o'yin, natija va chat saqlanadi, egasi o'rniga texnik (manfiy) raqam qo'yiladi
+async function vacateClub(leagueId, tid, club) {
+  const vid = -(Date.now() * 1000 + Math.floor(Math.random() * 1000));
+  const q = { season, league: leagueId, telegramId: tid, ...(club ? { club } : {}) };
+  const r = await Registration.findOneAndUpdate(q, { $set: { telegramId: vid, vacant: true }, $unset: { auction: 1 } }, { new: true }).lean();
+  if (!r) return null;
+  const base = { season, league: leagueId };
+  await Promise.all([
+    Match.updateMany({ ...base, home: tid }, { $set: { home: vid } }),
+    Match.updateMany({ ...base, away: tid }, { $set: { away: vid } }),
+    Match.updateMany({ ...base, reportedBy: tid }, { $set: { reportedBy: vid } }),
+  ]);
+  const keys = (await Match.find({ ...base, $or: [{ home: vid }, { away: vid }] }).select('_id').lean()).map((m) => String(m._id));
+  if (keys.length) await ChatMessage.updateMany({ kind: 'match', key: { $in: keys }, from: tid }, { $set: { from: vid } });
+  return r;
+}
+
 // "Klubdan hoziroq voz kechaman": klub egasidan olinadi va yana ro'yxatdan o'tish ro'yxatiga qaytadi
 app.post('/api/leave', async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const { league, club } = req.body || {};
-  // Klub o'chirilmaydi: ochkolari, o'yinlari va natijalari saqlanadi, egasi o'rniga texnik (manfiy) raqam qo'yiladi — yangi egasi shundan davom etadi
-  const vid = -(Date.now() * 1000 + Math.floor(Math.random() * 1000));
-  const r = await Registration.findOneAndUpdate({ season, telegramId: u.id, league, club }, { $set: { telegramId: vid, vacant: true }, $unset: { auction: 1 } }, { new: true }).lean();
-  if (!r) return res.status(404).json({ error: 'fail' });
-  await Promise.all([
-    Match.updateMany({ season, league, home: u.id }, { $set: { home: vid } }),
-    Match.updateMany({ season, league, away: u.id }, { $set: { away: vid } }),
-    Match.updateMany({ season, league, reportedBy: u.id }, { $set: { reportedBy: vid } }),
-  ]);
-  await ChatMessage.updateMany({ kind: 'match', key: { $in: (await Match.find({ season, league, $or: [{ home: vid }, { away: vid }] }).select('_id').lean()).map((m) => String(m._id)) }, from: u.id }, { $set: { from: vid } });
+  if (!(await vacateClub(league, u.id, club))) return res.status(404).json({ error: 'fail' });
   res.json({ ok: true });
 });
 
@@ -1374,15 +1382,14 @@ app.post('/api/admin/league/:id/restore', staffOnly, ah(async (req, res) => {
   res.json({ ok: true, restored: ms.length });
 }));
 
-// Ishtirokchini o'yindan chiqarish: uning o'yinlari bekor qilinadi (natijalari ham jadvaldan olib tashlanadi)
+// Ishtirokchini chiqarish: klub o'yinlari va natijalari bilan bo'sh qoladi, yangi ishtirokchi shundan davom etadi
 app.post('/api/admin/league/:id/remove', staffOnly, ah(async (req, res) => {
   if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });
   const league = EFL.byId[req.params.id], tid = Number(req.body?.telegramId);
   if (!league || !tid) return res.status(400).json({ error: 'fail' });
-  const reg = await Registration.findOneAndDelete({ season, league: league.id, telegramId: tid }).lean();
+  // Natijalar saqlanadi: klub bo'sh qoladi, keyingi qo'shilgan ishtirokchi shu holatdan davom etadi
+  const reg = await vacateClub(league.id, tid);
   if (!reg) return res.status(404).json({ error: 'gone' });
-  await Match.updateMany({ season, league: league.id, status: { $ne: 'cancelled' }, $or: [{ home: tid }, { away: tid }] }, { $set: { status: 'cancelled', updatedAt: new Date() } });
-  await recalc(league.id);
   notify(tid, 'removed', league.name);
   res.json({ ok: true });
 }));
