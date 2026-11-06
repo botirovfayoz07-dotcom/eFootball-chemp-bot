@@ -9,6 +9,7 @@ const schema = new mongoose.Schema({
   pts: { type: Number, default: 0 }, w: { type: Number, default: 0 }, d: { type: Number, default: 0 },
   l: { type: Number, default: 0 }, gf: { type: Number, default: 0 }, ga: { type: Number, default: 0 },
   auction: { price: Number, at: Date }, // klub auksionga qo'yilgan bo'lsa narxi
+  vacant: { type: Boolean, default: false },   // egasi voz kechgan: klub o'yinlari va natijalari bilan saqlanadi, telegramId — manfiy texnik raqam (yangi egasi kelguncha)
   createdAt: { type: Date, default: Date.now },
 });
 // Bitta klubni faqat bitta odam oladi; bitta odam mavsumda faqat bitta ligada bitta klub oladi

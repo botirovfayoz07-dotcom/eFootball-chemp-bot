@@ -317,7 +317,8 @@ app.get('/api/leagues', async (req, res) => {
     mine: mine ? { league: mine.league, club: mine.club } : null,
     leagues: EFL.LEAGUES.map((l) => {
       const rs = regs.filter((r) => r.league === l.id);
-      return { id: l.id, max: l.max, players: rs.length, taken: rs.map((r) => r.club), closed: closedSet.has(l.id) };
+      const live = rs.filter((r) => !r.vacant);   // bo'sh qolgan klub band emas — uni boshqa odam olishi mumkin
+      return { id: l.id, max: l.max, players: live.length, taken: live.map((r) => r.club), closed: closedSet.has(l.id) };
     }),
   });
 });
@@ -427,7 +428,7 @@ app.get('/api/live/:id', ah(async (req, res) => {
   const reg = new Map();
   regs.forEach((r) => { if (!reg.has(r.telegramId) || r.league === cfgL.db) reg.set(r.telegramId, r); });
   const usr = new Map(users.map((x) => [x.telegramId, x]));
-  const side = (tid) => { const u = usr.get(tid), r = reg.get(tid); return { user: u?.username ? '@' + u.username : u?.firstName || String(tid), club: r ? EFL.clubName(r.league, r.club) : '', clubId: r?.club || '', league: r?.league || cfgL.db }; };
+  const side = (tid) => { const u = usr.get(tid), r = reg.get(tid); return { user: u?.username ? '@' + u.username : u?.firstName || (tid < 0 ? '' : String(tid)), club: r ? EFL.clubName(r.league, r.club) : '', clubId: r?.club || '', league: r?.league || cfgL.db }; };
   res.json({ ok: true, round: cur ?? null, rows: ms.map((m) => ({ id: String(m._id), round: m.round, status: m.status, deadline: m.deadline, score: m.hg != null && m.ag != null ? `${m.hg} : ${m.ag}` : null, home: side(m.home), away: side(m.away) })) });
 }));
 app.get('/api/rankings/:league', async (req, res) => {
@@ -445,7 +446,7 @@ app.get('/api/rankings/:league', async (req, res) => {
   const pushForm = (id, c) => { const a = formOf.get(id) || []; a.push(c); formOf.set(id, a); };
   played.forEach((m) => { const h = m.hg > m.ag ? 'W' : m.hg < m.ag ? 'L' : 'D'; pushForm(m.home, h); pushForm(m.away, h === 'W' ? 'L' : h === 'L' ? 'W' : 'D'); });
   const rows = regs
-    .map((r) => ({ club: r.club, user: names.get(r.telegramId) || '', pts: r.pts, w: r.w, d: r.d, l: r.l, gf: r.gf, ga: r.ga, gd: r.gf - r.ga, form: (formOf.get(r.telegramId) || []).slice(-5) }))
+    .map((r) => ({ club: r.club, user: names.get(r.telegramId) || (r.vacant ? "bo'sh" : ''), vacant: !!r.vacant, pts: r.pts, w: r.w, d: r.d, l: r.l, gf: r.gf, ga: r.ga, gd: r.gf - r.ga, form: (formOf.get(r.telegramId) || []).slice(-5) }))
     .sort(rankSort)
     .map((r, i) => ({ pos: i + 1, ...r }));
   res.json({ league, rows });
@@ -454,6 +455,19 @@ app.get('/api/rankings/:league', async (req, res) => {
 app.post('/api/leagues/:league/register', async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
+  {
+    // Bo'sh qolgan klubni egallash: ro'yxat oynasi yopiq bo'lsa ham mumkin, o'yinlar va natijalar o'tadi
+    const lg0 = EFL.byId[req.params.league], club0 = req.body?.club;
+    if (lg0 && club0 && await Registration.exists({ season, league: lg0.id, club: club0, vacant: true })) {
+      if (await LeagueConfig.exists({ season, league: lg0.id, closed: true })) return res.status(409).json({ error: 'closed' });
+      await touchUser(u);
+      if (await Registration.exists({ season, telegramId: u.id })) return res.status(409).json({ error: 'already' });
+      const took = await takeOverVacant(lg0.id, club0, u.id);
+      if (!took) return res.status(409).json({ error: 'taken' });
+      await recalc(lg0.id);
+      return res.json({ ok: true });
+    }
+  }
    // ⬇️⬇️ QO'SHILDI: mavsum oynasi — ro'yxat faqat "registration" fazasida ochiq
   const gate = await seasonEngine.registrationGate();
   if (!gate.ok) return res.status(409).json({ error: gate.error, calendar: gate.calendar });
@@ -474,16 +488,40 @@ app.post('/api/leagues/:league/register', async (req, res) => {
   }
 });
 
+// Bo'sh qolgan klubni (egasi voz kechgan) yangi egasiga o'tkazish: jadvaldagi ochkolar, o'yinlar, natijalar va chat o'z holicha qoladi
+async function takeOverVacant(leagueId, club, newId) {
+  const v = await Registration.findOneAndUpdate({ season, league: leagueId, club, vacant: true }, { $set: { telegramId: newId }, $unset: { vacant: 1, auction: 1 } }, { new: false }).lean();
+  if (!v) return null;
+  const old = v.telegramId, base = { season, league: leagueId };
+  await Promise.all([
+    Match.updateMany({ ...base, home: old }, { $set: { home: newId } }),
+    Match.updateMany({ ...base, away: old }, { $set: { away: newId } }),
+    Match.updateMany({ ...base, reportedBy: old }, { $set: { reportedBy: newId } }),
+  ]);
+  const keys = (await Match.find({ ...base, $or: [{ home: newId }, { away: newId }] }).select('_id').lean()).map((m) => String(m._id));
+  if (keys.length) {
+    await ChatMessage.updateMany({ kind: 'match', key: { $in: keys }, from: old }, { $set: { from: newId } });
+    await ChatMessage.updateMany({ kind: 'match', key: { $in: keys }, readBy: old }, { $addToSet: { readBy: newId } });
+    await ChatMessage.updateMany({ kind: 'match', key: { $in: keys }, readBy: old }, { $pull: { readBy: old } });
+  }
+  return v;
+}
+
 // "Klubdan hoziroq voz kechaman": klub egasidan olinadi va yana ro'yxatdan o'tish ro'yxatiga qaytadi
 app.post('/api/leave', async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const { league, club } = req.body || {};
-  const del = await Registration.findOneAndDelete({ season, telegramId: u.id, league, club }).lean();
-  if (!del) return res.status(404).json({ error: 'fail' });
-  // Klub o'yinlari bekor qilinadi (admin "chiqarish" bilan bir xil), jadval qayta hisoblanadi
-  await Match.updateMany({ season, league, status: { $ne: 'cancelled' }, $or: [{ home: u.id }, { away: u.id }] }, { $set: { status: 'cancelled', updatedAt: new Date() } });
-  await recalc(league);
+  // Klub o'chirilmaydi: ochkolari, o'yinlari va natijalari saqlanadi, egasi o'rniga texnik (manfiy) raqam qo'yiladi — yangi egasi shundan davom etadi
+  const vid = -(Date.now() * 1000 + Math.floor(Math.random() * 1000));
+  const r = await Registration.findOneAndUpdate({ season, telegramId: u.id, league, club }, { $set: { telegramId: vid, vacant: true }, $unset: { auction: 1 } }, { new: true }).lean();
+  if (!r) return res.status(404).json({ error: 'fail' });
+  await Promise.all([
+    Match.updateMany({ season, league, home: u.id }, { $set: { home: vid } }),
+    Match.updateMany({ season, league, away: u.id }, { $set: { away: vid } }),
+    Match.updateMany({ season, league, reportedBy: u.id }, { $set: { reportedBy: vid } }),
+  ]);
+  await ChatMessage.updateMany({ kind: 'match', key: { $in: (await Match.find({ season, league, $or: [{ home: vid }, { away: vid }] }).select('_id').lean()).map((m) => String(m._id)) }, from: u.id }, { $set: { from: vid } });
   res.json({ ok: true });
 });
 
@@ -1122,7 +1160,7 @@ app.get('/api/admin/clubs', staffOnly, ah(async (req, res) => {
     id: l.id, name: l.name, country: l.country,
     clubs: l.clubs.map((c) => {
       const r = byKey.get(l.id + '/' + c.id);
-      return { id: c.id, name: c.name, taken: !!r, user: r ? (nm.get(r.telegramId) || String(r.telegramId)) : '' };
+      return { id: c.id, name: c.name, taken: !!r && !r.vacant, user: r && !r.vacant ? (nm.get(r.telegramId) || String(r.telegramId)) : '' };
     }),
   }));
   res.json({ leagues });
@@ -1276,10 +1314,10 @@ app.get('/api/admin/league/:id/players', staffOnly, ah(async (req, res) => {
   const regs = await Registration.find({ season, league: league.id }).lean();
   const users = await User.find({ telegramId: { $in: regs.map((r) => r.telegramId) } }).lean();
   const nm = new Map(users.map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
-  const taken = new Set(regs.map((r) => r.club));
+  const taken = new Set(regs.filter((r) => !r.vacant).map((r) => r.club));
   res.json({
     max: league.max,
-    players: regs.sort(rankSort).map((r) => ({ telegramId: r.telegramId, club: EFL.clubName(league.id, r.club), user: nm.get(r.telegramId) || '', pts: r.pts, games: r.w + r.d + r.l })),
+    players: regs.filter((r) => !r.vacant).sort(rankSort).map((r) => ({ telegramId: r.telegramId, club: EFL.clubName(league.id, r.club), user: nm.get(r.telegramId) || '', pts: r.pts, games: r.w + r.d + r.l })),
     free: league.clubs.filter((c) => !taken.has(c.id)).map((c) => ({ id: c.id, name: c.name })),
   });
 }));
@@ -1305,6 +1343,13 @@ app.post('/api/admin/league/:id/add', staffOnly, ah(async (req, res) => {
   const usr = /^\d+$/.test(q) ? await User.findOne({ telegramId: Number(q) }).lean() : await User.findOne({ username: new RegExp('^' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }).lean();
   if (!usr) return res.status(404).json({ error: 'nouser' });
   if (await Registration.exists({ season, telegramId: usr.telegramId })) return res.status(409).json({ error: 'already' });
+  if (await Registration.exists({ season, league: league.id, club, vacant: true })) {
+    // Bo'sh klub: o'yinlar va natijalar o'z holicha yangi egasiga o'tadi
+    await takeOverVacant(league.id, club, usr.telegramId);
+    await recalc(league.id);
+    notify(usr.telegramId, 'added', league.name, EFL.clubName(league.id, club));
+    return res.json({ ok: true });
+  }
   if ((await Registration.countDocuments({ season, league: league.id })) >= league.max) return res.status(409).json({ error: 'full' });
   try { await Registration.create({ league: league.id, season, telegramId: usr.telegramId, club }); }
   catch (e) { return res.status(e.code === 11000 ? 409 : 500).json({ error: e.code === 11000 ? (/telegramId/.test(e.message) ? 'already' : 'taken') : 'fail' }); }
