@@ -185,6 +185,10 @@
 
   const byId = Object.fromEntries(LEAGUES.map((l) => [l.id, l]));
   const clubName = (leagueId, clubId) => byId[leagueId]?.clubs.find((c) => c.id === clubId)?.name || clubId;
-  const data = { season: 6, LEAGUES, byId, clubName, CONTINENTS, COUNTRIES, FORMATS, countryById, leaguesOf };
+  // Kubok (sotiladigan/yutiladigan): ligalar + FA Cup, Community Shield, Copa del Rey, Supercopa
+  const TROPHY_CUP_IDS = ['fa-cup', 'community-shield', 'copa-del-rey', 'supercopa'];
+  const cupInfo = (id) => COUNTRIES.flatMap((c) => c.cups || []).find((k) => k.id === id);
+  const trophyName = (id) => byId[id]?.name || cupInfo(id)?.name || id;
+  const data = { season: 6, LEAGUES, byId, clubName, CONTINENTS, COUNTRIES, FORMATS, countryById, leaguesOf, TROPHY_CUP_IDS, cupInfo, trophyName };
   if (typeof module !== 'undefined') module.exports = data; else root.EFL = data;
 })(this);

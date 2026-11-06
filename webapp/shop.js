@@ -101,17 +101,16 @@ window.ShopView = (() => {
     const EFL = window.EFL;
     const priced = new Map((st.cupPrices || []).map((c) => [c.league, c.price]));
     const own = (lg) => (st.trophies || []).filter((x) => x.league === lg);
-    // Admin narx qo'ygan kuboklar + foydalanuvchida bor kuboklar; egasi bor kuboklar birinchi turadi
-    const ids = [...new Set([...priced.keys(), ...(st.trophies || []).map((x) => x.league)])].filter((id) => EFL.byId[id]);
+    // Admin narx qo'ygan har bir kubok (liga va cup) ko'rinadi; rasm burchagida foydalanuvchida nechta borligi (0 ham); egasi bor kuboklar birinchi
+    const ids = [...new Set([...priced.keys(), ...(st.trophies || []).map((x) => x.league)])];
     ids.sort((a, b) => (own(b).length > 0) - (own(a).length > 0));
     const cards = ids.map((id) => {
       const mine = own(id), price = priced.get(id) || 0, free = mine.filter((x) => x.status !== 'selling');
-      const can = free.length && price;
-      const state = mine.length && !free.length ? `<p class="sell-wait">${t.sellWait}</p>`
-        : can ? `<span class="sell-btn">${t.sell}</span>`
-        : mine.length ? `<p class="sell-wait">${t.sellNoPrice}</p>`
-        : `<p class="sell-no">${t.notOwned}</p>`;
-      return `<div class="sell-card${mine.length ? ' own' : ' dim'}"${can ? ` data-act="sellcup" data-league="${esc(id)}"` : ''}>${mine.length > 1 ? `<i class="sell-n">×${mine.length}</i>` : ''}<span class="sell-img">${cupImg(id)}</span><b>${esc(EFL.byId[id].name)}</b>${price ? `<small class="sell-price">${t.sellPrice}: <b>${fmt(price)} UZS</b></small>` : ''}${state}</div>`;
+      const waiting = mine.length && !free.length;
+      const act = waiting ? `<p class="sell-wait">${t.sellWait}</p>`
+        : !price ? `<p class="sell-wait">${t.sellNoPrice}</p>`
+        : `<button class="sell-red${free.length ? '' : ' off'}" data-act="sellcup" data-league="${esc(id)}">Sell</button>`;
+      return `<div class="sell-card${mine.length ? ' own' : ''}"><span class="sell-img">${cupImg(id)}<i class="sell-n${mine.length ? '' : ' zero'}">${mine.length}</i></span><b>${esc(EFL.trophyName(id))}</b>${price ? `<small class="sell-price"><b>${fmt(price)} UZS</b></small>` : ''}${act}</div>`;
     }).join('');
     return `<p class="shop-note">${t.sellIntro}</p>${cards ? `<div class="sell-grid">${cards}</div>` : `<div class="pf-empty"><span>🏆</span><p>${t.sellEmpty}</p></div>`}`;
   }
@@ -160,7 +159,7 @@ window.ShopView = (() => {
       <button class="tu-close" data-act="mclose">${t.close}</button>`);
   }
   function sellModal(lang, tr) {
-    const t = T[lang], name = window.EFL.byId[tr.league]?.name || tr.league;
+    const t = T[lang], name = window.EFL.trophyName(tr.league);
     return modal(`<span class="tu-ico sell-img">${cupImg(tr.league)}</span><h3>${t.sellTitle}</h3><p class="shop-note">${esc(name)} · ${t.season} ${esc(tr.season)}</p>
       ${tr.price ? `<p class="sell-for">${t.sellFor}: <b>${fmt(tr.price)} UZS</b></p>` : ''}
       <label>${t.sellLabel}</label><input id="sellCard" type="text" inputmode="numeric" autocomplete="off" maxlength="19" placeholder="0000 0000 0000 0000">

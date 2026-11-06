@@ -725,10 +725,36 @@ app.post('/api/shop/sell', limits.money, ah(async (req, res) => {
   if (!price) return res.status(409).json({ error: 'noPrice' });
   const tr = await Trophy.findOneAndUpdate({ _id: tid, telegramId: u.id, status: 'owned' }, { $set: { status: 'selling', 'sell.cardLast4': card.slice(-4), 'sell.price': price, 'sell.at': new Date() } }, { new: true }).lean();
   if (!tr) return res.status(409).json({ error: 'gone' });
-  const text = `💸 Kubok sotish so'rovi\n🏆 ${EFL.byId[tr.league]?.name || tr.league} (mavsum ${tr.season})\n💰 Narx: ${money(price)} UZS\n👤 ${who(u)} (id ${u.id})\n💳 Karta: ${cardFmt(card)}\n\nPulni 24 soat ichida o'tkazib bering. O'tkazgach «To'lab berildi» ni bosing — kubok foydalanuvchi ro'yxatidan o'chiriladi.`;
+  const text = `💸 Kubok sotish so'rovi\n🏆 ${EFL.trophyName(tr.league)} (mavsum ${tr.season})\n💰 Narx: ${money(price)} UZS\n👤 ${who(u)} (id ${u.id})\n💳 Karta: ${cardFmt(card)}\n\nPulni 24 soat ichida o'tkazib bering. O'tkazgach «To'lab berildi» ni bosing — kubok foydalanuvchi ro'yxatidan o'chiriladi.`;
   const sent = await toAdmins((id) => bot.telegram.sendMessage(id, text, adminKb('sl_ok_' + tr._id, 'sl_no_' + tr._id, "✅ To'lab berildi", '❌ Rad etish')));
   if (!sent) { await Trophy.updateOne({ _id: tr._id }, { $set: { status: 'owned' }, $unset: { sell: 1 } }); return res.status(502).json({ error: 'fail' }); }
   res.json({ ok: true });
+}));
+
+// Admin: kubok (FA Cup / Copa del Rey) yoki supercup (Community Shield / Supercopa) g'olibiga kubok topshirish
+app.post('/api/admin/cup/award', adminOnly, ah(async (req, res) => {
+  const f = cupLogic.FAMILIES[req.body?.cup], kind = req.body?.kind === 'shield' ? 'shield' : 'cup';
+  if (!f) return res.status(400).json({ error: 'fail' });
+  let tid = 0;
+  if (kind === 'cup') tid = (await cupLogic.winners(season, 'final', f.id))[0] || 0;
+  else {
+    const d = await Cup.findOne({ season, cup: f.shieldKey, stage: 'shield' }).lean();
+    if (d?.winners?.length) tid = d.winners[0];
+    else {
+      const m = await Match.findOne({ season, league: f.id, round: 8, status: 'confirmed' }).lean();
+      if (m && m.hg != null && m.ag != null && m.hg !== m.ag) tid = m.hg > m.ag ? m.home : m.away;
+    }
+  }
+  if (!tid || tid < 0) return res.status(409).json({ error: 'nowinner' });
+  const id = kind === 'cup' ? f.id : f.shieldId, name = EFL.trophyName(id);
+  if (await Trophy.exists({ season, league: id, telegramId: tid })) return res.status(409).json({ error: 'already' });
+  await Trophy.create({ telegramId: tid, league: id, season });
+  say(tid, {
+    uz: `🏆 Tabriklaymiz! Siz ${name} kubogini yutdingiz. Me → Kolleksiya. Sotmoqchi bo'lsangiz: Do'kon → Sell.`,
+    en: `🏆 Congratulations! You won the ${name} trophy. Me → Collection. To sell it: Shop → Sell.`,
+    ru: `🏆 Поздравляем! Вы выиграли кубок ${name}. Я → Коллекция. Чтобы продать: Магазин → Sell.`,
+  }, 'me');
+  res.json({ ok: true, winner: tid });
 }));
 
 // Admin: ligada g'olib bo'lgan ishtirokchiga kubok topshirish
@@ -776,7 +802,7 @@ bot.action(/^sl_(ok|no)_([a-f0-9]{24})$/, adminCb(async (ctx, ok, id) => {
   if (!tr) return ctx.answerCbQuery("Allaqachon ko'rib chiqilgan");
   await ctx.answerCbQuery(ok ? '✅' : '❌');
   await markDone(ctx, ok ? "✅ To'lab berildi" : '❌ Rad etildi');
-  const name = EFL.byId[tr.league]?.name || tr.league;
+  const name = EFL.trophyName(tr.league);
   say(tr.telegramId, ok
     ? { uz: `✅ ${name} kubogi uchun ${money(tr.sell?.price || 0)} UZS kartangizga o'tkazildi. Kubok ro'yxatingizdan chiqarildi.`, en: `✅ ${money(tr.sell?.price || 0)} UZS for the ${name} trophy was sent to your card. The trophy was removed from your list.`, ru: `✅ ${money(tr.sell?.price || 0)} UZS за кубок ${name} переведены на вашу карту. Кубок удалён из вашего списка.` }
     : { uz: `❌ ${name} kubogini sotish so'rovi rad etildi. Kubok ro'yxatingizda qoldi.`, en: `❌ The request to sell the ${name} trophy was declined. The trophy stays in your list.`, ru: `❌ Заявка на продажу кубка ${name} отклонена. Кубок остался в вашем списке.` }, 'me');
@@ -1059,11 +1085,11 @@ app.get('/api/me', ah(async (req, res) => {
 // Admin: har bir liga kubogining narxi (UZS). 0 yoki bo'sh — narx yo'q, sotib bo'lmaydi
 app.get('/api/admin/cup-prices', adminOnly, ah(async (req, res) => {
   const cps = await CupPrice.find().lean(), cup = new Map(cps.map((x) => [x.league, x.price]));
-  res.json({ cups: EFL.LEAGUES.map((l) => ({ id: l.id, name: l.name, group: l.group, price: cup.get(l.id) || 0 })) });
+  res.json({ cups: [...EFL.LEAGUES.map((l) => ({ id: l.id, name: l.name, group: l.group, price: cup.get(l.id) || 0 })), ...EFL.TROPHY_CUP_IDS.map((id) => ({ id, name: EFL.trophyName(id), group: 'cup', price: cup.get(id) || 0 }))] });
 }));
 app.post('/api/admin/cup-prices', adminOnly, ah(async (req, res) => {
   const league = String(req.body?.league || ''), price = Number(req.body?.price || 0);
-  if (!EFL.byId[league] || !Number.isInteger(price) || price < 0 || price > 1e9) return res.status(400).json({ error: 'badPrice' });
+  if ((!EFL.byId[league] && !EFL.TROPHY_CUP_IDS.includes(league)) || !Number.isInteger(price) || price < 0 || price > 1e9) return res.status(400).json({ error: 'badPrice' });
   if (price === 0) await CupPrice.deleteOne({ league });
   else await CupPrice.updateOne({ league }, { $set: { price, updatedAt: new Date() } }, { upsert: true });
   res.json({ ok: true, price });

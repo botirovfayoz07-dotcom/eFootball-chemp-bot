@@ -116,7 +116,7 @@ window.ProfileView = (() => {
   // st: { clubs, collection, sel, openGame, cups }
   function html(lang, st) {
     const t = T[lang], EFL = window.EFL, u = window.Telegram?.WebApp?.initDataUnsafe?.user || {};
-    const avatar = u.photo_url ? `<img src="${esc(u.photo_url)}" alt="">` : `<b>${esc((u.first_name || '?')[0])}</b>`;
+    const avatar = `<b>${esc((u.first_name || '?')[0])}</b>${u.photo_url ? `<img src="${esc(u.photo_url)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}`;
     const sel = st.sel && (st.clubs || []).find((c) => key(c) === st.sel);
 
     if (sel) {                       // ——— klub ichida ———
@@ -137,7 +137,7 @@ window.ProfileView = (() => {
     // ——— asosiy: profil · Turnirlar · Kolleksiya · klub logolari ———
     const SELLING = { uz: 'Sotilmoqda', en: 'Selling', ru: 'Продаётся' };
     const coll = (st.collection || []).map((c) => {
-      if (c.kind === 'trophy') return `<div class="coll-item trophy"><span class="coll-img">${window.ShopView.cupImg(c.cup)}</span><b>${esc(EFL.byId[c.cup]?.name || c.cup)}</b><small>${t.season} ${esc(c.season)}${c.selling ? ' · ⏳ ' + SELLING[lang] : ''}</small></div>`;
+      if (c.kind === 'trophy') return `<div class="coll-item trophy"><span class="coll-img">${window.ShopView.cupImg(c.cup)}</span><b>${esc(EFL.trophyName(c.cup))}</b><small>${t.season} ${esc(c.season)}${c.selling ? ' · ⏳ ' + SELLING[lang] : ''}</small></div>`;
       const it = window.SHOP.findItem(c.id);
       return it ? `<div class="coll-item"><span>${it.kind === 'frame' ? '⭕' : '🌌'}</span><b>${esc(it.name[lang] || it.name.uz)}</b></div>` : '';
     }).join('');
@@ -147,7 +147,7 @@ window.ProfileView = (() => {
       return `<button class="mc" data-mc="${esc(key(c))}">${EFL.crest(c.league, c.club, name)}<b>${esc(name)}</b><small>${esc(EFL.byId[c.league]?.name || '')}</small>${unreadN(st, c) ? `<i class="mc-badge">${unreadN(st, c) > 99 ? '99+' : unreadN(st, c)}</i>` : ''}${c.auction ? '<em>🔨</em>' : ''}</button>`;
     }).join('');
     return `<div class="pf-top"><button class="back" data-act="back"><span>‹</span> ${t.back}</button>${st.staff ? `<button class="adm-thin" data-act="staffpanel">🛠 Admin panel</button>` : ''}</div>
-      <div class="pf-card ${window.ShopView.bgClass(eq.bg)}"${u.username ? ` data-tgu="${esc(u.username)}" style="cursor:pointer"` : ''}><div class="pf-ava${eq.frame ? ' fr-' + eq.frame : ''}">${avatar}</div>
+      <div class="pf-card ${window.ShopView.bgClass(eq.bg)}"${u.username ? ` data-tgu="${esc(u.username)}" style="cursor:pointer"` : ''}><div class="pf-ava ph${eq.frame ? ' fr-' + eq.frame : ''}">${avatar}</div>
         <div class="pf-info"><h2>${esc(u.first_name || '')}</h2>${u.username ? `<a>@${esc(u.username)}</a>` : ''}</div></div>
       <button class="sup-card" data-act="m-support"><span class="sup-ic">🛟</span><span class="sup-tx"><b>${window.MatchView.T[lang].supportCard}</b><small>${window.MatchView.T[lang].supportDesc}</small></span>${st.supportUnread ? `<i class="gm-badge">${st.supportUnread}</i>` : `<em>›</em>`}</button>
       <div class="g-label"><span>${t.collection}</span></div>
@@ -159,7 +159,7 @@ window.ProfileView = (() => {
   function publicHtml(lang, d) {
     const t = T[lang], EFL = window.EFL, eq = d.equipped || {};
     const coll = (d.collection || []).map((c) => {
-      if (c.kind === 'trophy') return `<div class="coll-item trophy"><span class="coll-img">${window.ShopView.cupImg(c.cup)}</span><b>${esc(EFL.byId[c.cup]?.name || c.cup)}</b><small>${t.season} ${esc(c.season)}</small></div>`;
+      if (c.kind === 'trophy') return `<div class="coll-item trophy"><span class="coll-img">${window.ShopView.cupImg(c.cup)}</span><b>${esc(EFL.trophyName(c.cup))}</b><small>${t.season} ${esc(c.season)}</small></div>`;
       const it = window.SHOP.findItem(c.id);
       return it ? `<div class="coll-item"><span>${it.kind === 'frame' ? '⭕' : '🌌'}</span><b>${esc(it.name[lang] || it.name.uz)}</b></div>` : '';
     }).join('');

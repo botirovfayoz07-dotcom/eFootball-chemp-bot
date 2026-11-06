@@ -4,7 +4,7 @@ window.AdminView = (() => {
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const api = (path, opts = {}) => fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', 'x-init-data': tg?.initData || '' } }).then(async (r) => ({ ok: r.ok, ...(await r.json().catch(() => ({}))) })).catch(() => ({ ok: false }));
   const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body || {}) });
-  const ERR = { hasgames: "Yangi egasi allaqachon o'yin o'ynagan, tiklab bo'lmaydi", active: 'Eski egasi hali ligada', nogames: "Bekor qilingan o'yin topilmadi", drawn: "Qura allaqachon o'tkazilgan", few: 'Kamida 2 ishtirokchi kerak', played: "Hisoblar kiritilgan — qayta qura qilib bo'lmaydi", nouser: "Foydalanuvchi topilmadi (botga /start bosgan bo'lishi kerak)", already: "U shu mavsumda allaqachon ro'yxatda", taken: 'Bu klub band', full: "Liga to'lgan", badScore: "Hisobni to'g'ri kiriting (0–99)", gone: "Topilmadi yoki holati o'zgargan", forbidden: "Ruxsat yo'q", stage: "Bosqich topilmadi", nodraw: "Avval qura tashlang", none: "Tasdiqlangan o'yinlar yo'q", last: "Bu oxirgi bosqich", time: "Vaqt noto'g'ri", fail: "Xatolik, qayta urinib ko'ring" };
+  const ERR = { nowinner: "G'olib hali aniqlanmagan", already: 'Bu kubok allaqachon topshirilgan', hasgames: "Yangi egasi allaqachon o'yin o'ynagan, tiklab bo'lmaydi", active: 'Eski egasi hali ligada', nogames: "Bekor qilingan o'yin topilmadi", drawn: "Qura allaqachon o'tkazilgan", few: 'Kamida 2 ishtirokchi kerak', played: "Hisoblar kiritilgan — qayta qura qilib bo'lmaydi", nouser: "Foydalanuvchi topilmadi (botga /start bosgan bo'lishi kerak)", already: "U shu mavsumda allaqachon ro'yxatda", taken: 'Bu klub band', full: "Liga to'lgan", badScore: "Hisobni to'g'ri kiriting (0–99)", gone: "Topilmadi yoki holati o'zgargan", forbidden: "Ruxsat yo'q", stage: "Bosqich topilmadi", nodraw: "Avval qura tashlang", none: "Tasdiqlangan o'yinlar yo'q", last: "Bu oxirgi bosqich", time: "Vaqt noto'g'ri", fail: "Xatolik, qayta urinib ko'ring" };
   const ST = { scheduled: 'Kutilmoqda', pending: 'Raqib tasdig\'i kutilmoqda', disputed: '⚠️ Bahsli (yolg\'on)', confirmed: 'Tasdiqlangan' };
 
   let el, toast, tab = 'results', tours = null, ov = null, mt = { league: '', status: 'action', list: [], total: 0 }, pl = { league: '', data: null }, cups = null, sp = { threads: null, open: null, name: '', league: '', leagueName: '', msgs: [] }, spTimer = null, cupState = null, cupSel = 'fa-cup';
@@ -151,7 +151,15 @@ window.AdminView = (() => {
         <p class="ad-hint">1-liga g'olibi va kubok g'olibi o'rtasidagi o'yin. Ikkalasi ham aniqlanganda yaratiladi. Bitta klub ikkalasini yutgan bo'lsa — o'yinsiz g'olib.</p>
         <button class="ad-btn ghost" data-act="cup-shield">🛡 ${esc(cupState.shieldName || 'Community Shield')} yaratish</button>
       </div>`;
-  
+
+      `<div class="g-card ad-lg">
+        <h3>🏆 Kubok topshirish <small>g'olibga</small></h3>
+        <p class="ad-hint">Final (yoki ${esc(cupState.shieldName || 'Supercup')}) natijasi tasdiqlangach g'olibga kubok beriladi. U Me → Kolleksiyada va Do'kon → Sell da paydo bo'ladi. Narxni «Kubok narxi» bo'limida qo'ying.</p>
+        <div class="ad-row">
+          <button class="ad-btn ok" data-act="cup-award" data-kind="cup">🏆 ${esc(cupState.cupName || 'Kubok')} g'olibiga</button>
+          <button class="ad-btn ok" data-act="cup-award" data-kind="shield">🛡 ${esc(cupState.shieldName || 'Supercup')} g'olibiga</button>
+        </div>
+      </div>`;
   }
   async function loadCup() { const want = cupSel, r = await api('/api/admin/cup?cup=' + want); if (want !== cupSel) return; if (r.ok) { cupState = r; if (tab === 'cup') render(); } }
 
@@ -211,7 +219,7 @@ ${(d.needy || []).length ? `<div class="g-label"><span>♻️ O'yinlarni tiklash
   function cupsHtml() {
     if (!cups) return SK('rows', 3);
     const block = (g, title) => `<div class="g-label"><span>${title}</span></div>${cups.filter((c) => String(c.group) === String(g)).map((c) => `<div class="g-card ad-cup" data-cup="${c.id}"><span class="ad-cup-n"><b>${esc(c.name)}</b><small>${c.price ? '💰 ' + money(c.price) + ' UZS' : 'Narx belgilanmagan — sotib bo\'lmaydi'}</small></span><input type="number" inputmode="numeric" min="0" step="1000" placeholder="UZS" value="${c.price || ''}" data-price><button class="ad-btn ok" data-act="cupsave">Saqlash</button></div>`).join('')}`;
-    return `<p class="ad-hint">Har bir liga kubogining narxini so'mda kiriting. Foydalanuvchi kubokni sotganda shu narx adminga xabarda ko'rinadi va pul shu summada o'tkaziladi. Bo'sh yoki 0 — narx yo'q, kubokni sotib bo'lmaydi.</p>${block('1', '1-ligalar')}${block('2', '2-ligalar')}`;
+    return `<p class="ad-hint">Har bir liga va kubokning narxini so'mda kiriting. Foydalanuvchi kubokni sotganda shu narx adminga xabarda ko'rinadi va pul shu summada o'tkaziladi. Bo'sh yoki 0 — narx yo'q, kubokni sotib bo'lmaydi.</p>${block('1', '1-ligalar')}${block('2', '2-ligalar')}${block('cup', 'Kuboklar (FA Cup, Community Shield, Copa del Rey, Supercopa)')}`;
   }
   async function loadCups() { const r = await api('/api/admin/cup-prices'); if (r.ok) { cups = r.cups; if (tab === 'cups') render(); } }
 
@@ -363,6 +371,11 @@ ${(d.needy || []).length ? `<div class="g-label"><span>♻️ O'yinlarni tiklash
       const r = await post('/api/admin/cup/shield', { cup: cupSel });
       if (!r.ok) return toast(r.error === 'pl_not_finished' ? '1-liga hali tugamagan' : 'Finalchilar hali aniqlanmagan');
       toast((cupState?.shieldName || 'Community Shield') + ' yaratildi 🛡'); return loadCup();
+    }
+    if (act === 'cup-award') {
+      if (!(await confirmBox("G'olibga kubok topshiriladimi?"))) return;
+      const r = await post('/api/admin/cup/award', { cup: cupSel, kind: a.dataset.kind });
+      return done(r, 'Kubok topshirildi 🏆', loadCup);
     }
     if (act === 'cup-pick') { cupSel = a.dataset.cup; cupState = null; render(); return loadCup(); }
     if (act.startsWith('cup-')) {
