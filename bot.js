@@ -339,7 +339,7 @@ async function gamesOf(uid, league, regs) {
   return ms.map((m) => {
     const mine = m.home === uid, hasScore = m.hg != null && m.ag != null;
     return {
-      id: String(m._id), round: m.round, status: m.status, byMe: m.reportedBy === uid, locked: !roundOpen(cfg, m.round),
+      id: String(m._id), round: m.round, status: m.status, byMe: m.reportedBy === uid, locked: !roundOpen(cfg, m.round), isHome: mine, deadline: m.deadline || null,
       oppClub: clubOf.get(oppId(m)) || '', oppTg: utg.get(oppId(m)) || '', unread: unread.get(String(m._id)) || 0,
       proofs: (m.proofs || []).length, iProved: (m.proofs || []).some((p) => p.by === uid),
       claimScore: m.claim?.hg != null ? `${mine ? m.claim.hg : m.claim.ag}:${mine ? m.claim.ag : m.claim.hg}` : null,
@@ -601,13 +601,15 @@ function decodeImage(img) {
 }
 // Adminlarga matn (+ ixtiyoriy rasm) yuboradi; { ok, fileId } — fileId keyin admin panelda rasmni ko'rsatish uchun saqlanadi
 async function sendToAdmins(text, buf) { return sendToIds(ADMINS, text, buf); }
-async function sendToIds(ids, text, buf) {
+// Natija skrinshotlari: PROOF_CHAT_ID (kanal/guruh) berilsa — o'sha yerga, bo'lmasa adminlarga (ovozsiz)
+const sendResultShot = (text, buf) => sendToIds(process.env.PROOF_CHAT_ID ? [Number(process.env.PROOF_CHAT_ID)] : ADMINS, text, buf, true);
+async function sendToIds(ids, text, buf, silent = false) {
   if (!ids.length) return { ok: true, fileId: '' };
   const kb = Markup.inlineKeyboard([[Markup.button.webApp('🛠 Admin panel', `${MINI_APP_URL}?lang=uz&open=admin`)]]);
   let fileId = '';
   const rs = await Promise.allSettled(ids.map(async (id) => {
     if (!buf) return bot.telegram.sendMessage(id, text.slice(0, 4000), kb);
-    const m = await bot.telegram.sendPhoto(id, fileId || { source: buf }, { caption: text.slice(0, 1000), ...kb });
+    const m = await bot.telegram.sendPhoto(id, fileId || { source: buf }, { caption: text.slice(0, 1000), disable_notification: silent, ...kb });
     if (!fileId) fileId = m.photo?.[m.photo.length - 1]?.file_id || '';
   }));
   return { ok: rs.some((r) => r.status === 'fulfilled'), fileId };
@@ -827,11 +829,18 @@ app.post('/api/matches/:id/report', limits.chat, ah(async (req, res) => {
   }
   // ⬆️⬆️
 
+  // Natija kiritishda skrinshot majburiy
+  const shot = decodeImage(req.body?.image);
+  if (shot === false) return res.status(400).json({ error: 'badImage' });
+  if (!shot) return res.status(400).json({ error: 'needShot' });
   const isHome = m0.home === u.id;
+  const [wa, wb] = await Promise.all([whoIs(m0.league, m0.home), whoIs(m0.league, m0.away)]);
+  const sentShot = await sendResultShot(`📸 Natija skrinshoti — ${EFL.trophyName(m0.league)}, ${m0.round}-tur\n${wa} — ${wb}\nHisob: ${isHome ? my : opp}:${isHome ? opp : my} (kiritdi: ${await whoIs(m0.league, u.id)})`, shot);
+  if (!sentShot.ok) return res.status(502).json({ error: 'fail' });
   // Hisob kiritish mumkin: hali kiritilmagan, yoki o'zi kiritgan va raqib hali tasdiqlamagan (tuzatish)
   const m = await Match.findOneAndUpdate(
     { _id: id, season, $or: [{ status: 'scheduled' }, { status: 'pending', reportedBy: u.id }] },
-    { $set: { hg: isHome ? my : opp, ag: isHome ? opp : my, status: 'pending', reportedBy: u.id, claim: null, updatedAt: new Date() } },
+    { $set: { hg: isHome ? my : opp, ag: isHome ? opp : my, status: 'pending', reportedBy: u.id, claim: null, updatedAt: new Date() }, $push: { proofs: { by: u.id, text: '', fileId: sentShot.fileId, hg: isHome ? my : opp, ag: isHome ? opp : my, at: new Date() } } },
     { new: true }
   ).lean();
   if (!m) return res.status(409).json({ error: 'gone' });
@@ -845,10 +854,18 @@ app.post('/api/matches/:id/confirm', ah(async (req, res) => {
   if (!validId(req.params.id)) return res.status(400).json({ error: 'fail' });
   const pre = await Match.findOne({ _id: req.params.id, season }).select('league round').lean();
   if (pre && await roundGate(res, pre.league, pre.round)) return;
-  // Faqat raqib (hisobni kiritmagan tomon) tasdiqlay oladi
+  // Faqat raqib (hisobni kiritmagan tomon) tasdiqlay oladi — skrinshot bilan
+  const shot = decodeImage(req.body?.image);
+  if (shot === false) return res.status(400).json({ error: 'badImage' });
+  if (!shot) return res.status(400).json({ error: 'needShot' });
+  const cur = await Match.findOne({ _id: req.params.id, season, status: 'pending', reportedBy: { $ne: u.id }, $or: [{ home: u.id }, { away: u.id }] }).lean();
+  if (!cur) return res.status(409).json({ error: 'gone' });
+  const [ca, cb] = await Promise.all([whoIs(cur.league, cur.home), whoIs(cur.league, cur.away)]);
+  const sentShot = await sendResultShot(`📸 Tasdiqlash skrinshoti — ${EFL.trophyName(cur.league)}, ${cur.round}-tur\n${ca} — ${cb}\nHisob: ${cur.hg}:${cur.ag} (tasdiqladi: ${await whoIs(cur.league, u.id)})`, shot);
+  if (!sentShot.ok) return res.status(502).json({ error: 'fail' });
   const m = await Match.findOneAndUpdate(
     { _id: req.params.id, season, status: 'pending', reportedBy: { $ne: u.id }, $or: [{ home: u.id }, { away: u.id }] },
-    { $set: { status: 'confirmed', confirmedBy: 'player', updatedAt: new Date() } },
+    { $set: { status: 'confirmed', confirmedBy: 'player', updatedAt: new Date() }, $push: { proofs: { by: u.id, text: '', fileId: sentShot.fileId, hg: cur.hg, ag: cur.ag, at: new Date() } } },
     { new: true }
   ).lean();
   if (!m) return res.status(409).json({ error: 'gone' });

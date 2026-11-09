@@ -48,6 +48,12 @@ window.MatchView = (() => {
       fail: 'Ошибка, попробуйте ещё раз', gone: 'Статус матча изменился',
     },
   };
+  const X2 = {
+    uz: { shotReq: 'Natija skrinshoti majburiy', needShot: 'Avval natija skrinshotini qo\'shing', confirmTitle: 'Natijani tasdiqlash', confirmBtn: '✅ Tasdiqlash', claimed2: 'Raqib kiritgan hisob' },
+    en: { shotReq: 'A result screenshot is required', needShot: 'Add the result screenshot first', confirmTitle: 'Confirm the result', confirmBtn: '✅ Confirm', claimed2: 'Score entered by opponent' },
+    ru: { shotReq: 'Скриншот результата обязателен', needShot: 'Сначала добавьте скриншот результата', confirmTitle: 'Подтвердить результат', confirmBtn: '✅ Подтвердить', claimed2: 'Счёт, введённый соперником' },
+  };
+  Object.keys(X2).forEach((l) => Object.assign(T[l] || {}, X2[l]));
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     const ago = (d) => {
     const m = Math.round((Date.now() - new Date(d).getTime()) / 60000);
@@ -92,15 +98,31 @@ window.MatchView = (() => {
   // ——— 1. Natija kiritish ———
   const stepper = (side, v) => `<div class="m-step"><button data-m="step" data-d="-1">−</button><input type="number" inputmode="numeric" min="0" max="99" value="${v}" data-in="${side}"><button data-m="step" data-d="1">+</button></div>`;
   function openResult(g) {
-    S = { mode: 'result', g };
+    S = { mode: 'result', g, image: null };
     const pre = g.status === 'pending' && g.byMe && g.score ? g.score.split(':') : ['0', '0'];
-    show(`<h3>${t().resultTitle}</h3>${vs(g)}<div class="m-score">${stepper('my', pre[0])}<b>:</b>${stepper('opp', pre[1])}</div><p class="m-note">${t().resultHint}</p><button class="m-primary" data-m="result-send">${t().send}</button>`);
+    show(`<h3>${t().resultTitle}</h3>${vs(g)}<div class="m-score">${stepper('my', pre[0])}<b>:</b>${stepper('opp', pre[1])}</div><div id="mPrev" class="m-prev"></div><button class="m-ghost" data-m="shot">📎 ${t().shot} *</button><input type="file" id="mFile" accept="image/*" hidden><p class="m-note">${t().resultHint}<br><b>${t().shotReq}</b></p><button class="m-primary" data-m="result-send">${t().send}</button>`);
   }
   async function resultSend() {
     const q = (k) => parseInt(root.querySelector(`[data-in="${k}"]`).value, 10), my = q('my'), opp = q('opp'), p = window.ProfileView.T[C.lang()];
     if (!(my >= 0 && my <= 99 && opp >= 0 && opp <= 99)) return C.toast(p.badScore);
-    const r = await C.post(`/api/matches/${S.g.id}/report`, { my, opp });
-    if (r.ok) { tg?.HapticFeedback?.notificationOccurred('success'); C.toast(p.sent); close(); C.reload(); } else C.toast(p[r.error] || t().fail);
+    if (!S.image) return C.toast(t().needShot);
+    const sb = root.querySelector('[data-m="result-send"]'); sb.disabled = true;
+    const r = await C.post(`/api/matches/${S.g.id}/report`, { my, opp, image: S.image });
+    sb.disabled = false;
+    if (r.ok) { tg?.HapticFeedback?.notificationOccurred('success'); C.toast(p.sent); close(); C.reload(); } else C.toast(t()[r.error] || p[r.error] || t().fail);
+  }
+
+  // ——— Tasdiqlash (skrinshot bilan) ———
+  function openConfirm(g) {
+    S = { mode: 'confirm', g, image: null };
+    show(`<h3>${t().confirmTitle}</h3>${vs(g)}<p class="m-claim">${t().claimed2}: <b>${esc(g.score || '')}</b></p><div id="mPrev" class="m-prev"></div><button class="m-ghost" data-m="shot">📎 ${t().shot} *</button><input type="file" id="mFile" accept="image/*" hidden><p class="m-note"><b>${t().shotReq}</b></p><button class="m-primary" data-m="confirm-send">${t().confirmBtn}</button>`);
+  }
+  async function confirmSend() {
+    if (!S.image) return C.toast(t().needShot);
+    const p = window.ProfileView.T[C.lang()], sb = root.querySelector('[data-m="confirm-send"]'); sb.disabled = true;
+    const r = await C.post(`/api/matches/${S.g.id}/confirm`, { image: S.image });
+    sb.disabled = false;
+    if (r.ok) { tg?.HapticFeedback?.notificationOccurred('success'); C.toast(p.confirmed); close(); C.reload(); } else C.toast(t()[r.error] || p[r.error] || p.fail);
   }
 
   // ——— 2. «Yolg'on» (isbot bilan) va keyingi isbot qo'shish ———
@@ -251,6 +273,7 @@ window.MatchView = (() => {
     if (m === 'close') close();
     else if (m === 'step') { const inp = b.parentElement.querySelector('input'); inp.value = Math.max(0, Math.min(99, (parseInt(inp.value, 10) || 0) + Number(b.dataset.d))); tg?.HapticFeedback?.selectionChanged(); }
     else if (m === 'result-send') resultSend();
+    else if (m === 'confirm-send') confirmSend();
     else if (m === 'dispute-send') disputeSend();
     else if (m === 'shot') root.querySelector('#mFile')?.click();
     else if (m === 'shot-del') { S.image = null; root.querySelector('#mPrev').innerHTML = ''; }
@@ -276,6 +299,9 @@ window.MatchView = (() => {
       if (!g) return;
       if (a === 'm-result') openResult(g);
       else if (a === 'm-actions') openActions(g);
+      else if (a === 'm-confirm') openConfirm(g);
+      else if (a === 'm-chat') openChat(g);
+      else if (a === 'm-room') { S = { mode: 'actions', g }; openRoom(); }
       else if (a === 'm-bad') openDispute(g, 'dispute');
       else if (a === 'm-proof') openDispute(g, 'proof');
     },

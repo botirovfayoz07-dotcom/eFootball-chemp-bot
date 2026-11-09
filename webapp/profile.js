@@ -29,7 +29,7 @@ window.ProfileView = (() => {
     else if (g.status === 'scheduled' && g.locked) { chip = `<span class="gm-chip wait">🔒</span>`; extra = `<p class="gm-note">🔒 ${t.roundLocked || 'Tur hali ochilmagan'}</p>`; }
     else if (g.status === 'scheduled') act = btn('m-result', g.id, M.result, 'ok');
     else if (g.status === 'pending' && g.byMe) { score = `<b class="gm2-s wait">${esc(g.score)}</b>`; chip = `<span class="gm-chip wait">${M.cPending}</span>`; act = btn('m-result', g.id, '✎', 'ghost'); extra = `<p class="gm-note">⏳ ${t.waiting}</p>`; }
-    else if (g.status === 'pending') { score = `<b class="gm2-s wait">${esc(g.score)}</b>`; chip = `<span class="gm-chip wait">${M.cPending}</span>`; extra = `<p class="gm-note">${t.theirs}</p><div class="gm-row">${btn('g-ok', g.id, '✅ ' + t.ok, 'ok')}${btn('m-bad', g.id, '❌ ' + t.fake, 'bad')}</div>`; }
+    else if (g.status === 'pending') { score = `<b class="gm2-s wait">${esc(g.score)}</b>`; chip = `<span class="gm-chip wait">${M.cPending}</span>`; extra = `<p class="gm-note">${t.theirs}</p><div class="gm-row">${btn('m-confirm', g.id, '✅ ' + t.ok, 'ok')}${btn('m-bad', g.id, '❌ ' + t.fake, 'bad')}</div>`; }
     else if (g.status === 'disputed') {
       chip = `<span class="gm-chip bad">${M.cDisputed}</span>`; act = btn('m-proof', g.id, '📎 ' + M.addProof, 'ghost');
       extra = `<p class="gm-note bad">⚠️ ${t.disputed}${g.claimScore ? ` (${esc(g.claimScore)})` : ''}${g.proofs ? ` · 📎 ${g.proofs}` : ''}</p>`;
@@ -113,25 +113,99 @@ window.ProfileView = (() => {
     }).join('');
     return `<div class="g-label"><span>${t.clubs}</span></div>${tiles ? `<div class="myclubs">${tiles}</div>` : `<div class="pf-empty"><span>⚽</span><p>${t.noClubs}</p></div>`}`;
   }
+  // Klub ichi: voz kechish/auksion · klub kartasi · statistika (o'rin, g'alaba, durang, mag'lubiyat) · barcha o'yinlar
+  function clubDetail(t, sel, lang) {
+    const EFL = window.EFL, name = EFL.clubName(sel.league, sel.club), lg = EFL.byId[sel.league]?.name || '';
+    const games = (sel.games || []).map((g) => gameHtml(t, g, sel, lang)).join('');
+    return `<div class="cl-top">
+        <button class="cl-btn leave" data-act="leave">🚪 ${t.leave}</button>
+        <button class="cl-btn auc${sel.auction ? ' on' : ''}" data-act="${sel.auction ? 'unauction' : 'auction'}">${sel.auction ? '↩ ' + t.unauction : '🔨 ' + t.auction}</button>
+      </div>
+      <div class="pf-card"><div class="pf-ava">${EFL.crest(sel.league, sel.club, name, 'crest')}</div>
+        <div class="pf-info"><h2>${esc(name)}</h2><p>${esc(lg)}</p>${sel.auction ? `<a>🔨 ${t.onAuction}: ${esc(sel.auction.price)} ${window.ShopView.coin('sm')}</a>` : ''}</div></div>
+      <div class="pf-stats"><div><b>${sel.pos ? '#' + sel.pos : '—'}</b><small>${t.place}</small></div><div><b>${sel.w}</b><small>${t.w}</small></div><div><b>${sel.d}</b><small>${t.d}</small></div><div><b>${sel.l}</b><small>${t.l}</small></div></div>
+      <div class="g-label"><span>${t.games}</span></div>
+      ${games || `<div class="pf-empty"><span>⚽</span><p>${t.none}</p></div>`}`;
+  }
+
+  // ——— Game bo'limi: hozirgi raqib (Live kartasi kabi): tepada HOME / AWAY, ikki yonda katta logotip, o'rtada VS; pastda natija, xabar, Telegram ———
+  const GT = {
+    uz: { home: 'HOME', away: 'AWAY', chat: 'Xabar yozish', tg: 'Telegram', room: 'Xona ID', you: 'Siz', noGame: "Hozircha o'yin yo'q. Qura o'tkazilgach raqibingiz shu yerda chiqadi.", nextWait: 'Keyingi tur ochilishini kuting', unplayed: "o'ynalmagan", noTg: "Raqibning Telegram nomi yo'q", cup: 'Kubok' },
+    en: { home: 'HOME', away: 'AWAY', chat: 'Message', tg: 'Telegram', room: 'Room ID', you: 'You', noGame: 'No games yet. Your opponent will appear here after the draw.', nextWait: 'Wait for the next round to open', unplayed: 'not played', noTg: 'Opponent has no Telegram username', cup: 'Cup' },
+    ru: { home: 'HOME', away: 'AWAY', chat: 'Написать', tg: 'Telegram', room: 'ID комнаты', you: 'Вы', noGame: 'Игр пока нет. Соперник появится здесь после жеребьёвки.', nextWait: 'Дождитесь открытия следующего тура', unplayed: 'не сыграно', noTg: 'У соперника нет имени в Telegram', cup: 'Кубок' },
+  };
+  // Hozirgi o'yin: ochiq turdagi tugallanmagan o'yin; bo'lmasa — oxirgi tasdiqlangan; bo'lmasa — birinchi yopiq
+  function currentGame(games) {
+    const open = games.filter((g) => g.status !== 'confirmed' && !g.locked);
+    if (open.length) return open[0];
+    const done = games.filter((g) => g.status === 'confirmed');
+    return done.length ? done[done.length - 1] : (games.find((g) => g.locked) || null);
+  }
+  function matchCard(lang, g, me, label) {
+    const t = T[lang], M = window.MatchView.T[lang] || window.MatchView.T.uz, X = GT[lang] || GT.uz, EFL = window.EFL;
+    const u = window.Telegram?.WebApp?.initDataUnsafe?.user || {};
+    const myName = EFL.clubName(me.league, me.club), oppName = g.opponent || '—';
+    const myCr = EFL.crest(me.league, me.club, myName, 'crest'), opCr = EFL.crest(g.oppLeague || me.league, g.oppClub, oppName, 'crest');
+    const meUser = u.username ? '@' + u.username : (u.first_name || X.you);
+    const mine = { cr: myCr, club: myName, who: `${esc(meUser)} · ${X.you}` }, opp = { cr: opCr, club: oppName, who: esc(g.user || '') };
+    const [L, R] = g.isHome === false ? [opp, mine] : [mine, opp];
+    const side = (s, lbl) => `<div class="gh-side"><small class="gh-lbl">${lbl}</small><span class="gh-crest">${s.cr}</span><b>${s.who}</b><em>${esc(s.club)}</em></div>`;
+    let res = `<span class="gh-none">${X.unplayed}${g.deadline ? ' · ' + dt(g.deadline) : ''}</span>`, acts = '', note = '';
+    const sc = (cls) => `<b class="gh-score ${cls || ''}">${esc(g.score)}</b>`;
+    const flip = (x) => (g.isHome === false && x ? x.split(':').reverse().join(':') : x);   // hisob doim HOME:AWAY tartibida
+    const shown = (cls) => `<b class="gh-score ${cls || ''}">${esc(flip(g.score))}</b>`;
+    if (g.status === 'confirmed') { res = `${shown()}<span class="gm-chip ok">${M.cConfirmed}</span>`; note = g.locked ? '' : ''; }
+    else if (g.status === 'scheduled' && g.locked) { res = `<span class="gh-none">🔒 ${t.roundLocked || 'Tur hali ochilmagan'}</span>`; }
+    else if (g.status === 'scheduled') acts = `<button class="gh-main" data-act="m-result" data-gid="${esc(g.id)}">⚽ ${M.result}</button>`;
+    else if (g.status === 'pending' && g.byMe) { res = `${shown('wait')}<span class="gm-chip wait">${M.cPending}</span>`; acts = `<button class="gh-main ghost" data-act="m-result" data-gid="${esc(g.id)}">✎ ${M.result}</button>`; note = `⏳ ${t.waiting}`; }
+    else if (g.status === 'pending') { res = `${shown('wait')}<span class="gm-chip wait">${M.cPending}</span>`; acts = `<button class="gh-main" data-act="m-confirm" data-gid="${esc(g.id)}">✅ ${t.ok}</button><button class="gh-main bad" data-act="m-bad" data-gid="${esc(g.id)}">❌ ${t.fake}</button>`; note = t.theirs; }
+    else if (g.status === 'disputed') { res = `<span class="gm-chip bad">${M.cDisputed}</span>`; acts = `<button class="gh-main ghost" data-act="m-proof" data-gid="${esc(g.id)}">📎 ${M.addProof}</button>`; note = `⚠️ ${t.disputed}${g.claimScore ? ' (' + esc(g.claimScore) + ')' : ''}`; }
+    const tgBtn = g.oppTg ? `<button class="gh-sub" data-tgu="${esc(g.oppTg)}">✈️ ${X.tg}</button>` : `<button class="gh-sub off" data-act="m-notg">✈️ ${X.tg}</button>`;
+    const locked = g.status === 'scheduled' && g.locked;
+    return `<div class="gh-card"><div class="gh-cap">${esc(label)}</div>
+      <div class="gh-teams">${side(L, X.home)}<span class="gh-vs">VS</span>${side(R, X.away)}</div>
+      <div class="gh-res">${res}</div>${note ? `<p class="gh-note">${note}</p>` : ''}
+      ${acts ? `<div class="gh-row">${acts}</div>` : ''}
+      <div class="gh-row sub">
+        <button class="gh-sub" data-act="m-chat" data-gid="${esc(g.id)}"${locked ? ' disabled' : ''}>💬 ${X.chat}${g.unread ? `<i class="gm-badge">${g.unread}</i>` : ''}</button>
+        ${tgBtn}
+        <button class="gh-sub" data-act="m-room" data-gid="${esc(g.id)}"${locked ? ' disabled' : ''}>🆔 ${X.room}</button>
+      </div></div>`;
+  }
+  function gameTabHtml(lang, st) {
+    const t = T[lang], X = GT[lang] || GT.uz, EFL = window.EFL;
+    const me = (st.clubs || [])[0];
+    if (!me) return `<div class="pf-empty"><span>⚽</span><p>${t.noClubs}</p></div>`;
+    const g = currentGame(me.games || []);
+    const league = EFL.byId[me.league]?.name || '';
+    let out = g ? matchCard(lang, g, me, `${league} · ${g.round}-${lang === 'ru' ? 'тур' : lang === 'en' ? 'round' : 'tur'}`) : `<div class="pf-empty"><span>⚽</span><p>${X.noGame}</p></div>`;
+    if (g && g.status === 'confirmed' && !(me.games || []).every((x) => x.status === 'confirmed')) out += `<p class="gh-wait">⏳ ${X.nextWait}</p>`;
+    // Kubok: hozir ochiq tur o'yini (tugallanmagan)
+    const c = st.cups;
+    if (c && c.stages) {
+      const open = (c.myMatches || []).filter((m) => m.status !== 'confirmed' && (m.round === 8 ? !!c.shield?.startedAt : !!(c.stages.find((s) => s.round === m.round) || {}).startedAt));
+      open.forEach((m) => {
+        const lbl = m.round === 8 ? (c.shieldName || 'Supercup') : (c.stages.find((s) => s.round === m.round)?.label || `${c.cupName || X.cup} ${m.round}`);
+        const cg = {
+          id: m.id, status: m.status, byMe: !!m.byMe, isHome: !!m.mine, locked: false, unread: 0, deadline: null,
+          score: (m.hg != null && m.ag != null) ? `${m.mine ? m.hg : m.ag}:${m.mine ? m.ag : m.hg}` : null,
+          opponent: m.oppClub ? EFL.clubName(m.oppLeague || '', m.oppClub) : '—', oppClub: m.oppClub || '', oppLeague: m.oppLeague || me.league,
+          user: m.oppUser || '', oppTg: m.oppTg || '', claimScore: null,
+        };
+        out += matchCard(lang, cg, me, `🏆 ${(c.cupName || X.cup)} · ${lbl}`);
+      });
+    }
+    return out;
+  }
+
   // st: { clubs, collection, sel, openGame, cups }
   function html(lang, st) {
     const t = T[lang], EFL = window.EFL, u = window.Telegram?.WebApp?.initDataUnsafe?.user || {};
     const avatar = `<b>${esc((u.first_name || '?')[0])}</b>${u.photo_url ? `<img src="${esc(u.photo_url)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}`;
     const sel = st.sel && (st.clubs || []).find((c) => key(c) === st.sel);
 
-    if (sel) {                       // ——— klub ichida ———
-      const name = EFL.clubName(sel.league, sel.club), lg = EFL.byId[sel.league]?.name || '';
-      const games = (sel.games || []).map((g) => gameHtml(t, g, sel, lang)).join('');
-      return `${st.noBack ? '' : `<button class="back" data-act="meback"><span>‹</span> ${t.back}</button>`}
-        <div class="cl-top">
-          <button class="cl-btn leave" data-act="leave">🚪 ${t.leave}</button>
-          <button class="cl-btn auc${sel.auction ? ' on' : ''}" data-act="${sel.auction ? 'unauction' : 'auction'}">${sel.auction ? '↩ ' + t.unauction : '🔨 ' + t.auction}</button>
-        </div>
-        <div class="pf-card"><div class="pf-ava">${EFL.crest(sel.league, sel.club, name, 'crest')}</div>
-          <div class="pf-info"><h2>${esc(name)}</h2><p>${esc(lg)}</p>${sel.auction ? `<a>🔨 ${t.onAuction}: ${esc(sel.auction.price)} ${window.ShopView.coin('sm')}</a>` : ''}</div></div>
-        <div class="pf-stats"><div><b>${sel.pos ? '#' + sel.pos : '—'}</b><small>${t.place}</small></div><div><b>${sel.w}</b><small>${t.w}</small></div><div><b>${sel.d}</b><small>${t.d}</small></div><div><b>${sel.l}</b><small>${t.l}</small></div></div>
-        <div class="g-label"><span>${t.games}</span></div>
-        ${games || `<div class="pf-empty"><span>⚽</span><p>${t.none}</p></div>`}`;
+    if (sel) {                       // ——— klub ichida (bir nechta klub bo'lsa, ro'yxatdan) ———
+      return `${st.noBack ? '' : `<button class="back" data-act="meback"><span>‹</span> ${t.back}</button>`}${clubDetail(t, sel, lang)}`;
     }
 
     // ——— asosiy: profil · Turnirlar · Kolleksiya · klub logolari ———
@@ -142,6 +216,9 @@ window.ProfileView = (() => {
       return it ? `<div class="coll-item"><span>${it.kind === 'frame' ? '⭕' : '🌌'}</span><b>${esc(it.name[lang] || it.name.uz)}</b></div>` : '';
     }).join('');
     const eq = st.equipped || {};
+    const clubBlock = (st.clubs || []).length === 1
+      ? `<div class="g-label"><span>${t.clubs}</span></div>${clubDetail(t, st.clubs[0], lang)}`
+      : ((st.clubs || []).length ? `<div class="g-label"><span>${t.clubs}</span></div><div class="myclubs">TILES</div>` : '');
     const tiles = (st.clubs || []).map((c) => {
       const name = EFL.clubName(c.league, c.club);
       return `<button class="mc" data-mc="${esc(key(c))}">${EFL.crest(c.league, c.club, name)}<b>${esc(name)}</b><small>${esc(EFL.byId[c.league]?.name || '')}</small>${unreadN(st, c) ? `<i class="mc-badge">${unreadN(st, c) > 99 ? '99+' : unreadN(st, c)}</i>` : ''}${c.auction ? '<em>🔨</em>' : ''}</button>`;
@@ -150,6 +227,7 @@ window.ProfileView = (() => {
       <div class="pf-card ${window.ShopView.bgClass(eq.bg)}"${u.username ? ` data-tgu="${esc(u.username)}" style="cursor:pointer"` : ''}><div class="pf-ava ph${eq.frame ? ' fr-' + eq.frame : ''}">${avatar}</div>
         <div class="pf-info"><h2>${esc(u.first_name || '')}</h2>${u.username ? `<a>@${esc(u.username)}</a>` : ''}</div></div>
       <button class="sup-card" data-act="m-support"><span class="sup-ic">🛟</span><span class="sup-tx"><b>${window.MatchView.T[lang].supportCard}</b><small>${window.MatchView.T[lang].supportDesc}</small></span>${st.supportUnread ? `<i class="gm-badge">${st.supportUnread}</i>` : `<em>›</em>`}</button>
+      ${clubBlock.replace('TILES', tiles)}
       <div class="g-label"><span>${t.collection}</span></div>
       ${coll ? `<div class="coll">${coll}</div>` : `<div class="pf-empty"><span>🏆</span><p>${t.collEmpty}</p></div>`}
       ${cupPanels(t, st, EFL)}`;
@@ -175,5 +253,5 @@ window.ProfileView = (() => {
       <div class="g-label"><span>${t.clubs}</span></div>
       ${tiles ? `<div class="myclubs">${tiles}</div>` : `<div class="pf-empty"><span>⚽</span><p>${t.noClubs}</p></div>`}`;
   }
-  return { html, clubsHtml, publicHtml, T };
+  return { html, clubsHtml, gameTabHtml, publicHtml, T };
 })();

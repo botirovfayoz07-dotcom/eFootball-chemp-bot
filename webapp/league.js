@@ -60,7 +60,7 @@ window.LeagueView = (() => {
   const badge = (t, l) => (stat(l.id).closed ? `<span class="l-badge full">${t.closed}</span>` : `<span class="l-badge ${isFull(l) ? 'full' : 'open'}">${isFull(l) ? t.full : t.open}</span>`);
 
   // Pastki menyu: Ma'lumotlar · Me · Do'kon — faqat ro'yxatdan o'tgandan keyin
-  const navHtml = (t, active) => `<nav class="l-nav">${['ℹ️', '👤', '⚽', '🛒', '📺'].map((i, k) => `<button class="${k === active ? 'on' : ''}" data-act="${['info', 'me', 'club', 'shop', 'live'][k]}">${k === 2 && data.mine ? `<span>${EFL.crest(data.mine.league, data.mine.club, EFL.clubName(data.mine.league, data.mine.club), 'nav-crest')}</span>` : `<span>${i}</span>`}${data.mine && k === 2 && unread.total ? `<i class="nav-badge">${unread.total > 99 ? '99+' : unread.total}</i>` : ''}<small>${[t.nav[0], t.nav[1], ({ uz: 'Klubim', en: 'My club', ru: 'Клуб' })[lang], t.nav[2], t.nav[3]][k]}</small></button>`).join('')}</nav>`;
+  const navHtml = (t, active) => `<nav class="l-nav">${['ℹ️', '👤', '⚽', '🛒', '📺'].map((i, k) => `<button class="${k === active ? 'on' : ''}" data-act="${['info', 'me', 'club', 'shop', 'live'][k]}">${k === 2 && data.mine ? `<span>${EFL.crest(data.mine.league, data.mine.club, EFL.clubName(data.mine.league, data.mine.club), 'nav-crest')}</span>` : `<span>${i}</span>`}${data.mine && k === 2 && unread.total ? `<i class="nav-badge">${unread.total > 99 ? '99+' : unread.total}</i>` : ''}<small>${[t.nav[0], t.nav[1], 'Game', t.nav[2], t.nav[3]][k]}</small></button>`).join('')}</nav>`;
   const nav = (t, active) => (data.mine ? navHtml(t, active) : '');
   const backBtn = (act = 'back') => `<button class="back" data-act="${act}"><span>‹</span> ${T[lang].back}</button>`;
 
@@ -110,7 +110,7 @@ window.LeagueView = (() => {
   const renderMe = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { clubs: prof.clubs, unread: unread.clubs, collection: prof.collection, equipped: prof.equipped, sel: meSel, openGame, supportUnread: prof.supportUnread, cups: prof.cups, staff: !!window.IS_STAFF })}</div>${nav(T[lang], 1)}`; };
   const openTg = (u) => { const url = 'https://t.me/' + u; if (tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank'); };
   window.addEventListener('staffready', () => { if (loaded && tab === 'me') renderMe(); });
-  const renderClub = () => { if (!meSel && prof.clubs.length === 1) meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; el.innerHTML = `<div class="page l-page">${window.ProfileView.clubsHtml(lang, { clubs: prof.clubs, unread: unread.clubs, sel: meSel, openGame, staff: !!window.IS_STAFF })}</div>${nav(T[lang], 2)}`; };
+  const renderClub = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.gameTabHtml(lang, { clubs: prof.clubs, cups: prof.cups, unread: unread.clubs })}</div>${nav(T[lang], 2)}`; };
   const renderShop = () => { el.innerHTML = `<div class="page l-page">${window.ShopView.html(lang, { ...shop, lots })}</div>${nav(T[lang], 3)}`; };
   // ——— Qizil belgilar: raqib/ishtirokchidan o'qilmagan xabarlar soni ———
   const syncUnreadFromProfile = () => {
@@ -297,6 +297,7 @@ window.LeagueView = (() => {
     if (n === 'info') loadRank(); else if (n === 'me' || n === 'club') loadProfile(); else if (n === 'shop') { loadShop(); loadLots(); } else if (n === 'live') loadLive();
   }
 
+  const curKey = () => meSel || (prof.clubs[0] ? prof.clubs[0].league + '|' + prof.clubs[0].club : '');
   const closeModal = () => el.querySelector('#aucModal')?.remove();
   function openAuction() {
     const t = T[lang];
@@ -307,7 +308,7 @@ window.LeagueView = (() => {
   async function confirmAuction() {
     const t = T[lang], price = Math.floor(Number(el.querySelector('#aucPrice')?.value));
     if (!(price >= 1)) return toast(t.badPrice);
-    const [league, club] = meSel.split('|');
+    const [league, club] = curKey().split('|');
     const r = await post('/api/auction', { league, club, price });
     closeModal();
     if (!r.ok) return toast(t[r.error] || t.fail);
@@ -315,14 +316,14 @@ window.LeagueView = (() => {
     await loadProfile();
   }
   async function cancelAuction(key) {
-    const t = T[lang], [league, club] = (key || meSel).split('|');
+    const t = T[lang], [league, club] = (key || curKey()).split('|');
     const r = await post('/api/auction/cancel', { league, club });
     if (!r.ok) return toast(t.fail);
     tg?.HapticFeedback?.notificationOccurred('success'); toast(t.aucOff);
     await Promise.all([loadProfile(), loadLots()]);
   }
   async function leaveClub() {
-    const t = T[lang], [league, club] = meSel.split('|');
+    const t = T[lang], [league, club] = curKey().split('|');
     if (!(await confirmBox(t.leaveConfirm))) return;
     const r = await post('/api/leave', { league, club });
     if (!r.ok) return toast(t.fail);
@@ -469,9 +470,9 @@ window.LeagueView = (() => {
         return {
           id: cm.id, round: cm.round, status: cm.status, byMe: !!cm.byMe,
           score: (cm.hg != null && cm.ag != null) ? `${cm.mine ? cm.hg : cm.ag}:${cm.mine ? cm.ag : cm.hg}` : null,
-          unread: 0, proofs: 0, claimScore: null,
+          unread: 0, proofs: 0, claimScore: null, isHome: !!cm.mine,
           opponent: cm.oppClub ? EFL.clubName(cm.oppLeague || '', cm.oppClub) : '—',
-          oppClub: cm.oppClub || '', user: '',
+          oppClub: cm.oppClub || '', user: cm.oppUser || '', oppTg: cm.oppTg || '',
           league: me?.league || 'premier-league', club: me?.club || '',
           myName: me ? EFL.clubName(me.league, me.club) : '',
         };
@@ -515,6 +516,7 @@ window.LeagueView = (() => {
         else if (c && !c.disabled) { selected = c.dataset.club; tg?.HapticFeedback?.selectionChanged(); updHero(); updBelow(); }
         else if (a === 'g-ok') gameAct(btn.dataset.gid);
         else if (a === 'm-support') window.MatchView.openSupport(supportLeague());
+        else if (a === 'm-notg') toast(({ uz: "Raqibning Telegram nomi yo'q", en: 'Opponent has no Telegram username', ru: 'У соперника нет имени в Telegram' })[lang]);
         else if (a && a.startsWith('m-')) window.MatchView.act(a, btn.dataset.gid);
         else if (a === 'register') register();
         else if (a === 'back') { if (!back()) location.hash = '#official'; }
