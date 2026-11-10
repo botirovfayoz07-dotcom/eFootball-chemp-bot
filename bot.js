@@ -433,14 +433,14 @@ app.get('/api/live/:id', ah(async (req, res) => {
   const unfinished = (m) => ['scheduled', 'pending', 'disputed'].includes(m.status);
   const rounds = [...new Set(pool.map((m) => m.round))].sort((a, b) => a - b);
   const cur = rounds.find((r) => pool.some((m) => m.round === r && unfinished(m))) ?? rounds[rounds.length - 1];
-  const ms = cur === undefined ? [] : pool.filter((m) => m.round === cur);
-  const ids = [...new Set(ms.flatMap((m) => [m.home, m.away]))];
+  const targetMatches = cfgL.kind === 'shield' || cfgL.kind === 'cup' ? pool : all;
+  const ids = [...new Set(targetMatches.flatMap((m) => [m.home, m.away]))];
   const [regs, users] = await Promise.all([Registration.find({ season, telegramId: { $in: ids } }).lean(), User.find({ telegramId: { $in: ids } }).lean()]);
   const reg = new Map();
   regs.forEach((r) => { if (!reg.has(r.telegramId) || r.league === cfgL.db) reg.set(r.telegramId, r); });
   const usr = new Map(users.map((x) => [x.telegramId, x]));
   const side = (tid) => { const u = usr.get(tid), r = reg.get(tid); return { user: u?.username ? '@' + u.username : u?.firstName || (tid < 0 ? '' : String(tid)), club: r ? EFL.clubName(r.league, r.club) : '', clubId: r?.club || '', league: r?.league || cfgL.db }; };
-  res.json({ ok: true, round: cur ?? null, rows: ms.map((m) => ({ id: String(m._id), round: m.round, status: m.status, deadline: m.deadline, score: m.hg != null && m.ag != null ? `${m.hg} : ${m.ag}` : null, home: side(m.home), away: side(m.away) })) });
+  res.json({ ok: true, round: cur ?? null, rounds: [...new Set(targetMatches.map((m) => m.round))].sort((a, b) => a - b), rows: targetMatches.map((m) => ({ id: String(m._id), round: m.round, status: m.status, deadline: m.deadline, score: m.hg != null && m.ag != null ? `${m.hg} : ${m.ag}` : null, home: side(m.home), away: side(m.away) })) });
 }));
 app.get('/api/rankings/:league', async (req, res) => {
   if (!tgUser(req)) return res.status(401).json({ error: 'auth' });

@@ -2,7 +2,7 @@ window.LeagueView = (() => {
   const T = {
     uz: { continents: { europe: 'Europe', asia: 'Asia', africa: 'Africa' }, pickCountry: 'Davlatni tanlang', cups: 'Turnir tanlash', cupsLabel: 'Kuboklar', format: 'Turnir formati', cupTypes: { league: 'Liga', league2: '2-liga', cup: 'Kubok', supercup: 'Superkubok' }, noLeagues: "Bu davlatning turnirlari tez orada qo'shiladi", back: 'Ortga', full: "TO'LIQ", open: 'OCHIQ', players: "O'yinchilar", max: 'Maksimal', season: 'Mavsum', register: "Ro'yxatdan o'tish", pick: 'Klubni tanlang',
       clubs: 'Ligadagi klublar', rules: 'Qoidalar', notice: "E'lon", details: 'Batafsil', prize: 'Sovrin', yourLeague: 'Siz qatnashayotgan liga', place: "O'rin",
-      nav: ["Ma'lumotlar", 'Me', "Do'kon", 'Live'], soon: 'Tez orada', ok: "Ro'yxatdan o'tdingiz ✅", taken: 'Bu klub band', already: "Siz allaqachon ro'yxatdan o'tgansiz", fail: "Xatolik, qayta urinib ko'ring", fullErr: "Liga to'lgan", closed: 'YOPIQ 🔒', closedErr: "Bu liga hozircha yopiq",
+      nav: ['Reyting', 'Me', "Do'kon"], subRank: 'Reyting', subLive: 'Live', subCup: 'Kubok', cupBracket: 'Bracket', cupQual: 'Saralash', drawSoon: 'Qura hali tashlanmagan', r16: '1/8 final', quarter: '1/4 final', semi: 'Yarim final', final: 'Final', supercup: 'Superkubok', filterLeague: 'Liga', filterRound: 'Tur', filterClub: 'Klub', allRounds: 'Barcha turlar', allClubs: 'Barcha klublar', noMatches: "O'yinlar topilmadi", played: "o'ynaldi", pending: 'natija kutilmoqda', disputed: 'bahsli', unplayed: "o'ynalmagan", soon: 'Tez orada', ok: "Ro'yxatdan o'tdingiz ✅", taken: 'Bu klub band', already: "Siz allaqachon ro'yxatdan o'tgansiz", fail: "Xatolik, qayta urinib ko'ring", fullErr: "Liga to'lgan", closed: 'YOPIQ 🔒', closedErr: "Bu liga hozircha yopiq",
       aucTitle: "Klubni auksionga qo'yish", aucPrice: 'Narxni kiriting', aucConfirm: 'Tasdiqlash', aucCancel: 'Bekor qilish', aucOk: "Klub auksionga qo'yildi ✅", aucOff: 'Klub auksiondan olindi', badPrice: "Narx noto'g'ri",
       leaveConfirm: "Klubdan voz kechasizmi? Klub yana ro'yxatdan o'tish bo'limiga qaytadi.", leftOk: 'Klubdan voz kechdingiz',
       rulesList: ["O'yin **8 daqiqa** davom etadi.", 'Ikkitalik himoya yoqish **mumkin emas**.', `O'yinchilar holati **"Excellent"** bo'lishi kerak.`, 'Extra time va penalti **yo\'q**.', 'Dedline har kuni tungi soat **23:30** da.', "Agar raqib javob bermasa yoki hisobni noto'g'ri kiritsa — **rasm yoki video bilan adminga murojaat qiling**."],
@@ -11,7 +11,7 @@ window.LeagueView = (() => {
       prizeText: 'Sovrinlar masalasida homiylarga mutanosib ravishda pul ham beriladi.' },
     en: { continents: { europe: 'Europe', asia: 'Asia', africa: 'Africa' }, pickCountry: 'Choose a country', cups: 'Choose a tournament', cupsLabel: 'Cups', format: 'Tournament format', cupTypes: { league: 'League', league2: '2nd tier', cup: 'Cup', supercup: 'Super Cup' }, noLeagues: "This country's tournaments are coming soon", back: 'Back', full: 'FULL', open: 'OPEN', players: 'Players', max: 'Maximum', season: 'Season', register: 'Sign up', pick: 'Pick a club',
       clubs: 'Clubs in the league', rules: 'Rules', notice: 'Notice', details: 'Details', prize: 'Prize', yourLeague: 'Your league', place: 'Place',
-      nav: ['Info', 'Me', 'Shop', 'Live'], soon: 'Coming soon', ok: 'You are signed up ✅', taken: 'This club is taken', already: 'You are already signed up', fail: 'Error, please try again', fullErr: 'League is full', closed: 'CLOSED 🔒', closedErr: 'This league is closed for now',
+      nav: ['Rating', 'Me', 'Shop'], subRank: 'Rating', subLive: 'Live', subCup: 'Cup', cupBracket: 'Bracket', cupQual: 'Qualifiers', drawSoon: 'Draw not made yet', r16: 'Round of 16', quarter: 'Quarter-final', semi: 'Semi-final', final: 'Final', supercup: 'Super Cup', filterLeague: 'League', filterRound: 'Round', filterClub: 'Club', allRounds: 'All rounds', allClubs: 'All clubs', noMatches: 'No matches found', played: 'played', pending: 'pending', disputed: 'disputed', unplayed: 'unplayed', soon: 'Coming soon', ok: 'You are signed up ✅', taken: 'This club is taken', already: 'You are already signed up', fail: 'Error, please try again', fullErr: 'League is full', closed: 'CLOSED 🔒', closedErr: 'This league is closed for now',
       aucTitle: 'Put the club up for auction', aucPrice: 'Enter the price', aucConfirm: 'Confirm', aucCancel: 'Cancel', aucOk: 'The club is on auction ✅', aucOff: 'The club was taken off auction', badPrice: 'Invalid price',
       leaveConfirm: 'Give up the club? It will go back to the sign-up list.', leftOk: 'You gave up the club',
       rulesList: ['A match lasts **8 minutes**.', 'Double defence is **not allowed**.', 'Player condition must be **"Excellent"**.', 'No extra time or penalties.', 'The deadline is every day at **23:30**.', "If your opponent doesn't respond or enters the score wrongly — **contact the admin with a photo or video**."],
@@ -20,7 +20,7 @@ window.LeagueView = (() => {
       prizeText: 'Prize money is also paid out in proportion to sponsor funding.' },
     ru: { continents: { europe: 'Европа', asia: 'Азия', africa: 'Африка' }, pickCountry: 'Выберите страну', cups: 'Выбор турнира', cupsLabel: 'Кубки', format: 'Формат турнира', cupTypes: { league: 'Лига', league2: '2-я лига', cup: 'Кубок', supercup: 'Суперкубок' }, noLeagues: 'Турниры этой страны скоро появятся', back: 'Назад', full: 'ЗАПОЛНЕНА', open: 'ОТКРЫТА', players: 'Игроки', max: 'Максимум', season: 'Сезон', register: 'Записаться', pick: 'Выберите клуб',
       clubs: 'Клубы лиги', rules: 'Правила', notice: 'Объявление', details: 'Подробнее', prize: 'Призы', yourLeague: 'Ваша лига', place: 'Место',
-      nav: ['Инфо', 'Я', 'Магазин', 'Live'], soon: 'Скоро', ok: 'Вы записаны ✅', taken: 'Этот клуб занят', already: 'Вы уже записаны', fail: 'Ошибка, попробуйте ещё раз', fullErr: 'Лига заполнена', closed: 'ЗАКРЫТА 🔒', closedErr: 'Эта лига пока закрыта',
+      nav: ['Рейтинг', 'Я', 'Магазин'], subRank: 'Рейтинг', subLive: 'Live', subCup: 'Кубок', cupBracket: 'Сетка', cupQual: 'Квалификация', drawSoon: 'Жеребьёвка ещё не проведена', r16: '1/8 финала', quarter: '1/4 финала', semi: 'Полуфинал', final: 'Финал', supercup: 'Суперкубок', filterLeague: 'Лига', filterRound: 'Тур', filterClub: 'Клуб', allRounds: 'Все туры', allClubs: 'Все клубы', noMatches: 'Матчи не найдены', played: 'сыгран', pending: 'ожидает', disputed: 'спорный', unplayed: 'не сыгран', soon: 'Скоро', ok: 'Вы записаны ✅', taken: 'Этот клуб занят', already: 'Вы уже записаны', fail: 'Ошибка, попробуйте ещё раз', fullErr: 'Лига заполнена', closed: 'ЗАКРЫТА 🔒', closedErr: 'Эта лига пока закрыта',
       aucTitle: 'Выставить клуб на аукцион', aucPrice: 'Укажите цену', aucConfirm: 'Подтвердить', aucCancel: 'Отмена', aucOk: 'Клуб выставлен на аукцион ✅', aucOff: 'Клуб снят с аукциона', badPrice: 'Неверная цена',
       leaveConfirm: 'Отказаться от клуба? Он вернётся в список для записи.', leftOk: 'Вы отказались от клуба',
       rulesList: ['Матч длится **8 минут**.', 'Двойную защиту включать **нельзя**.', 'Состояние игроков должно быть **«Excellent»**.', 'Дополнительного времени и пенальти **нет**.', 'Дедлайн каждый день в **23:30**.', 'Если соперник не отвечает или неверно вводит счёт — **обратитесь к админу с фото или видео**.'],
@@ -50,7 +50,8 @@ window.LeagueView = (() => {
   let autoChat = null;
   let unread = { total: 0, clubs: {} };   // o'qilmagan chat xabarlari (qizil belgilar uchun)
   let tab = 'home', view = 'geo', country = null, cont = 'europe', loaded = false, meSel = null, openGame = null, pendingTab = null, autoClub = false, autoSupport = false,
-    prof = { clubs: [], collection: [], equipped: {} }, lots = [], shop = { tab: 'coins', coins: 0, owned: [], equipped: {}, card: '', holder: '', trophies: [] }, prev = null, rcptPack = null, pview = null, rank = { league: null, chip: null, group: '1', rows: [], single: true },
+    infoSubTab = 'rank', cupState = null, curCup = 'fa-cup', cupSubTab = 'bracket', cupLoading = false, liveRoundFilter = 'all', liveClubFilter = 'all',
+    prof = { clubs: [], collection: [], equipped: {} }, lots = [], shop = { tab: 'coins', coins: 0, owned: [], equipped: {}, card: '', holder: '', trophies: [] }, prev = null, rcptPack = null, pview = null, rank = { league: null, chip: null, rows: [], single: false },
     data = { mine: null, stats: {} }, // stats: { [ligaId]: { players, taken[] } }
     cur = null, selected = null, el, lang = 'uz', toast, settle;
 
@@ -60,7 +61,7 @@ window.LeagueView = (() => {
   const badge = (t, l) => (stat(l.id).closed ? `<span class="l-badge full">${t.closed}</span>` : `<span class="l-badge ${isFull(l) ? 'full' : 'open'}">${isFull(l) ? t.full : t.open}</span>`);
 
   // Pastki menyu: Ma'lumotlar · Me · Do'kon — faqat ro'yxatdan o'tgandan keyin
-  const navHtml = (t, active) => `<nav class="l-nav">${['ℹ️', '👤', '⚽', '🛒', '📺'].map((i, k) => `<button class="${k === active ? 'on' : ''}" data-act="${['info', 'me', 'club', 'shop', 'live'][k]}">${k === 2 && data.mine ? `<span>${EFL.crest(data.mine.league, data.mine.club, EFL.clubName(data.mine.league, data.mine.club), 'nav-crest')}</span>` : `<span>${i}</span>`}${data.mine && k === 2 && unread.total ? `<i class="nav-badge">${unread.total > 99 ? '99+' : unread.total}</i>` : ''}<small>${[t.nav[0], t.nav[1], 'Game', t.nav[2], t.nav[3]][k]}</small></button>`).join('')}</nav>`;
+  const navHtml = (t, active) => `<nav class="l-nav">${['🏆', '👤', '⚽', '🛒'].map((i, k) => `<button class="${k === active ? 'on' : ''}" data-act="${['info', 'me', 'club', 'shop'][k]}">${k === 2 && data.mine ? `<span>${EFL.crest(data.mine.league, data.mine.club, EFL.clubName(data.mine.league, data.mine.club), 'nav-crest')}</span>` : `<span>${i}</span>`}${data.mine && k === 2 && unread.total ? `<i class="nav-badge">${unread.total > 99 ? '99+' : unread.total}</i>` : ''}<small>${[t.nav[0], t.nav[1], 'Game', t.nav[2]][k]}</small></button>`).join('')}</nav>`;
   const nav = (t, active) => (data.mine ? navHtml(t, active) : '');
   const backBtn = (act = 'back') => `<button class="back" data-act="${act}"><span>‹</span> ${T[lang].back}</button>`;
 
@@ -84,22 +85,183 @@ window.LeagueView = (() => {
       <div class="note n-det"><small>${t.details.toUpperCase()}</small><p>${esc(t.detailsText)}</p></div>
       <div class="note n-prize"><small>🏆 ${t.prize.toUpperCase()}</small><p>${esc(t.prizeText)}</p></div>`;
 
-  // ——— Ma'lumotlar: kuboklar · qaysi ligada + reyting · format ———
+  // ——— Reyting / Live / Kubok (sub-tabs) ———
+  const liveSubHtml = () => {
+    const t = T[lang];
+    const stLbl = (s) => (s === 'confirmed' ? t.played : s === 'pending' ? t.pending : s === 'disputed' ? t.disputed : t.unplayed);
+    const fmt = (d) => new Date(d).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const side = (p) => `<div class="live-side">${EFL.crest(p.league, p.clubId, p.club, 'live-crest')}<b>${esc(p.user)}</b><small>${esc(p.club)}</small></div>`;
+    const curLeague = EFL.byId[live.id] || EFL.LEAGUES[0];
+    const clubs = curLeague?.clubs || [];
+    const rounds = live.rounds?.length ? live.rounds : Array.from({ length: 19 }, (_, i) => i + 1);
+
+    const filterHtml = `<div class="g-card live-filters">
+      <div class="lf-item">
+        <label>🏆 ${t.filterLeague}</label>
+        <select class="lf-select" data-liveact="sel-league">
+          ${EFL.LEAGUES.map((l) => `<option value="${l.id}" ${live.id === l.id ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="lf-item">
+        <label>🔢 ${t.filterRound}</label>
+        <select class="lf-select" data-liveact="sel-round">
+          <option value="all" ${liveRoundFilter === 'all' ? 'selected' : ''}>${t.allRounds}</option>
+          ${rounds.map((r) => `<option value="${r}" ${String(liveRoundFilter) === String(r) ? 'selected' : ''}>${r}-tur</option>`).join('')}
+        </select>
+      </div>
+      <div class="lf-item">
+        <label>🛡️ ${t.filterClub}</label>
+        <select class="lf-select" data-liveact="sel-club">
+          <option value="all" ${liveClubFilter === 'all' ? 'selected' : ''}>${t.allClubs}</option>
+          ${clubs.map((c) => `<option value="${c.id}" ${liveClubFilter === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+        </select>
+      </div>
+    </div>`;
+
+    let rows = live.rows || [];
+    if (liveRoundFilter && liveRoundFilter !== 'all') {
+      rows = rows.filter((m) => String(m.round) === String(liveRoundFilter));
+    }
+    if (liveClubFilter && liveClubFilter !== 'all') {
+      rows = rows.filter((m) => m.home?.clubId === liveClubFilter || m.away?.clubId === liveClubFilter);
+    }
+
+    let body = '';
+    if (live.loading) {
+      body = `<div class="pf-empty"><p>...</p></div>`;
+    } else if (!rows.length) {
+      body = `<div class="pf-empty"><span>📺</span><p>${t.noMatches}</p></div>`;
+    } else {
+      body = rows.map((m) => `<div class="g-card live-m">${side(m.home)}<div class="live-mid">${m.score ? `<b class="live-score">${m.score}</b>` : '<span class="live-vs">vs</span>'}</div>${side(m.away)}</div><small class="live-meta"><span class="lm-tur"><b>${m.round}-tur</b></span> · ${stLbl(m.status)}${m.deadline && m.status !== 'confirmed' ? ' · ' + fmt(m.deadline) : ''}</small>`).join('');
+    }
+
+    return `${filterHtml}${body}`;
+  };
+
+  const cupViewHtml = () => {
+    const t = T[lang];
+    const cups = [
+      { id: 'fa-cup', name: 'FA Cup (Angliya)', flag: '🇬🇧' },
+      { id: 'copa-del-rey', name: 'Copa del Rey (Ispaniya)', flag: '🇪🇸' },
+    ];
+
+    const cupChips = `<div class="chips" style="margin-bottom:12px;">${cups.map((c) => `<button class="chip${curCup === c.id ? ' on' : ''}" data-act="sel-cup" data-cup="${c.id}">${c.flag} ${esc(c.name)}</button>`).join('')}</div>`;
+
+    const subSeg = `<div class="seg" style="margin-bottom:14px;">
+      <button class="${cupSubTab === 'bracket' ? 'on' : ''}" data-act="cuptab-bracket">🌳 ${t.cupBracket}</button>
+      <button class="${cupSubTab === 'qual' ? 'on' : ''}" data-act="cuptab-qual">📋 ${t.cupQual}</button>
+    </div>`;
+
+    if (cupLoading) {
+      return `${cupChips}${subSeg}<div class="pf-empty"><p>...</p></div>`;
+    }
+    if (!cupState) {
+      return `${cupChips}${subSeg}<div class="pf-empty"><span>🏆</span><p>${t.drawSoon}</p></div>`;
+    }
+
+    const S = cupState;
+    const stageByRound = (r) => (S.stages || []).find((x) => x.round === r) || {};
+    const roundLabel = (r) => {
+      const s = stageByRound(r);
+      if (s.label) return s.label;
+      return r === 4 ? t.r16 : r === 5 ? t.quarter : r === 6 ? t.semi : r === 7 ? t.final : r === 8 ? (S.shieldName || t.supercup) : `Tur ${r}`;
+    };
+    const crest = (s) => (s && s.league ? EFL.crest(s.league, s.clubId, s.club, 'crest') : '');
+
+    let inner = '';
+    if (cupSubTab === 'bracket') {
+      const b = S.bracket || [];
+      const rounds = [4, 5, 6, 7].filter((r) => b.some((m) => m.round === r));
+      if (!rounds.length) {
+        inner = `<div class="cp-empty"><span>🌳</span><p>${t.drawSoon}</p></div>`;
+      } else {
+        const cols = rounds.map((r) => `<div class="cp-col"><h4>${esc(roundLabel(r))}</h4>
+          ${b.filter((m) => m.round === r).map((m) => `<div class="cp-bm">
+            <div class="${m.hg != null && m.ag != null && m.hg > m.ag ? 'w' : ''}">${crest(m.home)}<span>${esc(m.home.club)}</span><b>${m.hg ?? '–'}</b></div>
+            <div class="${m.hg != null && m.ag != null && m.ag > m.hg ? 'w' : ''}">${crest(m.away)}<span>${esc(m.away.club)}</span><b>${m.ag ?? '–'}</b></div>
+          </div>`).join('')}</div>`).join('');
+        inner = `<div class="cp-br">${cols}<div class="cp-trophy">${chain(EFL.cupSrcs(S.cup))}<small>${esc(S.cupName)}</small></div></div>`;
+      }
+
+      const sm = S.shieldMatches || [];
+      if (sm.length) {
+        const m = sm[0];
+        inner += `<div class="g-label" style="margin-top:16px;"><span>🛡️ ${esc(S.shieldName || t.supercup)}</span></div>
+        <div class="g-card live-m">
+          <div class="live-side">${crest(m.home)}<b>${esc(m.home.club)}</b></div>
+          <div class="live-mid">${m.hg != null && m.ag != null ? `<b class="live-score">${m.hg} : ${m.ag}</b>` : '<span class="live-vs">vs</span>'}</div>
+          <div class="live-side">${crest(m.away)}<b>${esc(m.away.club)}</b></div>
+        </div>`;
+      }
+    } else {
+      const qStages = (S.stages || []).filter((s) => ['pl-q', 'ch-q1', 'ch-q2'].includes(s.stage));
+      const statusLines = qStages.map((s) => `<div class="cp-st-row"><span>${esc(s.label)}</span><em>${s.drawnAt ? `${s.teams} klub · ${s.matches ? s.confirmed + '/' + s.matches : ''}` : s.drawAt ? `🎲 ${new Date(s.drawAt).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : t.drawSoon}</em></div>`).join('');
+      const panel = statusLines ? `<div class="cp-panel">${statusLines}</div>` : '';
+
+      const qMatches = S.qualifiers || [];
+      let matchCards = '';
+      if (!qMatches.length) {
+        matchCards = `<div class="cp-empty"><span>📋</span><p>${t.drawSoon}</p></div>`;
+      } else {
+        matchCards = qMatches.map((m) => {
+          const stLbl = (s) => (s === 'confirmed' ? t.played : s === 'pending' ? t.pending : s === 'disputed' ? t.disputed : t.unplayed);
+          return `<div class="g-card live-m">
+            <div class="live-side">${crest(m.home)}<b>${esc(m.home.club)}</b></div>
+            <div class="live-mid">${m.hg != null && m.ag != null ? `<b class="live-score">${m.hg} : ${m.ag}</b>` : '<span class="live-vs">vs</span>'}</div>
+            <div class="live-side">${crest(m.away)}<b>${esc(m.away.club)}</b></div>
+          </div><small class="live-meta"><span class="lm-tur"><b>${esc(roundLabel(m.round))}</b></span> · ${stLbl(m.status)}</small>`;
+        }).join('');
+      }
+      inner = `${panel}${matchCards}`;
+    }
+
+    return `<div class="g-label"><span>🏆 ${esc(S.cupName || 'Kubok')}</span></div>${cupChips}${subSeg}${inner}`;
+  };
+
+  async function loadCupPage(id) {
+    if (id) curCup = id;
+    else if (!curCup) {
+      const lg = data.mine?.league;
+      curCup = (lg === 'laliga' || lg === 'laliga-2') ? 'copa-del-rey' : 'fa-cup';
+    }
+    cupLoading = true;
+    if (tab === 'info') render();
+    const r = await api('/api/cup/page?cup=' + curCup);
+    cupLoading = false;
+    if (r && r.cup === curCup) {
+      cupState = r;
+    }
+    if (tab === 'info') render();
+  }
+
   function infoHtml() {
-    const t = T[lang], m = data.mine, l = EFL.byId[m.league], c = EFL.countryById[l.country], name = EFL.clubName(l.id, m.club);
+    const t = T[lang], m = data.mine || { league: 'premier-league', club: 'arsenal' };
+    const l = EFL.byId[m.league] || EFL.LEAGUES[0], c = EFL.countryById[l?.country], name = EFL.clubName(l.id, m.club);
     const row = rank.rows.find((r) => r.club === m.club);
-    return `<div class="page l-page">${backBtn()}${cupsHtml(c)}
+
+    const subSwitch = `<div class="seg seg-top three">
+      <button class="${infoSubTab === 'rank' ? 'on' : ''}" data-act="infotab-rank">🏆 ${t.subRank}</button>
+      <button class="${infoSubTab === 'live' ? 'on' : ''}" data-act="infotab-live">📺 ${t.subLive}</button>
+      <button class="${infoSubTab === 'cup' ? 'on' : ''}" data-act="infotab-cup">🎟️ ${t.subCup}</button>
+    </div>`;
+
+    if (infoSubTab === 'live') {
+      return `<div class="page l-page">${backBtn()}${subSwitch}${liveSubHtml()}</div>${nav(t, 0)}`;
+    }
+    if (infoSubTab === 'cup') {
+      return `<div class="page l-page">${backBtn()}${subSwitch}${cupViewHtml()}</div>${nav(t, 0)}`;
+    }
+
+    return `<div class="page l-page">${backBtn()}${subSwitch}${cupsHtml(c)}
       <div class="g-label"><span>${t.yourLeague}</span></div>
       <div class="g-card inf-league"><span class="inf-logo">${chain([EFL.leagueSrc(l.id)])}</span>
         <div class="inf-txt"><b>${esc(l.name)}</b><small>${c ? c.flag + ' ' + esc(c.name[lang]) : ''}</small><span class="inf-club">${EFL.crest(l.id, m.club, name)}<i>${esc(name)}</i></span></div>
         <div class="inf-pos"><b>${row ? '#' + row.pos : '—'}</b><small>${t.place}</small></div></div>
-      ${window.RatingView.html(lang, { ...rank, single: false })}
-      ${formatHtml(l.country, l.id)}
-      ${notesHtml(t)}</div>${nav(t, 0)}`;
+      ${window.RatingView.html(lang, { ...rank, single: false })}</div>${nav(t, 0)}`;
   }
   async function loadRank(pick) {
-    if (pick) rank = { league: pick, chip: pick, group: String(EFL.byId[pick].group), rows: [], single: false, loading: true };
-    else if (!rank.league) { const m = data.mine?.league; if (!m) return; rank = { league: m, chip: m, group: String(EFL.byId[m].group), rows: [], single: false, loading: true }; }
+    if (pick) rank = { league: pick, chip: pick, rows: [], single: false, loading: true };
+    else if (!rank.league) { const m = data.mine?.league || 'premier-league'; rank = { league: m, chip: m, rows: [], single: false, loading: true }; }
     const id = rank.league;
     if (!rank.rows.length) { rank.loading = true; if (tab === 'info') render(); }
     const r = await api('/api/rankings/' + id);
@@ -271,30 +433,27 @@ window.LeagueView = (() => {
   const liveGroupOf = (id) => (LIVE_CUP_IDS.includes(id) ? 'cup' : String(EFL.byId[id]?.group || 1));
   const liveItems = (g) => (g === 'cup' ? LIVE_CUP_IDS.map((id) => ({ id, name: liveCupInfo(id)?.name || id, cup: true })) : EFL.LEAGUES.filter((l) => String(l.group) === g).map((l) => ({ id: l.id, name: l.name })));
   const liveDefault = () => data.mine?.league || 'premier-league';
-  let live = { id: '', group: '1', rows: [], loading: false };
+  let live = { id: '', rounds: [], rows: [], loading: false };
   async function loadLive(id) {
     if (!id && !live.id) id = liveDefault();
-    if (id) live = { id, group: liveGroupOf(id), rows: [], loading: true };
+    if (id) { live.id = id; live.loading = true; if (tab === 'info') render(); }
     const cur = live.id;
-    if (!live.rows.length) { live.loading = true; if (tab === 'live') render(); }
     const r = await api('/api/live/' + cur);
-    if (cur === live.id) { live.loading = false; if (r.ok) { live.rows = r.rows; live.round = r.round; } if (tab === 'live') render(); }
+    if (cur === live.id) {
+      live.loading = false;
+      if (r.ok) {
+        live.rows = r.rows || [];
+        live.round = r.round;
+        live.rounds = r.rounds || [];
+      }
+      if (tab === 'info') render();
+    }
   }
-  const liveHtml = () => {
-    const t = T[lang];
-    const lt = { uz: ['1-liga', '2-liga', 'Kuboklar'], en: ['1st tier', '2nd tier', 'Cups'], ru: ['1-я лига', '2-я лига', 'Кубки'] }[lang] || ['1-liga', '2-liga', 'Kuboklar'];
-    const chips = liveItems(live.group).map((it) => `<button class="chip${live.id === it.id ? ' on' : ''}" data-lchip="${it.id}">${it.cup ? chain(EFL.cupSrcs(it.id)) : `<img src="${esc(EFL.leagueSrc(it.id))}" alt="" onerror="this.remove()">`}${esc(it.name)}</button>`).join('');
-    const seg = `<div class="seg">${['1', '2', 'cup'].map((g, i) => `<button class="${live.group === g ? 'on' : ''}" data-lgrp="${g}">${lt[i]}</button>`).join('')}</div>`;
-    const stLbl = (s) => (s === 'confirmed' ? "o'ynaldi" : s === 'pending' ? 'natija kutilmoqda' : s === 'disputed' ? 'bahsli' : "o'ynalmagan");
-    const fmt = (d) => new Date(d).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-    const side = (p) => `<div class="live-side">${EFL.crest(p.league, p.clubId, p.club, 'live-crest')}<b>${esc(p.user)}</b><small>${esc(p.club)}</small></div>`;
-    const head = live.round ? `<div class="live-head"><b>${live.round}-tur</b><span>hozirgi tur</span></div>` : '';
-    const body = live.loading ? `<div class="pf-empty"><p>...</p></div>` : live.rows.length ? live.rows.map((m) => `<div class="g-card live-m">${side(m.home)}<div class="live-mid">${m.score ? `<b class="live-score">${m.score}</b>` : '<span class="live-vs">vs</span>'}</div>${side(m.away)}</div><small class="live-meta">${stLbl(m.status)}${m.deadline && m.status !== 'confirmed' ? ' · ' + fmt(m.deadline) : ''}</small>`).join('') : `<div class="pf-empty"><span>📺</span><p>Hozir ochiq tur yo'q</p></div>`;
-    return `<div class="page l-page">${backBtn()}<div class="g-label"><span>Live</span></div>${seg}<div class="chips">${chips}</div>${head}${body}</div>${nav(t, 4)}`;
-  };
   function setTab(n) {
     tab = n; meSel = null; pview = null; window.scrollTo(0, 0); render(); loadUnread();
-    if (n === 'info') loadRank(); else if (n === 'me' || n === 'club') loadProfile(); else if (n === 'shop') { loadShop(); loadLots(); } else if (n === 'live') loadLive();
+    if (n === 'info') { loadRank(); if (infoSubTab === 'live') loadLive(); else if (infoSubTab === 'cup') loadCupPage(); }
+    else if (n === 'me' || n === 'club') loadProfile();
+    else if (n === 'shop') { loadShop(); loadLots(); }
   }
 
   const curKey = () => meSel || (prof.clubs[0] ? prof.clubs[0].league + '|' + prof.clubs[0].club : '');
@@ -431,7 +590,6 @@ window.LeagueView = (() => {
     if (!data.mine && tab !== 'home') { tab = 'home'; meSel = null; pview = null; }
     if (pview) { el.innerHTML = `<div class="page l-page">${window.ProfileView.publicHtml(lang, pview)}</div>${nav(T[lang], 0)}`; return; }
     if (tab === 'info') { el.innerHTML = infoHtml(); return; }
-    if (tab === 'live') { el.innerHTML = liveHtml(); return; }
     if (tab === 'me') return renderMe();
     if (tab === 'club') return renderClub();
     if (tab === 'shop') return renderShop();
@@ -496,17 +654,26 @@ window.LeagueView = (() => {
     if (!el.dataset.bound) {
       el.dataset.bound = '1';
       el.addEventListener('scroll', (e) => { if (e.target.id === 'lTrack') onTrackScroll(e.target); }, { capture: true, passive: true });
-      el.addEventListener('change', (e) => { if (e.target.id === 'rcpt') uploadReceipt(e.target); });
+      el.addEventListener('change', (e) => {
+        if (e.target.id === 'rcpt') uploadReceipt(e.target);
+        const lact = e.target.dataset.liveact;
+        if (lact === 'sel-league') { liveClubFilter = 'all'; liveRoundFilter = 'all'; loadLive(e.target.value); }
+        else if (lact === 'sel-round') { liveRoundFilter = e.target.value; render(); }
+        else if (lact === 'sel-club') { liveClubFilter = e.target.value; render(); }
+      });
       el.addEventListener('input', (e) => { if (e.target.id === 'sellCard') e.target.value = e.target.value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim(); });
       el.addEventListener('click', (e) => {
         if (e.target.id === 'shopModal') return closeShop();
         const q = (s) => e.target.closest(s), ct = q('[data-cont]'), cn = q('[data-country]'), lg = q('[data-lg]'), c = q('[data-club]'), mc = q('[data-mc]'), tgu = q('[data-tgu]'), tgi = q('[data-tgid]'), lch = q('[data-lchip]'), lgp = q('[data-lgrp]'), chp = q('[data-chip]'), grp = q('[data-grp]'), pv = q('[data-pv]'), btn = q('[data-act]'), a = btn?.dataset.act;
         if (ct) { const k = EFL.CONTINENTS.find((x) => x.id === ct.dataset.cont); if (k?.open) { cont = k.id; render(); } else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
         else if (cn) { const k = EFL.countryById[cn.dataset.country]; if (k?.open) enterCountry(k.id); else { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); } }
-        else if (lch) loadLive(lch.dataset.lchip);
-        else if (lgp) { const first = liveItems(lgp.dataset.lgrp)[0]; if (first) loadLive(first.id); }
+        else if (a === 'infotab-rank') { infoSubTab = 'rank'; render(); }
+        else if (a === 'infotab-live') { infoSubTab = 'live'; if (!live.rows.length) loadLive(live.id || data.mine?.league || 'premier-league'); else render(); }
+        else if (a === 'infotab-cup') { infoSubTab = 'cup'; if (!cupState || cupState.cup !== curCup) loadCupPage(curCup); else render(); }
+        else if (a === 'sel-cup') { loadCupPage(btn.dataset.cup); }
+        else if (a === 'cuptab-bracket') { cupSubTab = 'bracket'; render(); }
+        else if (a === 'cuptab-qual') { cupSubTab = 'qual'; render(); }
         else if (chp) { const c = chp.dataset.chip; if (c === 'scorers') { rank.chip = 'scorers'; render(); } else loadRank(c); }
-        else if (grp) { const first = EFL.LEAGUES.find((l) => String(l.group) === grp.dataset.grp); if (first) loadRank(first.id); }
         else if (tgu) openTg(tgu.dataset.tgu);
         else if (tgi) { const url = 'tg://user?id=' + tgi.dataset.tgid; if (tg?.openLink) { try { tg.openLink(url); } catch (_) { window.location.href = url; } } else window.location.href = url; }
         else if (mc) { meSel = mc.dataset.mc; openGame = null; window.scrollTo(0, 0); render(); }
@@ -522,7 +689,7 @@ window.LeagueView = (() => {
         else if (a === 'back') { if (!back()) location.hash = '#official'; }
         else if (a === 'staffpanel') { window.ADMIN_START_TAB = 'rounds'; location.hash = '#admin'; }
         else if (a === 'meback') { meSel = null; openGame = null; window.scrollTo(0, 0); render(); }
-        else if (a === 'info' || a === 'me' || a === 'club' || a === 'shop' || a === 'live') setTab(a);
+        else if (a === 'info' || a === 'me' || a === 'club' || a === 'shop') setTab(a);
         else if (a === 'leave') leaveClub();
         else if (a === 'auction') openAuction();
         else if (a === 'aucno') closeModal();

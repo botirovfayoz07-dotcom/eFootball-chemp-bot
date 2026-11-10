@@ -704,3 +704,19 @@ body.has-bg .pf-info h2 { text-shadow: 0 2px 10px rgba(0,0,0,.95); }
 .live-vs { color: #a78bfa; font-weight: 700; }
 .live-score { font-size: 22px; color: #e2e8f0; letter-spacing: 1px; }
 .live-meta { display: block; color: #94a3b8; margin: 2px 0 14px 6px; }
+
+/* Top switcher for Reyting / Live */
+.seg-top { margin-bottom: 14px; }
+.live-filters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; margin-bottom: 14px; background: #12152a; border: 1px solid rgba(255,255,255,.08); border-radius: 16px; }
+.lf-item { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.lf-item label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; }
+.lf-select { width: 100%; padding: 8px 6px; font-size: 13px; font-weight: 600; background: #1a1e36; color: #f1f5f9; border: 1px solid rgba(255,255,255,.14); border-radius: 10px; outline: none; cursor: pointer; }
+.lf-select:focus { border-color: #7c5cff; }
+.lm-tur b { color: #a78bfa; }
+@media (max-width: 360px) {
+  .live-filters { grid-template-columns: 1fr; }
+}
+
+/* 3-column segment switcher for Reyting / Live / Kubok */
+.seg.three { grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 5px; }
+.seg.three button { padding: 11px 0; font-size: 13px; font-weight: 600; }
