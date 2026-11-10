@@ -30,7 +30,7 @@ uz: {
          `Natijani tur ochilgandan **1 soat 45 daqiqa** o'tgach kiritish mumkin — o'ynalmagan o'yinga oldindan natija yozilmasligi uchun.`]),
       K([`G'alaba — **3** ochko, durang — **1**, mag'lubiyat — **0**. Teng bo'lsa: gol farqi, so'ng urilgan gollar.`, `Liga odatda **20** kishilik (LaLiga 2 — 22).`,
          `Ligadagi o'ringiz Chempionlar ligasi, Yevropa ligasi va Osiyo Chempionlar ligasiga yo'llanmani belgilaydi.`,
-         `Sovrinlar: liga kubogi, **Oltin to'p** (g'olib) va **Oltin butsa** (eng ko'p gol urgan). Oltin to'p va butsa faqat **1-ligalar** orasida aniqlanadi — 2-ligalarda (LaLiga 2, Championship, 2. Bundesliga, Serie B, Ligue 2, Liga Portugal 2) faqat liga kubogi.`])] },
+         `Sovrinlar: liga kubogi, **Oltin to'p** (g'olib) va **Oltin butsa** (eng ko'p gol urgan). Oltin to'p va butsa faqat **1-ligalar** orasida aniqlanadi — 2-ligalarda (LaLiga 2, Championship, 2. Bundesliga, Serie B, Ligue 2) faqat liga kubogi.`])] },
     cups: { title: 'Kuboklar: ChL, YeL, OChL', sub: 'Kim qatnashadi va format', intro: "Liga mavsumi yakunida eng yaxshilar kuboklarga yo'llanma oladi. Yo'llanma odamga beriladi — keyingi mavsumda klub almashsangiz ham kubokda qolasiz.", sections: [
       { label: 'who', type: 'steps', items: [`**Chempionlar ligasi** — 7 ta Yevropa ligasining har biridan 1–5-o'rinlar va eng yaxshi 6-o'rin: jami **36** kishi.`,
          `**Yevropa ligasi** — o'sha ligalardan 6–10-o'rinlar (ChL'ga o'tgan 6-o'rindan tashqari) va eng yaxshi 2 ta 11-o'rin: jami **36** kishi.`,
