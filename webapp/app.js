@@ -130,7 +130,13 @@
     if (k === 'join' && v) history.replaceState(null, '', '#unofficial/code/' + v);
   }
 
-  // Admin tugmasi faqat adminlarga ko'rinadi
+  // Admin tugmasi faqat adminlarga ko'rinadi (yoki localhost/test rejimida)
+  const isLocalOrTest = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || new URLSearchParams(location.search).get('admin') === '1';
+  if (isLocalOrTest) {
+    window.IS_STAFF = true;
+    const ab = $('#adminBtn');
+    if (ab) ab.hidden = false;
+  }
   if (tg?.initData) setInterval(() => fetch('/api/me', { headers: { 'x-init-data': tg.initData } }).catch(() => {}), 60000);
   if (tg?.initData) fetch('/api/me', { headers: { 'x-init-data': tg.initData } }).then((r) => r.json()).then((d) => { window.IS_STAFF = !!d.admin; window.dispatchEvent(new Event('staffready')); const ab = $('#adminBtn'); if (ab && d.admin) ab.hidden = false; if ('bg' in d) window.AppBg.setOwn(d.bg); }).catch(() => {});
 

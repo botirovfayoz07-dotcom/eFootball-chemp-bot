@@ -427,6 +427,7 @@ window.AdminView = (() => {
     }
 
     el.innerHTML = `<div class="page ad-page">
+      <button class="back" data-act="adm-back"><span>‹</span> Ortga</button>
       <h1 class="section-title">🛠 Admin panel</h1>
       ${topSwitch}
       ${content}
@@ -497,6 +498,11 @@ window.AdminView = (() => {
     if (!btn) return;
     const act = btn.dataset.act;
 
+    if (act === 'adm-back') {
+      if (location.hash === '#admin') location.hash = '';
+      else if (window.LeagueView?.back) window.LeagueView.back();
+      return;
+    }
     if (act === 'switch-main') {
       mainTab = btn.dataset.tab;
       if (mainTab === 'cup' && !cupState) loadCup();
