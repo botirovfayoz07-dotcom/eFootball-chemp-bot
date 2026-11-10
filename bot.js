@@ -66,6 +66,11 @@ bot.start(async (ctx) => {
   if (isNew) await captureReferral(id, ctx.startPayload).catch(() => {});   // t.me/bot?start=ref_<id> — do'st taklifi
   // Turnirga taklif havolasi: t.me/<bot>?start=t_KOD → to'g'ridan-to'g'ri turnirga qo'shilish oynasini ochadi
   const m = /^t_([A-Za-z0-9]{4,12})$/.exec(ctx.startPayload || '');
+  if (m && UT_LOCKED && !ADMINS.includes(id)) {
+    const u0 = await User.findOne({ telegramId: id }).lean(), l0 = u0?.lang || 'uz';
+    await ctx.reply({ uz: "🔒 Norasmiy turnirlar vaqtincha yopiq. Tez orada qaytadi.", en: '🔒 Unofficial tournaments are temporarily closed. Coming back soon.', ru: '🔒 Неофициальные турниры временно закрыты. Скоро вернутся.' }[l0]);
+    return ctx.reply({ uz: 'Tilni tanlang / Choose a language / Выберите язык:' }.uz, langKeyboard);
+  }
   if (m) {
     const u = await User.findOne({ telegramId: id }).lean(), lang = u?.lang || 'uz';
     return ctx.reply('🏆', Markup.inlineKeyboard([[Markup.button.webApp(t[lang].open, `${MINI_APP_URL}?lang=${lang}&open=join/${m[1].toUpperCase()}`)]]));
@@ -1509,6 +1514,14 @@ app.post('/api/admin/league/:id/add', staffOnly, ah(async (req, res) => {
 // Norasmiy turnirlar (unofficial.js)
 let botUser = null;
 const botName = async () => { if (!botUser) { try { botUser = (await bot.telegram.getMe()).username; } catch (_) {} } return botUser; };
+// Norasmiy turnirlar vaqtincha QULFLANGAN (qayta ishlanmoqda). Ochish: UT_LOCKED ni false qiling. Adminlar sinash uchun kira oladi.
+const UT_LOCKED = true;
+app.use('/api/ut', (req, res, next) => {
+  if (!UT_LOCKED) return next();
+  const u = tgUser(req);
+  if (u && ADMINS.includes(u.id)) return next();
+  res.status(423).json({ error: 'locked' });
+});
 const ut = require('./unofficial')(app, { tgUser, ah, bot, User, ADMINS, Markup, t, MINI_APP_URL, adminOnly, botName });
 registerSeasonRoutes(app, { tgUser, adminIds: ADMINS });
 registerAdminExtra(app, { adminOnly, ah, bot, season, EFL, Markup, MINI_APP_URL });

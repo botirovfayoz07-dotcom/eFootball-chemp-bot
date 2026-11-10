@@ -38,6 +38,7 @@
   // Marshrut: '' (bosh sahifa) | #rules | #rules/<bo'lim>
   function route() {
     const parts = location.hash.slice(1).split('/');
+    if (parts[0] === 'unofficial' && !window.IS_STAFF) { history.replaceState(null, '', location.pathname + location.search); parts.length = 0; parts.push(''); }   // qulflangan: faqat adminlar
     const inGuide = parts[0] === 'rules', inOfficial = parts[0] === 'official', inLeague = parts[0] === 'league', inAdmin = parts[0] === 'admin', inUn = parts[0] === 'unofficial';
     document.querySelector('.topbar').hidden = inGuide || inAdmin;
     document.querySelector('main.page').hidden = inGuide || inOfficial || inLeague || inAdmin || inUn;
@@ -93,7 +94,7 @@
     if (name === 'rules') { location.hash = '#rules'; return; }
     if (name === 'official') { location.hash = '#official'; return; }
     if (name === 'admin') { location.hash = '#admin'; return; }
-    if (name === 'private') { location.hash = '#unofficial'; return; }
+    if (name === 'private') { toast(window.I18N[lang].soon); return; }   // norasmiy turnirlar vaqtincha qulflangan
     // TODO: har bir bo'lim sahifasi keyingi qismlarda qo'shiladi
     toast(window.I18N[lang].soon);
   }

@@ -160,3 +160,7 @@ main.page .carousel > .card { flex: none; width: 100%; min-height: 168px; }
 .rl-input:focus { border-color: #22d3ee; }
 .rl-area { min-height: 260px; resize: vertical; line-height: 1.5; }
 .rl-save { width: 100%; margin-top: 16px; border: 0; border-radius: 14px; padding: 14px; font: 700 17px 'Rajdhani', sans-serif; letter-spacing: .04em; color: #04121a; background: linear-gradient(135deg, #22d3ee, #34d399); cursor: pointer; }
+
+/* Norasmiy turnirlar: vaqtincha qulflangan */
+.card-private.locked { position: relative; filter: grayscale(.75) brightness(.8); opacity: .75; }
+.card-private .lock-badge { position: absolute; top: 14px; right: 16px; font-size: 26px; z-index: 3; filter: none; }
