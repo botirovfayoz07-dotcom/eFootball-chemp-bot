@@ -714,6 +714,41 @@ async function sendSupport(league, text, buf) {
 const supportOk = (req, league) => req.superAdmin || (!!league && (req.helperLeagues || []).includes(league));
 const leagueNameOf = (id) => leagueOf(id)?.name || '';
 const tgName = (x) => (x?.username ? '@' + x.username : x?.firstName || '');
+
+// Foydalanuvchi ligasidagi yordamchi admin yoki asosiy admin ma'lumotlari (Telegram chat ochish uchun)
+app.get('/api/league-admin', ah(async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const league = String(req.query.league || '');
+  let targetUser = null;
+  if (league) {
+    const h = await LeagueHelper.findOne({ league }).sort({ addedAt: 1 }).lean();
+    if (h) {
+      targetUser = await User.findOne({ telegramId: h.telegramId }).lean();
+      if (targetUser) {
+        return res.json({
+          ok: true,
+          type: 'helper',
+          telegramId: targetUser.telegramId,
+          username: targetUser.username || null,
+          name: targetUser.firstName || 'Yordamchi admin'
+        });
+      }
+    }
+  }
+  // Yordamchi admin bo'lmasa — asosiy admin
+  if (ADMINS.length > 0) {
+    targetUser = await User.findOne({ telegramId: ADMINS[0] }).lean();
+  }
+  const defaultUsername = (process.env.ADMIN_USERNAME || 'botiroff_06').replace(/^@/, '');
+  res.json({
+    ok: true,
+    type: 'main',
+    telegramId: targetUser?.telegramId || ADMINS[0] || null,
+    username: targetUser?.username || defaultUsername,
+    name: targetUser?.firstName || 'Admin'
+  });
+}));
 // Do'st ligaga yozilgach taklif qilgan odamga xabar
 const notifyReferrer = (p) => p && say(p.refId, {
   uz: `🎉 Do'stingiz ligaga yozildi: sizga +${p.amount} Coins qo'shildi!`,

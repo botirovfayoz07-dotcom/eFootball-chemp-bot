@@ -431,6 +431,30 @@
     const u = 'https://t.me/' + a.replace(/^@/, '');
     if (tg?.openTelegramLink) tg.openTelegramLink(u); else window.open(u, '_blank');
   }
+  async function contactLeagueAdmin() {
+    const lg = supportLeague();
+    try {
+      const q = lg ? '?league=' + encodeURIComponent(lg) : '';
+      const r = await api('/api/league-admin' + q);
+      if (r.ok) {
+        if (r.username) {
+          const u = 'https://t.me/' + r.username.replace(/^@/, '');
+          if (tg?.openTelegramLink) tg.openTelegramLink(u);
+          else window.open(u, '_blank');
+          return;
+        } else if (r.telegramId) {
+          const u = 'tg://user?id=' + r.telegramId;
+          if (tg?.openTelegramLink) tg.openTelegramLink(u);
+          else window.location.href = u;
+          return;
+        }
+      }
+    } catch (_) {}
+    const a = window.ADMIN || '@botiroff_06';
+    const u = 'https://t.me/' + a.replace(/^@/, '');
+    if (tg?.openTelegramLink) tg.openTelegramLink(u);
+    else window.open(u, '_blank');
+  }
 
   // Boshqa ishtirokchi profili: reyting jadvalidagi qatorni bosganda (liga|klub bo'yicha egasi topiladi)
   async function openPv(key) {
