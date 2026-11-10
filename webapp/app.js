@@ -132,7 +132,7 @@
 
   // Admin tugmasi faqat adminlarga ko'rinadi
   if (tg?.initData) setInterval(() => fetch('/api/me', { headers: { 'x-init-data': tg.initData } }).catch(() => {}), 60000);
-  if (tg?.initData) fetch('/api/me', { headers: { 'x-init-data': tg.initData } }).then((r) => r.json()).then((d) => { window.IS_STAFF = !!d.admin; window.dispatchEvent(new Event('staffready')); if (d.admin) $('#adminBtn').hidden = false; if ('bg' in d) window.AppBg.setOwn(d.bg); }).catch(() => {});
+  if (tg?.initData) fetch('/api/me', { headers: { 'x-init-data': tg.initData } }).then((r) => r.json()).then((d) => { window.IS_STAFF = !!d.admin; window.dispatchEvent(new Event('staffready')); const ab = $('#adminBtn'); if (ab && d.admin) ab.hidden = false; if ('bg' in d) window.AppBg.setOwn(d.bg); }).catch(() => {});
 
   applyLang(lang);
 

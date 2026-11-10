@@ -61,7 +61,19 @@ window.LeagueView = (() => {
   const badge = (t, l) => (stat(l.id).closed ? `<span class="l-badge full">${t.closed}</span>` : `<span class="l-badge ${isFull(l) ? 'full' : 'open'}">${isFull(l) ? t.full : t.open}</span>`);
 
   // Pastki menyu: Ma'lumotlar · Me · Do'kon — faqat ro'yxatdan o'tgandan keyin
-  const navHtml = (t, active) => `<nav class="l-nav">${['🏆', '👤', '⚽', '🛒'].map((i, k) => `<button class="${k === active ? 'on' : ''}" data-act="${['info', 'me', 'club', 'shop'][k]}">${k === 2 && data.mine ? `<span>${EFL.crest(data.mine.league, data.mine.club, EFL.clubName(data.mine.league, data.mine.club), 'nav-crest')}</span>` : `<span>${i}</span>`}${data.mine && k === 2 && unread.total ? `<i class="nav-badge">${unread.total > 99 ? '99+' : unread.total}</i>` : ''}<small>${[t.nav[0], t.nav[1], 'Game', t.nav[2]][k]}</small></button>`).join('')}</nav>`;
+  const navHtml = (t, active) => {
+    const base = [
+      { id: 'info', icon: '🏆', label: t.nav[0] },
+      { id: 'me', icon: '👤', label: t.nav[1] },
+      { id: 'club', icon: data.mine ? EFL.crest(data.mine.league, data.mine.club, EFL.clubName(data.mine.league, data.mine.club), 'nav-crest') : '⚽', label: 'Game', badge: data.mine && unread.total ? (unread.total > 99 ? '99+' : unread.total) : 0 },
+      { id: 'shop', icon: '🛒', label: t.nav[2] },
+    ];
+    if (window.IS_STAFF) base.push({ id: 'admin', icon: '🛠', label: 'Admin' });
+    return `<nav class="l-nav">${base.map((b, k) => {
+      const on = b.id === active || k === active;
+      return `<button class="${on ? 'on' : ''}" data-act="${b.id}"><span>${b.icon}</span>${b.badge ? `<i class="nav-badge">${b.badge > 99 ? '99+' : b.badge}</i>` : ''}<small>${b.label}</small></button>`;
+    }).join('')}</nav>`;
+  };
   const nav = (t, active) => (data.mine ? navHtml(t, active) : '');
   const backBtn = (act = 'back') => `<button class="back" data-act="${act}"><span>‹</span> ${T[lang].back}</button>`;
 
@@ -274,6 +286,7 @@ window.LeagueView = (() => {
   window.addEventListener('staffready', () => { if (loaded && tab === 'me') renderMe(); });
   const renderClub = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.gameTabHtml(lang, { clubs: prof.clubs, cups: prof.cups, unread: unread.clubs })}</div>${nav(T[lang], 2)}`; };
   const renderShop = () => { el.innerHTML = `<div class="page l-page">${window.ShopView.html(lang, { ...shop, lots })}</div>${nav(T[lang], 3)}`; };
+  const renderAdmin = () => { el.innerHTML = `<div class="page l-page" id="adminHost"></div>${nav(T[lang], 'admin')}`; window.AdminView.show(el.querySelector('#adminHost'), toast); };
   // ——— Qizil belgilar: raqib/ishtirokchidan o'qilmagan xabarlar soni ———
   const syncUnreadFromProfile = () => {
     const clubs = {}; let total = 0;
@@ -682,14 +695,14 @@ window.LeagueView = (() => {
         else if (lg && lg.dataset.lg !== cur) centerOn(lg.dataset.lg, true);
         else if (c && !c.disabled) { selected = c.dataset.club; tg?.HapticFeedback?.selectionChanged(); updHero(); updBelow(); }
         else if (a === 'g-ok') gameAct(btn.dataset.gid);
-        else if (a === 'm-support') window.MatchView.openSupport(supportLeague());
+        else if (a === 'm-support') contactLeagueAdmin();
         else if (a === 'm-notg') toast(({ uz: "Raqibning Telegram nomi yo'q", en: 'Opponent has no Telegram username', ru: 'У соперника нет имени в Telegram' })[lang]);
         else if (a && a.startsWith('m-')) window.MatchView.act(a, btn.dataset.gid);
         else if (a === 'register') register();
         else if (a === 'back') { if (!back()) location.hash = '#official'; }
         else if (a === 'staffpanel') { window.ADMIN_START_TAB = 'rounds'; location.hash = '#admin'; }
         else if (a === 'meback') { meSel = null; openGame = null; window.scrollTo(0, 0); render(); }
-        else if (a === 'info' || a === 'me' || a === 'club' || a === 'shop') setTab(a);
+        else if (a === 'info' || a === 'me' || a === 'club' || a === 'shop' || a === 'admin') setTab(a);
         else if (a === 'leave') leaveClub();
         else if (a === 'auction') openAuction();
         else if (a === 'aucno') closeModal();
@@ -711,7 +724,9 @@ window.LeagueView = (() => {
         else if (a === 'sellcup') { const tr = shop.trophies.find((x) => x.league === btn.dataset.league && x.status !== 'selling'); if (tr) openSell(tr.id); else toast(window.ShopView.T[lang].notOwned); }
         else if (a === 'sell') openSell(btn.dataset.tid);
         else if (a === 'sellgo') confirmSell(btn.dataset.tid);
-        else if (a === 'buy') { tg?.HapticFeedback?.impactOccurred('light'); toast(T[lang].soon); }
+        else if (a === 'buy') openBidModal(btn.dataset.league, btn.dataset.club);
+        else if (a === 'submit-bid') submitBid(btn.dataset.lg, btn.dataset.cl);
+        else if (a === 'pick-fav') pickFavPlayer();
       });
     }
   }

@@ -1,18 +1,18 @@
 // "Me" bo'limi: profil kartasi, turnirlar panellari, Kolleksiya, klublarim
 window.ProfileView = (() => {
   const T = {
-    uz: { season: 'Mavsum', collection: 'Kolleksiya', collEmpty: "Hali yutilgan kubok yoki sotib olingan narsa yo'q", clubs: 'Klublarim', noClubs: "Hozircha klubingiz yo'q", games: "Mening o'yinlarim", none: "Hali o'yinlar yo'q", place: "O'rin", w: "G'alaba", d: 'Durang', l: "Mag'lubiyat", back: 'Ortga', leave: 'Klubdan voz kechaman', auction: "Auksionga qo'yaman", unauction: 'Auksiondan olish', onAuction: 'Auksionda', price: 'Narx',
+    uz: { season: 'Mavsum', collection: 'Kolleksiya', collEmpty: "Hali yutilgan kubok yoki sotib olingan narsa yo'q", clubs: 'Klublarim', noClubs: "Hozircha klubingiz yo'q", games: "Mening o'yinlarim", none: "Hali o'yinlar yo'q", results: 'Natijalar', noResults: "Hali o'yin natijalari yo'q", favPlayer: "Sevimli o'yinchi", favAdd: "+ Sevimli o'yinchi", place: "O'rin", w: "G'alaba", d: 'Durang', l: "Mag'lubiyat", back: 'Ortga', leave: 'Klubdan voz kechaman', auction: "Auksionga qo'yaman", unauction: 'Auksiondan olish', onAuction: 'Auksionda', price: 'Narx',
       round: 'Tur', report: 'Hisob kiritish', edit: "Hisobni o'zgartirish", me: 'Men', opp: 'Raqib', send: 'Yuborish', waiting: 'Raqib tasdiqlashini kutmoqda', theirs: 'Raqib kiritgan hisob', ok: 'Tasdiqlash', fake: "Yolg'on", disputed: 'Hisob bekor qilindi — natijani admin kiritadi',
       sent: 'Hisob yuborildi, raqib tasdiqlashi kerak ✅', confirmed: "Tasdiqlandi — natija jadvalga o'tdi ✅", rejected: 'Hisob bekor qilindi, admin kiritadi', badScore: "Hisobni to'g'ri kiriting (0–99)", gone: "O'yin holati o'zgargan", fail: "Xatolik, qayta urinib ko'ring", confirmFake: "Hisobni yolg'on deb belgilaysizmi? U bekor bo'ladi va admin kiritadi.",
-      tournaments: 'Turnirlar', qual: 'FA Cup saralash', shield: 'Community Shield', shieldWait: "Finalchilar hali aniqlanmagan — sezon oxirida paydo bo'ladi", drawAt: 'Qura marosimi', locked: 'Tur hali ochilmagan — raqib aniq, o\'yinni boshlash mumkin emas', openNow: 'Tur ochiq', deadline: 'Dedlayn', noDraw: 'Qura hali tashlanmagan', leaderboard: 'Jadval' },
-    en: { season: 'Season', collection: 'Collection', collEmpty: 'No trophies won or items bought yet', clubs: 'My clubs', noClubs: 'You have no clubs yet', games: 'My games', none: 'No games yet', place: 'Place', w: 'Wins', d: 'Draws', l: 'Losses', back: 'Back', leave: 'Give up the club now', auction: 'Put on auction', unauction: 'Take off auction', onAuction: 'On auction', price: 'Price',
+      tournaments: 'Turnirlar', qual: 'FA Cup saralash', shield: 'Community Shield', shieldWait: "Finalchilar hali aniqlanmagan — sezon oxirida paydo bo'ladi", drawAt: 'Qura marosimi', locked: 'Tur hali ochilmagan — raqib aniq, o\'yinni boshlash mumkin emas', openNow: 'Tur ochiq', deadline: 'Dedlayn', noDraw: 'Qura hali tashlanmagan', leaderboard: 'Jadval', favPlayer: 'Mening sevimli o\'yinchim', favAdd: 'Rasm qo\'yish', favGallery: 'Galereayadan tanlash', favCamera: 'Rasmga olish' },
+    en: { season: 'Season', collection: 'Collection', collEmpty: 'No trophies won or items bought yet', clubs: 'My clubs', noClubs: 'You have no clubs yet', games: 'My games', none: 'No games yet', results: 'Results', noResults: 'No match results yet', favPlayer: 'Favourite player', favAdd: '+ Favourite player', place: 'Place', w: 'Wins', d: 'Draws', l: 'Losses', back: 'Back', leave: 'Give up the club now', auction: 'Put on auction', unauction: 'Take off auction', onAuction: 'On auction', price: 'Price',
       round: 'Round', report: 'Enter score', edit: 'Change score', me: 'Me', opp: 'Opponent', send: 'Send', waiting: 'Waiting for the opponent to confirm', theirs: 'Score entered by opponent', ok: 'Confirm', fake: 'Fake', disputed: 'Score cancelled — the admin will enter the result',
       sent: 'Score sent, your opponent must confirm ✅', confirmed: 'Confirmed — the result is in the table ✅', rejected: 'Score cancelled, the admin will enter it', badScore: 'Enter a valid score (0–99)', gone: 'The match status has changed', fail: 'Error, please try again', confirmFake: 'Mark this score as fake? It will be cancelled and the admin will enter it.',
-      tournaments: 'Tournaments', qual: 'FA Cup qualifying', shield: 'Community Shield', shieldWait: 'Finalists are not decided yet — appears at the end of the season', drawAt: 'Draw ceremony', locked: 'Round not opened yet — you can see the opponent but cannot play', openNow: 'Round is open', deadline: 'Deadline', noDraw: 'The draw has not been made yet', leaderboard: 'Standings' },
-    ru: { season: 'Сезон', collection: 'Коллекция', collEmpty: 'Пока нет выигранных кубков или купленных предметов', clubs: 'Мои клубы', noClubs: 'У вас пока нет клубов', games: 'Мои игры', none: 'Игр пока нет', place: 'Место', w: 'Победы', d: 'Ничьи', l: 'Поражения', back: 'Назад', leave: 'Отказаться от клуба сейчас', auction: 'Выставить на аукцион', unauction: 'Снять с аукциона', onAuction: 'На аукционе', price: 'Цена',
+      tournaments: 'Tournaments', qual: 'FA Cup qualifying', shield: 'Community Shield', shieldWait: 'Finalists are not decided yet — appears at the end of the season', drawAt: 'Draw ceremony', locked: 'Round not opened yet — you can see the opponent but cannot play', openNow: 'Round is open', deadline: 'Deadline', noDraw: 'The draw has not been made yet', leaderboard: 'Standings', favPlayer: 'My favourite player', favAdd: 'Add photo', favGallery: 'Choose from gallery', favCamera: 'Take a photo' },
+    ru: { season: 'Сезон', collection: 'Коллекция', collEmpty: 'Пока нет выигранных кубков или купленных предметов', clubs: 'Мои клубы', noClubs: 'У вас пока нет клубов', games: 'Мои игры', none: 'Игр пока нет', results: 'Результаты', noResults: 'Пока нет результатов матчей', favPlayer: 'Любимый игрок', favAdd: '+ Любимый игрок', place: 'Место', w: 'Победы', d: 'Ничьи', l: 'Поражения', back: 'Назад', leave: 'Отказаться от клуба сейчас', auction: 'Выставить на аукцион', unauction: 'Снять с аукциона', onAuction: 'На аукционе', price: 'Цена',
       round: 'Тур', report: 'Ввести счёт', edit: 'Изменить счёт', me: 'Я', opp: 'Соперник', send: 'Отправить', waiting: 'Ждём подтверждения соперника', theirs: 'Счёт, введённый соперником', ok: 'Подтвердить', fake: 'Ложь', disputed: 'Счёт отменён — результат внесёт админ',
       sent: 'Счёт отправлен, соперник должен подтвердить ✅', confirmed: 'Подтверждено — результат в таблице ✅', rejected: 'Счёт отменён, его внесёт админ', badScore: 'Введите корректный счёт (0–99)', gone: 'Статус матча изменился', fail: 'Ошибка, попробуйте ещё раз', confirmFake: 'Отметить счёт как ложный? Он будет отменён, результат внесёт админ.',
-      tournaments: 'Турниры', qual: 'Квалификация Кубка', shield: 'Суперкубок', shieldWait: 'Финалисты ещё не определены — появится в конце сезона', drawAt: 'Жеребьёвка', locked: 'Тур ещё не открыт — соперник виден, но играть нельзя', openNow: 'Тур открыт', deadline: 'Дедлайн', noDraw: 'Жеребьёвка ещё не проведена', leaderboard: 'Таблица' },
+      tournaments: 'Турниры', qual: 'Квалификация Кубка', shield: 'Суперкубок', shieldWait: 'Финалисты ещё не определены — появится в конце сезона', drawAt: 'Жеребьёвка', locked: 'Тур ещё не открыт — соперник виден, но играть нельзя', openNow: 'Тур открыт', deadline: 'Дедлайн', noDraw: 'Жеребьёвка ещё не проведена', leaderboard: 'Таблица', favPlayer: 'Мой любимый игрок', favAdd: 'Добавить фото', favGallery: 'Выбрать из галереи', favCamera: 'Сделать фото' },
   };
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const key = (c) => c.league + '|' + c.club;
@@ -176,11 +176,16 @@ window.ProfileView = (() => {
     const t = T[lang], X = GT[lang] || GT.uz, EFL = window.EFL;
     const me = (st.clubs || [])[0];
     if (!me) return `<div class="pf-empty"><span>⚽</span><p>${t.noClubs}</p></div>`;
-    const g = currentGame(me.games || []);
     const league = EFL.byId[me.league]?.name || '';
-    let out = g ? matchCard(lang, g, me, `${league} · ${g.round}-${lang === 'ru' ? 'тур' : lang === 'en' ? 'round' : 'tur'}`) : `<div class="pf-empty"><span>⚽</span><p>${X.noGame}</p></div>`;
-    if (g && g.status === 'confirmed' && !(me.games || []).every((x) => x.status === 'confirmed')) out += `<p class="gh-wait">⏳ ${X.nextWait}</p>`;
-    // Kubok: hozir ochiq tur o'yini (tugallanmagan)
+    // Faqat ochiq (locked bo'lmagan) o'yinlar
+    const openGames = (me.games || []).filter(g => !g.locked);
+    let out = '';
+    if (!openGames.length) {
+      out = `<div class="pf-empty"><span>⚽</span><p>${X.noGame}</p></div>`;
+    } else {
+      out = openGames.map(g => matchCard(lang, g, me, `${league} · ${g.round}-${lang === 'ru' ? 'тур' : lang === 'en' ? 'round' : 'tur'}`)).join('');
+    }
+    // Kubok o'yinlari pastda
     const c = st.cups;
     if (c && c.stages) {
       const open = (c.myMatches || []).filter((m) => m.status !== 'confirmed' && (m.round === 8 ? !!c.shield?.startedAt : !!(c.stages.find((s) => s.round === m.round) || {}).startedAt));
@@ -223,14 +228,13 @@ window.ProfileView = (() => {
       const name = EFL.clubName(c.league, c.club);
       return `<button class="mc" data-mc="${esc(key(c))}">${EFL.crest(c.league, c.club, name)}<b>${esc(name)}</b><small>${esc(EFL.byId[c.league]?.name || '')}</small>${unreadN(st, c) ? `<i class="mc-badge">${unreadN(st, c) > 99 ? '99+' : unreadN(st, c)}</i>` : ''}${c.auction ? '<em>🔨</em>' : ''}</button>`;
     }).join('');
-    return `<div class="pf-top"><button class="back" data-act="back"><span>‹</span> ${t.back}</button>${st.staff ? `<button class="adm-thin" data-act="staffpanel">🛠 Admin panel</button>` : ''}</div>
+    return `<div class="pf-top"><button class="back" data-act="back"><span>‹</span> ${t.back}</button></div>
       <div class="pf-card ${window.ShopView.bgClass(eq.bg)}"${u.username ? ` data-tgu="${esc(u.username)}" style="cursor:pointer"` : ''}><div class="pf-ava ph${eq.frame ? ' fr-' + eq.frame : ''}">${avatar}</div>
-        <div class="pf-info"><h2>${esc(u.first_name || '')}</h2>${u.username ? `<a>@${esc(u.username)}</a>` : ''}</div></div>
-      <button class="sup-card" data-act="m-support"><span class="sup-ic">🛟</span><span class="sup-tx"><b>${window.MatchView.T[lang].supportCard}</b><small>${window.MatchView.T[lang].supportDesc}</small></span>${st.supportUnread ? `<i class="gm-badge">${st.supportUnread}</i>` : `<em>›</em>`}</button>
+        <div class="pf-info"><div class="pf-name-row"><h2>${esc(u.first_name || '')}</h2><button class="fav-badge" data-act="pick-fav" type="button">${st.favPlayer ? `<span class="fav-mini-wrap"><img src="${esc(st.favPlayer)}" class="fav-mini-img" alt="">✎</span>` : `<span class="fav-mini-plus">+</span>`}<small>${st.favPlayer ? (t.favPlayer || "Sevimli o'yinchi") : (t.favAdd || "+ Sevimli o'yinchi")}</small></button></div>${u.username ? `<a>@${esc(u.username)}</a>` : ''}</div></div>
+      <button class="sup-card" data-act="m-support"><span class="sup-ic">💬</span><span class="sup-tx"><b>${lang === 'ru' ? 'Написать администратору лиги' : lang === 'en' ? 'Contact league admin' : 'Liga adminiga murojaat'}</b><small>${lang === 'ru' ? 'Вопросы и проблемы' : lang === 'en' ? 'Questions and issues' : 'Savol va muammolar'}</small></span>${st.supportUnread ? `<i class="gm-badge">${st.supportUnread}</i>` : `<em>›</em>`}</button>
       ${clubBlock.replace('TILES', tiles)}
       <div class="g-label"><span>${t.collection}</span></div>
-      ${coll ? `<div class="coll">${coll}</div>` : `<div class="pf-empty"><span>🏆</span><p>${t.collEmpty}</p></div>`}
-      ${cupPanels(t, st, EFL)}`;
+      ${coll ? `<div class="coll">${coll}</div>` : `<div class="pf-empty"><span>🏆</span><p>${t.collEmpty}</p></div>`}`;
   }
 
   // Boshqa ishtirokchi profili (faqat ko'rish): kolleksiya va klublar

@@ -1,530 +1,719 @@
-// Admin panel (faqat adminlar uchun, o'zbekcha): natijalarni tasdiqlash, qura, ishtirokchilar
+// Admin panel: Liga va Kubok bo'limlari, qura, natijalar, ishtirokchilar va xabarlar
 window.AdminView = (() => {
   const tg = window.Telegram?.WebApp;
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const api = (path, opts = {}) => fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', 'x-init-data': tg?.initData || '' } }).then(async (r) => ({ ok: r.ok, ...(await r.json().catch(() => ({}))) })).catch(() => ({ ok: false }));
   const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body || {}) });
-  const ERR = { nowinner: "G'olib hali aniqlanmagan", already: 'Bu kubok allaqachon topshirilgan', hasgames: "Yangi egasi allaqachon o'yin o'ynagan, tiklab bo'lmaydi", active: 'Eski egasi hali ligada', nogames: "Bekor qilingan o'yin topilmadi", drawn: "Qura allaqachon o'tkazilgan", few: 'Kamida 2 ishtirokchi kerak', played: "Hisoblar kiritilgan — qayta qura qilib bo'lmaydi", nouser: "Foydalanuvchi topilmadi (botga /start bosgan bo'lishi kerak)", already: "U shu mavsumda allaqachon ro'yxatda", taken: 'Bu klub band', full: "Liga to'lgan", badScore: "Hisobni to'g'ri kiriting (0–99)", gone: "Topilmadi yoki holati o'zgargan", forbidden: "Ruxsat yo'q", stage: "Bosqich topilmadi", nodraw: "Avval qura tashlang", none: "Tasdiqlangan o'yinlar yo'q", last: "Bu oxirgi bosqich", time: "Vaqt noto'g'ri", fail: "Xatolik, qayta urinib ko'ring" };
-  const ST = { scheduled: 'Kutilmoqda', pending: 'Raqib tasdig\'i kutilmoqda', disputed: '⚠️ Bahsli (yolg\'on)', confirmed: 'Tasdiqlangan' };
+  const ERR = { nowinner: "G'olib hali aniqlanmagan", already: 'Bu kubok allaqachon topshirilgan', hasgames: "Yangi egasi allaqachon o'yin o'ynagan, tiklab bo'lmaydi", active: 'Eski egasi hali ligada', nogames: "Bekor qilingan o'yin topilmadi", drawn: "Qura allaqachon o'tkazilgan", few: 'Kamida 2 ishtirokchi kerak', played: "Hisoblar kiritilgan — qayta qura qilib bo'lmaydi", nouser: "Foydalanuvchi topilmadi (botga /start bosgan bo'lishi kerak)", taken: 'Bu klub band', full: "Liga to'lgan", badScore: "Hisobni to'g'ri kiriting (0–99)", gone: "Topilmadi yoki holati o'zgargan", forbidden: "Ruxsat yo'q", stage: "Bosqich topilmadi", nodraw: "Avval qura tashlang", none: "Tasdiqlangan o'yinlar yo'q", time: "Vaqt noto'g'ri", fail: "Xatolik, qayta urinib ko'ring" };
 
-  let el, toast, tab = 'results', tours = null, ov = null, mt = { league: '', status: 'action', list: [], total: 0 }, pl = { league: '', data: null }, cups = null, sp = { threads: null, open: null, name: '', league: '', leagueName: '', msgs: [] }, spTimer = null, cupState = null, cupSel = 'fa-cup';
+  let el, toast;
+  let mainTab = 'liga'; // 'liga' | 'cup'
+  let curLeague = '';
+  let curCup = 'fa-cup';
+  let ligaSubTab = 'draw'; // 'draw' | 'results' | 'players' | 'support'
+  let cupSubTab = 'draw'; // 'draw' | 'results'
+
+  let ov = null;
+  let mt = { list: [], total: 0, filterClub: 'all', filterRound: 'all' };
+  let pl = { data: null, search: '' };
+  let sp = { threads: null, open: null, name: '', league: '', leagueName: '', msgs: [], sig: '' };
+  let spTimer = null;
+  let cupState = null;
+  let selApprovalMatch = null;
+  let selRoundNum = 1;
 
   const fmtLocal = (d) => { const x = new Date(d), p = (n) => String(n).padStart(2, '0'); return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}T${p(x.getHours())}:${p(x.getMinutes())}`; };
   const fmtShow = (d) => new Date(d).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  const leagueOpts = (sel, all) => (all ? `<option value="">Barcha ligalar</option>` : '') + (ov?.leagues || []).map((l) => `<option value="${l.id}" ${l.id === sel ? 'selected' : ''}>${esc(l.name)} (${l.players})</option>`).join('');
-
-  // Yordamchi adminlar ro'yxati (katta admin uchun)
-  let hl = { list: null };
-  const HELPER_TABS = ['results', 'draw', 'rounds', 'players', 'clubs', 'support'];
-  async function loadHelpers() { const r = await api('/api/admin/helpers'); if (r.ok) { hl.list = r.helpers; if (tab === 'helpers') render(); } }
-  function helpersHtml() {
-    const rows = (hl.list || []).map((h) => `<div class="g-card ad-open"><span class="ad-cup-n"><b>${esc(h.name)}</b><small>${esc(h.leagueName)} · ${h.telegramId}</small></span><button class="ad-btn" data-act="hdel" data-id="${h.telegramId}" data-league="${esc(h.league)}">O'chirish</button></div>`).join('')
-      || '<p class="ad-hint">Yordamchi adminlar yo\'q</p>';
-    return `<div class="g-label"><span>Yordamchi adminlar</span></div>${rows}
-      <div class="g-label"><span>Yangi yordamchi</span></div>
-      <div class="ad-filters">
-        <label class="ad-lbl">Foydalanuvchi Telegram ID si<input id="hId" class="ad-in" inputmode="numeric" placeholder="123456789"></label>
-        <label class="ad-lbl">Liga<select id="hLg" class="ad-in">${leagueOpts(null, false)}</select></label>
-        <button class="ad-btn" data-act="hadd">Tasdiqlash</button>
-      </div>
-      <p class="ad-hint">Yordamchi botga /start bosgan bo'lishi kerak. Tasdiqlangach unga xabar boradi.</p>`;
-  }
-
-  // ——— Klublar holati: davlat → liga → klublar ———
-  let cl = { data: null, country: null, league: null };
-  async function loadClubs() { const r = await api('/api/admin/clubs'); if (r.ok) { cl.data = r; if (tab === 'clubs') render(); } }
-  function clubsHtml() {
-    if (!cl.data) return '<p class="ad-hint">Yuklanmoqda…</p>';
-    const all = cl.data.leagues, countries = (window.EFL?.COUNTRIES || []).filter((c) => all.some((l) => l.country === c.id));
-    if (!countries.length) return '<p class="ad-hint">Ligalar topilmadi</p>';
-    const country = countries.some((c) => c.id === cl.country) ? cl.country : countries[0].id;
-    const leagues = all.filter((l) => l.country === country);
-    const lg = leagues.find((l) => l.id === cl.league) || leagues[0];
-    const taken = lg.clubs.filter((c) => c.taken).length;
-    const cBtns = countries.map((c) => `<button class="${c.id === country ? 'on' : ''}" data-act="clc" data-cid="${c.id}">${c.flag || ''} ${esc(c.name?.uz || c.id)}</button>`).join('');
-    const lBtns = leagues.map((l) => `<button class="${l.id === lg.id ? 'on' : ''}" data-act="cll" data-lid="${l.id}">${esc(l.name)}</button>`).join('');
-    const grid = lg.clubs.map((c) => `<div class="ad-cl ${c.taken ? 'taken' : 'free'}"><b>${esc(c.name)}</b><small>${c.taken ? '🔒 ' + esc(c.user) : '✅ Bo\'sh'}</small></div>`).join('');
-    return `<div class="ad-tabs">${cBtns}</div><div class="ad-tabs">${lBtns}</div>
-      <div class="g-label"><span>${esc(lg.name)} · band ${taken}/${lg.clubs.length}</span></div>
-      <div class="ad-clgrid">${grid}</div>`;
-  }
-
-  function tabsHtml() {
-    const n = ov?.action || 0;
-    return `<div class="ad-tabs">${[['stats', '📊 Statistika'], ['broadcast', '📢 Xabar'], ['results', `Natijalar${n ? ` <i>${n}</i>` : ''}`], ['draw', 'Qura'], ['rounds', '🔁 Turlar'], ['cup', '🎲 Kubok'], ['players', 'Ishtirokchilar'], ['tour', 'Turnirlar'], ['cups', 'Kubok narxi'], ['open', 'Ligalar holati'], ['clubs', '🏟 Klublar'], ['support', `Xabarlar${ov?.support ? ` <i>${ov.support}</i>` : ''}`], ['helpers', '👥 Yordamchilar']].filter(([k]) => (ov?.superAdmin ? true : HELPER_TABS.includes(k))).map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${v}</button>`).join('')}</div>`;
-  }
-
-  // ——— Natijalar ———
-  // Isbotlar: «Yolg'on» deganda yuborilgan skrinshot/izohlar
-  const proofsHtml = (m) => (m.proofs || []).map((p) => `<div class="ad-proof"><b>📎 ${esc(p.by)}</b>${p.hg != null ? ` · aytgan hisobi: <b>${p.hg}:${p.ag}</b>` : ''}${p.text ? `<p>${esc(p.text)}</p>` : ''}${p.fileId ? `<img class="ad-shot" data-fid="${esc(p.fileId)}" data-act="zoom" alt="">` : ''}</div>`).join('');
-  function matchHtml(m) {
-    const proofs = proofsHtml(m);
-    const claim = m.claim ? `<p class="ad-claim">Bekor qilingan hisob: ${m.claim.hg}:${m.claim.ag} (${esc(m.claim.by === m.home.id ? m.home.user : m.claim.by === m.away.id ? m.away.user : m.claim.by)} kiritgan)</p>` : '';
-    const auto = m.auto ? `<p class="ad-claim">🤖 Avtomatik natija (dedlayn): ${m.auto === 'void' ? 'ikkala tomon kelmadi — bekor' : '3:0 texnik'}. Noto'g'ri bo'lsa — natijani o'zgartiring.</p>` : '';
-    return `<div class="g-card ad-match" data-mid="${m.id}">
-      <div class="ad-meta"><small>${esc(m.leagueName)} · ${m.round}-tur${m.deadline ? ` · ⏰ ${fmtShow(m.deadline)}` : ''}</small><span class="ad-st ${m.status}">${ST[m.status]}</span></div>
-      <div class="ad-vs"><div><b>${esc(m.home.club)}</b><small>${esc(m.home.user)}</small></div><div class="ad-in"><input type="number" inputmode="numeric" min="0" max="99" value="${m.hg ?? ''}" data-hg><b>:</b><input type="number" inputmode="numeric" min="0" max="99" value="${m.ag ?? ''}" data-ag></div><div><b>${esc(m.away.club)}</b><small>${esc(m.away.user)}</small></div></div>
-      ${claim}${auto}${proofs}${m.chat ? `<button class="ad-btn ghost sm" data-act="viewchat">💬 O'yin chati (${m.chat})</button><div class="ad-chatbox" data-chatbox></div>` : ''}
-      ${m.status !== 'scheduled' ? `<button class="ad-btn bad sm" data-act="reset">🗑 Natijani o'chirish</button>` : ''}
-      <button class="ad-btn ok" data-act="result">${m.status === 'confirmed' ? "O'zgartirish va saqlash" : m.status === 'pending' ? '✅ Admin sifatida tasdiqlash' : '✅ Tasdiqlash / kiritish'}</button></div>`;
-  }
-  function resultsHtml() {
-    const st = [['action', 'Kutayotganlar'], ['scheduled', 'Kiritilmagan'], ['confirmed', 'Tasdiqlangan'], ['all', 'Hammasi']];
-    return `<div class="ad-filters"><select data-f="league">${leagueOpts(mt.league, true)}</select><select data-f="status">${st.map(([k, v]) => `<option value="${k}" ${mt.status === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
-      <p class="ad-hint">Hisob tartibi: chapda uy egasi, o'ngda mehmon.${mt.total > mt.list.length ? ` Ko'rsatilgan: ${mt.list.length} / ${mt.total} — ligani tanlab toraytiring.` : ''}</p>
-      ${mt.list.map(matchHtml).join('') || '<div class="pf-empty"><span>✅</span><p>Hech narsa yo\'q</p></div>'}`;
-  }
-  async function loadMatches() {
-    const q = new URLSearchParams({ status: mt.status, ...(mt.league ? { league: mt.league } : {}) });
-    const r = await api('/api/admin/matches?' + q);
-    if (r.ok) { mt.list = r.matches; mt.total = r.total; if (tab === 'results') render(); }
-  }
-
-  // ——— Qura ———
-  // ——— Turlarni ochish/yopish: faqat ochiq turdagi o'yinlarga natija kiritiladi ———
-  // l.roundCount — jami turlar soni, l.openRounds — ochiq turlar (qolganlari yopiq)
-  // Har bir turning dedlayni: shu turdagi tugallanmagan o'yinlarga qo'yiladi
-  function rdlHtml(l) {
-    const dl = l.roundDeadlines || {}, n = l.roundCount || 0;
-    const rows = Array.from({ length: n }, (_, i) => i + 1).map((r) => `<div class="ad-rdl"><b>${r}-tur</b><input type="datetime-local" data-rdt value="${dl[r] ? fmtLocal(dl[r]) : ''}"><button class="ad-btn ok sm" data-act="rdl" data-lg="${l.id}" data-round="${r}">Saqlash</button><small>${dl[r] ? '⏰ ' + fmtShow(dl[r]) : "Dedlayn yo'q"}</small></div>`).join('');
-    return `<div class="g-label"><span>Tur dedlaynlari</span></div>${rows}<p class="ad-hint">Dedlayn o'tgach, hisob kiritilmagan o'yinda avtomatik natija chiqadi. Dedlayn shu turdagi barcha tugallanmagan o'yinlarga qo'llanadi.</p>`;
-  }
-  function roundsHtml(l) {
-    const open = new Set((l.openRounds || []).map(Number));
-    const n = l.roundCount || 0;
-    if (!n) return '';
-    const btns = Array.from({ length: n }, (_, i) => i + 1).map((r) => `<button class="ad-round ${open.has(r) ? 'on' : ''}" data-act="rtoggle" data-lg="${l.id}" data-round="${r}" data-open="${open.has(r) ? '' : '1'}">${r}-tur ${open.has(r) ? '🔓' : '🔒'}</button>`).join('');
-    return `<div class="g-label"><span>Turlar (natija kiritish)</span></div><div class="ad-rounds">${btns}</div>
-      <div class="ad-row"><button class="ad-btn ok sm" data-act="rall" data-lg="${l.id}" data-open="1">Hammasini ochish</button><button class="ad-btn bad sm" data-act="rall" data-lg="${l.id}" data-open="">Hammasini yopish</button></div>
-      <p class="ad-hint">Yopiq turda foydalanuvchilar natija kirita olmaydi. Admin har doim o'zi kiritishi mumkin. Yangi qura o'tkazilganda barcha turlar yopiq bo'ladi.</p>${rdlHtml(l)}`;
-  }
-
-  // ——— Turlar paneli: barcha qura o'tkazilgan ligalar, har bir turni alohida ochish/yopish ———
-  function roundsPanelHtml() {
-    const lgs = (ov?.leagues || []).filter((l) => l.drawnAt);
-    if (!lgs.length) return '<div class="pf-empty"><span>🔁</span><p>Hali qura o\'tkazilgan liga yo\'q</p></div>';
-    return `<p class="ad-hint">Har bir turni alohida ochish yoki yopish mumkin. Yopiq turda o'yinchilar natija kirita olmaydi.</p>` + lgs.map((l) => `<div class="g-card"><div class="ad-meta"><b>${esc(l.name)}</b><small>${l.roundCount || 0} tur · ochiq: ${(l.openRounds || []).length}</small></div>${roundsHtml(l)}</div>`).join('');
-  }
-  function drawHtml() {
-    return (ov?.leagues || []).map((l) => {
-      const drawn = !!l.drawnAt;
-      const body = drawn
-        ? `<p class="ad-ok">🎲 Qura o'tkazilgan: ${fmtShow(l.drawnAt)} · ${l.total} ta o'yin (${l.confirmed} tasdiqlangan)</p><button class="ad-btn ghost" data-act="redo" data-lg="${l.id}">Qayta qura (hisob kiritilmagan bo'lsa)</button><button class="ad-btn bad sm" data-act="draw-cancel" data-lg="${l.id}">✖ Qurani bekor qilish</button>
-           `
-        : `<label class="ad-lbl">Qura vaqti<input type="datetime-local" data-dt value="${l.drawAt ? fmtLocal(l.drawAt) : ''}"></label>
-           <label class="ad-lbl">Davralar<select data-rounds><option value="2" ${l.rounds === 2 ? 'selected' : ''}>2 davra (uyda va mehmonda)</option><option value="1" ${l.rounds === 1 ? 'selected' : ''}>1 davra</option></select></label>
-           ${l.drawAt ? `<p class="ad-hint">⏰ Avtomatik qura: ${fmtShow(l.drawAt)}</p>` : ''}
-           <div class="ad-row"><button class="ad-btn" data-act="settime" data-lg="${l.id}">Vaqtni saqlash</button><button class="ad-btn ok" data-act="draw" data-lg="${l.id}">🎲 Hozir qura qilish</button></div>${l.drawAt ? `<button class="ad-btn ghost" data-act="cleartime" data-lg="${l.id}">Vaqtni o'chirish</button>` : ''}`;
-      return `<div class="g-card ad-lg" data-lgbox="${l.id}"><h3>${esc(l.name)} <small>${l.players}/${l.max}</small></h3>${body}</div>`;
-    }).join('');
-  }
-
-  // ——— FA Cup: saralash + pley-off ———
-  function cupHtml() {
-    const pick = `<div class="chips">${[['fa-cup', 'FA Cup (Angliya)'], ['copa-del-rey', 'Copa del Rey (Ispaniya)']].map(([id, n]) => `<button class="chip${cupSel === id ? ' on' : ''}" data-act="cup-pick" data-cup="${id}">${n}</button>`).join('')}</div>`;
-    if (!cupState) return pick + SK('rows', 3);
-    return pick + `<p class="ad-hint">Saralash: 1-liga 20→10, 2-liga →yarmi→yarmi (6 ta), keyin 16 klub. Qura vaqti kelganda avtomatik o'tadi. <b>Start</b> bosilmaguncha o'yinchilar faqat raqibni ko'radi.</p>` +
-      cupState.stages.map((s) => {
-        const drawn = !!s.drawnAt;
-        return `<div class="g-card ad-lg" data-cupstage="${s.stage}">
-          <h3>${esc(s.label)} <small>${s.teams} klub · ${s.matches} o'yin</small></h3>
-          <p class="ad-hint">
-            ${drawn ? `🎲 ${fmtShow(s.drawnAt)}` : "🎲 qura yo'q"}
-            ${s.startedAt ? ` · ▶️ ${fmtShow(s.startedAt)}` : ''}
-            ${s.deadline ? ` · ⏰ ${fmtShow(s.deadline)}` : ''}
-            ${s.matches ? ` · ✅ ${s.confirmed}/${s.matches}` : ''}
-          </p>
-          ${drawn ? '' : `<label class="ad-lbl">Qura vaqti<input type="datetime-local" data-dt value="${s.drawAt ? fmtLocal(s.drawAt) : ''}"></label>`}
-          <div class="ad-row">
-            ${drawn
-              ? `<label class="ad-lbl">Dedlayn (soat)<input type="number" min="0" max="720" value="24" data-hours></label>
-                 <button class="ad-btn ok" data-act="cup-start">▶️ Start berish</button>`
-              : `<button class="ad-btn" data-act="cup-time">Vaqtni saqlash</button>
-                 <button class="ad-btn ok" data-act="cup-draw">🎲 Hozir qura</button>`}
-          </div>
-          ${s.stage !== 'final' ? `<button class="ad-btn ghost sm" data-act="cup-advance">➡️ Keyingi bosqichga</button>` : ''}
-          ${drawn ? `<button class="ad-btn bad sm" data-act="cup-reset">Tozalash / qayta qura</button>` : ''}
-        </div>`;
-            }).join('') +
-      `<div class="g-card ad-lg">
-        <h3>🛡 ${esc(cupState.shieldName || 'Community Shield')} <small>2 finalist</small></h3>
-        <p class="ad-hint">1-liga g'olibi va kubok g'olibi o'rtasidagi o'yin. Ikkalasi ham aniqlanganda yaratiladi. Bitta klub ikkalasini yutgan bo'lsa — o'yinsiz g'olib.</p>
-        <button class="ad-btn ghost" data-act="cup-shield">🛡 ${esc(cupState.shieldName || 'Community Shield')} yaratish</button>
-      </div>`;
-
-      `<div class="g-card ad-lg">
-        <h3>🏆 Kubok topshirish <small>g'olibga</small></h3>
-        <p class="ad-hint">Final (yoki ${esc(cupState.shieldName || 'Supercup')}) natijasi tasdiqlangach g'olibga kubok beriladi. U Me → Kolleksiyada va Do'kon → Sell da paydo bo'ladi. Narxni «Kubok narxi» bo'limida qo'ying.</p>
-        <div class="ad-row">
-          <button class="ad-btn ok" data-act="cup-award" data-kind="cup">🏆 ${esc(cupState.cupName || 'Kubok')} g'olibiga</button>
-          <button class="ad-btn ok" data-act="cup-award" data-kind="shield">🛡 ${esc(cupState.shieldName || 'Supercup')} g'olibiga</button>
-        </div>
-      </div>`;
-  }
-  async function loadCup() { const want = cupSel, r = await api('/api/admin/cup?cup=' + want); if (want !== cupSel) return; if (r.ok) { cupState = r; if (tab === 'cup') render(); } }
-
-    // ——— Qura marosimi: juftliklar birma-bir chiqadi ———
-  function reveal(pairs, stage, after) {
-    const meta = cupState?.stages?.find((s) => s.stage === stage);
-    const box = document.createElement('div');
-    box.className = 'rv-modal';
-    box.innerHTML = `<div class="rv-box">
-      <h3>🎲 ${esc(meta?.label || 'Qura')}</h3>
-      <p class="rv-sub">${pairs.length} ta juftlik</p>
-      <div class="rv-list">
-        ${pairs.map((p, i) => `<div class="rv-item" style="animation-delay:${i * 180}ms">
-          <span>${esc(p.home)}</span><b>vs</b><span>${esc(p.away)}</span>
-        </div>`).join('')}
-      </div>
-      <button class="ad-btn ok" data-rv-close>Yopish</button>
-    </div>`;
-    const close = () => { box.remove(); if (after) after(); };
-    box.addEventListener('click', (e) => {
-      if (e.target === box || e.target.hasAttribute('data-rv-close')) close();
-    });
-    document.body.appendChild(box);
-  }
-  // ——— Ishtirokchilar ———
-  function playersHtml() {
-    const d = pl.data;
-    const list = !d ? SK('rows', 3) : `${d.players.map((p) => `<div class="g-card ad-pl"><span><b>${esc(p.club)}</b><small>${esc(p.user)} · ${p.pts} ball · ${p.games} o'yin</small></span><button class="ad-btn ok" data-act="award" data-tid="${p.telegramId}" data-name="${esc(p.club)}">🏆 Kubok</button><button class="ad-btn bad" data-act="remove" data-tid="${p.telegramId}" data-name="${esc(p.club)}">Chiqarish</button></div>`).join('') || '<p class="ad-hint">Ishtirokchi yo\'q</p>'}
-${(d.needy || []).length ? `<div class="g-label"><span>♻️ O'yinlarni tiklash</span></div>${d.needy.map((n) => `<div class="g-card ad-rec" data-to="${n.telegramId}"><span><b>${esc(n.club)}</b><small>${esc(n.user)} · o'yinlari tiklanishi mumkin</small></span><select data-from>${(d.orphans || []).map((o) => `<option value="${o.telegramId}">${esc(o.user)} (${o.games} o'yin)</option>`).join('')}</select><button class="ad-btn ok" data-act="restore">Tiklash</button></div>`).join('')}<p class="ad-hint">Klubdan voz kechgan eski egasini tanlang: uning o'yinlari va natijalari yangi egasiga qaytadi.</p>` : ''}
-            <div class="g-label"><span>Qo'shish (${d.players.length}/${d.max})</span></div>
-      <div class="g-card ad-add"><input type="text" data-user placeholder="@username yoki Telegram ID"><select data-club>${d.free.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select><button class="ad-btn ok" data-act="add">➕ Qo'shish</button><p class="ad-hint">Foydalanuvchi botga kamida bir marta /start bosgan bo'lishi kerak. Qura o'tgan bo'lsa, unga qolganlar bilan o'yinlar qo'shiladi.</p></div>`;
-    return `<div class="ad-filters"><select data-f="plleague">${leagueOpts(pl.league, false)}</select></div>${list}`;
-  }
-  async function loadPlayers() {
-    const id = pl.league, r = await api(`/api/admin/league/${id}/players`);
-    if (r.ok && id === pl.league) { pl.data = r; if (tab === 'players') render(); }
-  }
-  async function loadOverview() { const r = await api('/api/admin/overview'); if (r.ok) { ov = r; if (!pl.league) pl.league = r.leagues[0].id; render(); } else if (r.error === 'forbidden') el.innerHTML = '<div class="page"><p>Ruxsat yo\'q</p></div>'; }
-
-  // ——— Norasmiy turnirlar ———
-  function toursHtml() {
-    const SB = { open: 'Qabul ochiq', league: 'Davom etmoqda', playoff: 'Play-off', finished: 'Yakunlangan' };
-    if (!tours) return SK('rows', 3);
-    return tours.map((x) => `<button class="g-card ut-card" data-act="tour-open" data-tid="${x.id}"><span><b>${esc(x.name)}</b><small>${esc(x.owner)} · ${x.players}/${x.max} · ${SB[x.status]}${x.action ? ` · <i style="color:#fb923c;font-style:normal">⚠️ ${x.action}</i>` : ''}</small></span><span class="chev">›</span></button>`).join('') || '<div class="pf-empty"><span>🏆</span><p>Turnir yo\'q</p></div>';
-  }
-  async function loadTours() { const r = await api('/api/admin/tournaments'); if (r.ok) { tours = r.list; if (tab === 'tour') render(); } }
-
-  // ——— Ligalar holati: ochiq (ro'yxatdan o'tish mumkin) / yopiq ———
-  function openHtml() {
-    const row = (l) => `<div class="g-card ad-open"><span class="ad-cup-n"><b>${esc(l.name)}</b><small>${l.players}/${l.max} ishtirokchi · ${l.closed ? '🔒 Yopiq' : '🟢 Ochiq'}</small></span><button class="ad-btn ${l.closed ? 'ok' : 'bad'}" data-act="toggleopen" data-lg="${l.id}" data-closed="${l.closed ? '' : '1'}">${l.closed ? '🔓 Ochish' : '🔒 Yopish'}</button></div>`;
-    const grp = (g, title) => `<div class="g-label"><span>${title}</span></div>${(ov?.leagues || []).filter((l) => String(l.group) === String(g)).map(row).join('')}`;
-    return `<p class="ad-hint">Yopiq ligaga yangi ishtirokchi ro'yxatdan o'ta olmaydi (foydalanuvchida «Yopiq» belgisi chiqadi). Ligadagi mavjud ishtirokchilar va o'yinlarga ta'sir qilmaydi. Admin o'zi «Ishtirokchilar» bo'limidan baribir qo'sha oladi.</p>${grp('1', '1-ligalar')}${grp('2', '2-ligalar')}`;
-  }
-
-  // ——— Kubok narxlari: foydalanuvchilar kubokni shu narxda (UZS) adminga sotadi ———
-  const money = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  function cupsHtml() {
-    if (!cups) return SK('rows', 3);
-    const block = (g, title) => `<div class="g-label"><span>${title}</span></div>${cups.filter((c) => String(c.group) === String(g)).map((c) => `<div class="g-card ad-cup" data-cup="${c.id}"><span class="ad-cup-n"><b>${esc(c.name)}</b><small>${c.price ? '💰 ' + money(c.price) + ' UZS' : 'Narx belgilanmagan — sotib bo\'lmaydi'}</small></span><input type="number" inputmode="numeric" min="0" step="1000" placeholder="UZS" value="${c.price || ''}" data-price><button class="ad-btn ok" data-act="cupsave">Saqlash</button></div>`).join('')}`;
-    return `<p class="ad-hint">Har bir liga va kubokning narxini so'mda kiriting. Foydalanuvchi kubokni sotganda shu narx adminga xabarda ko'rinadi va pul shu summada o'tkaziladi. Bo'sh yoki 0 — narx yo'q, kubokni sotib bo'lmaydi.</p>${block('1', '1-ligalar')}${block('2', '2-ligalar')}${block('cup', 'Kuboklar (FA Cup, Community Shield, Copa del Rey, Supercopa)')}`;
-  }
-  async function loadCups() { const r = await api('/api/admin/cup-prices'); if (r.ok) { cups = r.cups; if (tab === 'cups') render(); } }
-
-  // ——— Xabarlar: «Muammoli holatlar» murojaatlari ———
-  const hm2 = (d) => new Date(d).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  const imgCache = new Map();
-  async function loadImgs(root) {
-    for (const im of root.querySelectorAll('img[data-fid]:not([data-ok])')) {
-      im.dataset.ok = '1';
-      const fid = im.dataset.fid;
-      if (!imgCache.has(fid)) {
-        try { const r = await fetch('/api/file/' + encodeURIComponent(fid), { headers: { 'x-init-data': tg?.initData || '' } }); if (!r.ok) throw 0; imgCache.set(fid, URL.createObjectURL(await r.blob())); } catch (_) { im.alt = '⚠️ rasm yuklanmadi'; continue; }
-      }
-      im.src = imgCache.get(fid);
-    }4 
-  }
-  const bubble = (x) => `<div class="m-b ${x.mine ? 'me' : 'op'}">${x.fileId ? `<img class="m-img" data-fid="${esc(x.fileId)}" data-act="zoom" alt="">` : ''}${x.text ? `<span>${esc(x.text)}</span>` : ''}<small>${hm2(x.at)}</small></div>`;
-  function supportHtml() {
-    if (sp.open) return `<button class="back" data-act="spback"><span>‹</span> Murojaatlar</button><div class="g-card ad-thread-h"><b>${esc(sp.name)}</b><small>ID ${sp.open}${sp.leagueName ? ' · 🏆 ' + esc(sp.leagueName) : ''}</small></div><div class="m-msgs ad-msgs" id="spMsgs">${sp.msgs.map(bubble).join('') || '<p class="m-empty">Xabar yo\'q</p>'}</div><div class="m-send"><input id="spText" maxlength="800" placeholder="Javob yozing…" autocomplete="off"><button class="m-ic go" data-act="spsend">➤</button></div>`;
-    if (!sp.threads) return SK('rows', 3);
-    return `<p class="ad-hint">Foydalanuvchilarning «Muammoli holatlar» bo'limidan yozgan xabarlari. Javobingiz foydalanuvchiga bot orqali ham boradi.</p>${sp.threads.map((x) => `<button class="g-card ad-thread" data-act="spopen" data-uid="${x.uid}" data-name="${esc(x.name)}" data-league="${esc(x.league || '')}" data-lname="${esc(x.leagueName || '')}"><span><b>${esc(x.name)}</b>${x.leagueName ? `<em>🏆 ${esc(x.leagueName)}</em>` : ''}<small>${x.fromAdmin ? 'Siz: ' : ''}${esc(x.text.slice(0, 70))}</small></span><span class="ad-thread-r"><small>${hm2(x.at)}</small>${x.unread ? `<i class="gm-badge" style="position:static">${x.unread}</i>` : ''}</span></button>`).join('') || '<div class="pf-empty"><span>📭</span><p>Murojaat yo\'q</p></div>'}`;
-  }
-  async function loadSupport() { const r = await api('/api/admin/support'); if (r.ok) { sp.threads = r.threads; if (tab === 'support' && !sp.open) render(); } }
-  async function loadThread(scroll) {
-    if (!sp.open) return;
-    const r = await api('/api/admin/support/' + sp.open + '?league=' + encodeURIComponent(sp.league || ''));
-    if (!r.ok || !sp.open) return;
-    const sig = r.messages.length + (r.messages[r.messages.length - 1]?.id || '');
-    if (sig === sp.sig && !scroll) return;
-    sp.sig = sig; sp.msgs = r.messages;
-    const box = el.querySelector('#spMsgs');
-    if (!box) return render();
-    box.innerHTML = r.messages.map(bubble).join('') || '<p class="m-empty">Xabar yo\'q</p>';
-    box.scrollTop = box.scrollHeight; loadImgs(box);
-  }
-  function startSpTimer() { clearInterval(spTimer); spTimer = setInterval(() => { if (tab === 'support' && sp.open) loadThread(false); else { clearInterval(spTimer); spTimer = null; } }, 5000); }
-  function lightbox(src) { const d = document.createElement('div'); d.className = 'm-light'; d.innerHTML = `<img src="${src}" alt="">`; d.onclick = () => d.remove(); document.body.appendChild(d); }
-
-  // ——— Statistika paneli ———
-  let st = null, bc = { list: null, count: null, text: '', league: '', lang: '' }, bcTimer = null;
-  const SK = (kind, n) => window.Skel?.[kind]?.(n) || '<p class="ad-hint">Yuklanmoqda…</p>';
-  const short = (n) => (n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + ' mln' : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, '') + ' ming' : String(n));
-  function bars(vals, days, cls, fmt = (v) => v) {
-    const W = 320, H = 100, max = Math.max(1, ...vals), bw = W / vals.length;
-    const rects = vals.map((v, i) => { const h = v ? Math.max(3, Math.round((v / max) * H)) : 0; return `<rect x="${(i * bw + 2).toFixed(1)}" y="${H - h}" width="${(bw - 4).toFixed(1)}" height="${h}" rx="3"><title>${days[i].slice(5)} · ${fmt(v)}</title></rect>`; }).join('');
-    return `<svg class="st-chart ${cls}" viewBox="0 0 ${W} ${H}" role="img" aria-label="grafik"><line x1="0" y1="${H - .5}" x2="${W}" y2="${H - .5}"/>${rects}</svg><div class="st-axis"><span>${days[0].slice(5)}</span><span>eng ko'pi: ${fmt(max)}</span><span>${days[days.length - 1].slice(5)}</span></div>`;
-  }
-  const kpi = (v, l, sub = '') => `<div class="g-card st-kpi"><b>${v}</b><span>${l}</span>${sub ? `<small>${sub}</small>` : ''}</div>`;
-  function statsHtml() {
-    if (!st) return SK('kpis');
-    const u = st.users, r = st.revenue, s = st.series, last = s.days.length;
-    const sticky = u.mau ? Math.round((u.dau / u.mau) * 100) : 0;
-    return `<div class="st-grid">
-        ${kpi(money(u.total), 'Jami foydalanuvchi', `+${u.new7} oxirgi 7 kunda`)}
-        ${kpi(money(u.dau), 'Kunlik faol (24 soat)', `haftalik ${money(u.wau)} · oylik ${money(u.mau)}`)}
-        ${kpi(money(r.todayCoins), 'Bugungi Coins daromadi', money(r.todayUzs) + ' UZS')}
-        ${kpi(money(r.weekCoins), '7 kunlik Coins', money(r.weekUzs) + ' UZS')}
-      </div>
-      <div class="g-card st-box"><h3>Kunlik faol foydalanuvchilar <small>so'nggi ${last} kun</small></h3>${bars(s.active, s.days, 'c-cy')}
-        <p class="ad-hint">Grafik shu yangilanishdan boshlab to'planadi. Yopishqoqlik (DAU/MAU): <b>${sticky}%</b></p></div>
-      <div class="g-card st-box"><h3>Yangi ro'yxatdan o'tganlar <small>jami ${money(s.signups.reduce((a, b) => a + b, 0))}</small></h3>${bars(s.signups, s.days, 'c-vi')}</div>
-      <div class="g-card st-box"><h3>Coins daromadi <small>${money(r.periodCoins)} Coins · ${money(r.periodUzs)} UZS · ${r.payments} ta to'lov</small></h3>${bars(s.coins, s.days, 'c-am', (v) => money(v) + ' Coins')}
-        ${r.pending ? `<p class="ad-hint">⏳ Tasdiq kutayotgan to'lovlar: <b>${r.pending}</b> (botdagi chek xabarlarida)</p>` : ''}</div>
-      <div class="g-card st-box"><h3>Ligalar to'ldirilishi <small>${money(u.registered)} ro'yxatdan o'tgan</small></h3>
-        ${st.leagues.map((l) => `<div class="st-lg"><span>${esc(l.name)}</span><i><u style="width:${Math.min(100, Math.round((l.players / l.max) * 100))}%"></u></i><b>${l.players}/${l.max}</b></div>`).join('')}</div>
-      ${u.blocked ? `<p class="ad-hint">🚫 Botni bloklaganlar: ${money(u.blocked)} (ommaviy xabar ularga yuborilmaydi)</p>` : ''}`;
-  }
-  async function loadStats() { const r = await api('/api/admin/stats?days=14'); if (r.ok) { st = r; if (tab === 'stats') render(); } }
-
-  // ——— Ommaviy xabar ———
-  const BCS = { running: '⏳ Yuborilmoqda', done: '✅ Yakunlandi', interrupted: '⚠️ To\'xtatilgan' };
-  function broadcastHtml() {
-    const hist = !bc.list ? SK('rows', 2) : bc.list.length ? bc.list.map((b) => {
-      const pct = b.total ? Math.round(((b.sent + b.failed + b.blocked) / b.total) * 100) : 0;
-      return `<div class="g-card bc-item"><div class="ad-meta"><small>${hm2(b.at)} · ${b.league ? esc(b.league) : 'hamma'}${b.lang ? ' · ' + b.lang.toUpperCase() : ''}</small><span class="ad-st ${b.status === 'done' ? 'confirmed' : 'pending'}">${BCS[b.status]}</span></div>
-        <p>${esc(b.text.length > 140 ? b.text.slice(0, 140) + '…' : b.text)}</p>
-        <div class="st-lg"><i><u style="width:${pct}%"></u></i><b>${b.sent}/${b.total}</b></div>
-        <small class="ad-hint">${b.blocked ? `🚫 bloklagan: ${b.blocked} · ` : ''}${b.failed ? `❌ xato: ${b.failed}` : ''}</small></div>`;
-    }).join('') : '<p class="ad-hint">Hali xabar yuborilmagan</p>';
-    return `<p class="ad-hint">Xabar botdan shaxsiy chatga ketadi, pastida «Ilovani ochish» tugmasi bo'ladi. Avval «Sinov» bilan o'zingizga yuborib ko'ring.</p>
-      <div class="g-card bc-form">
-        <label class="ad-lbl">Kimga<select data-f="bcleague"><option value="">Hamma foydalanuvchilar</option>${(ov?.leagues || []).map((l) => `<option value="${l.id}" ${bc.league === l.id ? 'selected' : ''}>${esc(l.name)} o'yinchilari (${l.players})</option>`).join('')}</select></label>
-        <label class="ad-lbl">Til<select data-f="bclang">${[['', 'Barcha tillar'], ['uz', "O'zbekcha"], ['en', 'English'], ['ru', 'Русский']].map(([k, v]) => `<option value="${k}" ${bc.lang === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
-        <label class="ad-lbl">Matn<textarea id="bcText" maxlength="3500" rows="6" placeholder="E'lon matni…">${esc(bc.text)}</textarea></label>
-        <div class="bc-meta"><span id="bcCount">${bc.count == null ? '…' : money(bc.count) + ' kishiga boradi'}</span><span id="bcLen">${bc.text.length}/3500</span></div>
-        <div class="ad-row"><button class="ad-btn ghost" data-act="bc-test">🧪 Sinov (o'zimga)</button><button class="ad-btn ok" data-act="bc-send">📢 Yuborish</button></div>
-      </div>
-      <div class="g-label"><span>Oxirgi xabarlar</span></div>${hist}`;
-  }
-  async function loadBroadcasts() {
-    const r = await api('/api/admin/broadcast');
-    if (!r.ok) return;
-    bc.list = r.list;
-    if (tab === 'broadcast') { const y = window.scrollY; render(); window.scrollTo(0, y); }
-    const running = r.list.some((b) => b.status === 'running');
-    if (running && !bcTimer) bcTimer = setInterval(() => (tab === 'broadcast' ? loadBroadcasts() : (clearInterval(bcTimer), (bcTimer = null))), 3000);
-    if (!running && bcTimer) { clearInterval(bcTimer); bcTimer = null; }
-  }
-  async function loadBcCount() {
-    const r = await post('/api/admin/broadcast/count', { league: bc.league || undefined, lang: bc.lang || undefined });
-    bc.count = r.ok ? r.count : null;
-    const c = el.querySelector('#bcCount'); if (c) c.textContent = bc.count == null ? '—' : money(bc.count) + ' kishiga boradi';
-  }
-
-  function render() {
-    if (ov && !ov.superAdmin && !HELPER_TABS.includes(tab)) tab = 'results';
-    if (!ov) { el.innerHTML = `<div class="page ad-page">${SK('kpis')}</div>`; return; }
-    const body = tab === 'clubs' ? clubsHtml() : tab === 'helpers' ? helpersHtml() : tab === 'stats' ? statsHtml() : tab === 'broadcast' ? broadcastHtml() : tab === 'results' ? resultsHtml() : tab === 'rounds' ? roundsPanelHtml() : tab === 'draw' ? drawHtml() : tab === 'cup' ? cupHtml() : tab === 'tour' ? toursHtml() : tab === 'cups' ? cupsHtml() : tab === 'open' ? openHtml() : tab === 'support' ? supportHtml() : playersHtml();
-    el.innerHTML = `<div class="page ad-page"><button class="back" data-back><span>‹</span> Bo'limlar</button><h1 class="section-title">🛠 Admin panel</h1>${tabsHtml()}${body}</div>`;
-    loadImgs(el);
-    const sb = el.querySelector('#spMsgs'); if (sb) sb.scrollTop = sb.scrollHeight;
-  }
-
   const confirmBox = (msg) => new Promise((res) => (tg?.showConfirm ? tg.showConfirm(msg, res) : res(window.confirm(msg))));
+
   async function done(r, okMsg, reload) {
     if (r.ok) { tg?.HapticFeedback?.notificationOccurred('success'); toast(okMsg); } else toast(ERR[r.error] || ERR.fail);
     await loadOverview();
     if (reload) await reload();
   }
 
+  // --- Image Cache for proofs ---
+  const imgCache = new Map();
+  async function loadImgs(root) {
+    for (const im of root.querySelectorAll('img[data-fid]:not([data-ok])')) {
+      im.dataset.ok = '1';
+      const fid = im.dataset.fid;
+      if (!imgCache.has(fid)) {
+        try {
+          const r = await fetch('/api/file/' + encodeURIComponent(fid), { headers: { 'x-init-data': tg?.initData || '' } });
+          if (!r.ok) throw 0;
+          imgCache.set(fid, URL.createObjectURL(await r.blob()));
+        } catch (_) { im.alt = '⚠️ rasm yuklanmadi'; continue; }
+      }
+      im.src = imgCache.get(fid);
+    }
+  }
+
+  // --- LIGA SUB-TAB: 1. QURA ---
+  function ligaDrawHtml() {
+    const l = (ov?.leagues || []).find((x) => x.id === curLeague);
+    if (!l) return '<p class="ad-hint">Liga topilmadi</p>';
+
+    const drawn = !!l.drawnAt;
+    const nRounds = l.roundCount || 19;
+    const openSet = new Set((l.openRounds || []).map(Number));
+    const dlMap = l.roundDeadlines || {};
+
+    const curRound = Number(selRoundNum) || 1;
+    const isOpen = openSet.has(curRound);
+    const curDl = dlMap[curRound] ? fmtLocal(dlMap[curRound]) : '';
+
+    return `<div class="g-card ad-lg">
+      <div class="ad-meta">
+        <b>🎲 Qura holati</b>
+        <span class="ad-st ${drawn ? 'confirmed' : 'pending'}">${drawn ? 'Qura o\'tkazilgan' : 'Qura qilinmagan'}</span>
+      </div>
+      ${drawn
+        ? `<p class="ad-ok">✅ Qura vaqti: ${fmtShow(l.drawnAt)} · Jami o'yinlar: ${l.total} (${l.confirmed} tasdiqlangan)</p>
+           <div class="ad-row">
+             <button class="ad-btn ghost sm" data-act="redo" data-lg="${l.id}">Qayta qura</button>
+             <button class="ad-btn bad sm" data-act="draw-cancel" data-lg="${l.id}">✖ Bekor qilish</button>
+           </div>`
+        : `<label class="ad-lbl">Qura o'tkazish vaqti
+             <input type="datetime-local" id="lgDrawTime" value="${l.drawAt ? fmtLocal(l.drawAt) : ''}">
+           </label>
+           <div class="ad-row">
+             <button class="ad-btn sm" data-act="settime" data-lg="${l.id}">Vaqtni saqlash</button>
+             <button class="ad-btn ok sm" data-act="draw" data-lg="${l.id}">🎲 Hozir qura qilish</button>
+           </div>`}
+    </div>
+
+    <div class="g-card ad-lg" style="margin-top:14px;">
+      <div class="ad-meta">
+        <b>🔢 Turlar va Dedlayn</b>
+        <span>${openSet.size}/${nRounds} tur ochiq</span>
+      </div>
+      
+      <label class="ad-lbl">Turni tanlang:
+        <select class="lf-select" data-act="pick-round">
+          ${Array.from({ length: nRounds }, (_, i) => i + 1).map((r) => `<option value="${r}" ${r === curRound ? 'selected' : ''}>${r}-tur ${openSet.has(r) ? '(Ochiq 🔓)' : '(Yopiq 🔒)'}</option>`).join('')}
+        </select>
+      </label>
+
+      <label class="ad-lbl">${curRound}-tur dedlayni:
+        <input type="datetime-local" id="roundDlInput" value="${curDl}">
+      </label>
+
+      <div class="ad-row" style="margin-top:10px;">
+        <button class="ad-btn ok sm" data-act="save-round-dl" data-lg="${l.id}" data-round="${curRound}">💾 Dedlayn saqlash</button>
+        <button class="ad-btn ${isOpen ? 'bad' : 'ok'} sm" data-act="toggle-round-open" data-lg="${l.id}" data-round="${curRound}" data-open="${isOpen ? '' : '1'}">
+          ${isOpen ? '🔒 Turni yopish' : '🔓 Turni ochish'}
+        </button>
+      </div>
+
+      <div class="ad-row" style="margin-top:14px;border-top:1px solid #1e293b;padding-top:12px;">
+        <button class="ad-btn ghost sm" data-act="rall" data-lg="${l.id}" data-open="1">Hammasini ochish</button>
+        <button class="ad-btn ghost sm" data-act="rall" data-lg="${l.id}" data-open="">Hammasini yopish</button>
+      </div>
+    </div>`;
+  }
+
+  // --- LIGA SUB-TAB: 2. NATIJALAR ---
+  function ligaResultsHtml() {
+    const curLg = (ov?.leagues || []).find((x) => x.id === curLeague);
+    const clubs = window.EFL?.byId[curLeague]?.clubs || [];
+    const nRounds = curLg?.roundCount || 19;
+
+    const filterClub = mt.filterClub || 'all';
+    const filterRound = mt.filterRound || 'all';
+
+    let list = (mt.list || []).filter((m) => m.league === curLeague);
+    if (filterClub !== 'all') {
+      list = list.filter((m) => m.home?.clubId === filterClub || m.away?.clubId === filterClub);
+    }
+    if (filterRound !== 'all') {
+      list = list.filter((m) => String(m.round) === String(filterRound));
+    }
+
+    const pendingMatches = (mt.list || []).filter((m) => m.league === curLeague && (m.status === 'pending' || m.status === 'disputed'));
+
+    const pendingBlock = pendingMatches.length ? `<div class="g-label"><span>⏳ Tasdiqlash kutayotgan hisoblar (${pendingMatches.length})</span></div>
+      ${pendingMatches.map((m) => `<div class="g-card ad-pending-card" data-act="open-approval" data-mid="${m.id}" style="cursor:pointer">
+        <div class="ad-pending-left">
+          <span>⚽ <b>${esc(m.home.club)}</b> <b class="ad-pending-sc">${m.hg ?? '–'}:${m.ag ?? '–'}</b> <b>${esc(m.away.club)}</b></span>
+          <small>${m.round}-tur · ${m.status === 'disputed' ? '⚠️ Yolg\'on hisob' : 'Tasdiqlash kutilmoqda'}</small>
+        </div>
+        <button class="ad-btn ghost sm" data-act="open-approval" data-mid="${m.id}">Batafsil ›</button>
+      </div>`).join('')}` : '';
+
+    return `${pendingBlock}
+      <div class="g-label" style="margin-top:16px;"><span>📋 O'yinlar va natijalar</span></div>
+      <div class="g-card live-filters" style="margin-bottom:12px;">
+        <div class="lf-item">
+          <label>🔢 Turni tanlash</label>
+          <select class="lf-select" data-act="res-filter-round">
+            <option value="all" ${filterRound === 'all' ? 'selected' : ''}>Barcha turlar</option>
+            ${Array.from({ length: nRounds }, (_, i) => i + 1).map((r) => `<option value="${r}" ${String(filterRound) === String(r) ? 'selected' : ''}>${r}-tur</option>`).join('')}
+          </select>
+        </div>
+        <div class="lf-item">
+          <label>🛡️ Klubni tanlash</label>
+          <select class="lf-select" data-act="res-filter-club">
+            <option value="all" ${filterClub === 'all' ? 'selected' : ''}>Barcha klublar</option>
+            ${clubs.map((c) => `<option value="${c.id}" ${filterClub === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      ${list.map(matchRowHtml).join('') || '<div class="pf-empty"><span>⚽</span><p>O\'yinlar topilmadi</p></div>'}`;
+  }
+
+  function matchRowHtml(m) {
+    const ST_MAP = { scheduled: 'Kiritilmagan', pending: 'Kutilmoqda', disputed: '⚠️ Bahsli', confirmed: 'Tasdiqlangan' };
+    return `<div class="g-card ad-match" data-mid="${m.id}">
+      <div class="ad-meta">
+        <small>${m.round}-tur · <b>${ST_MAP[m.status] || m.status}</b></small>
+        ${m.status === 'confirmed' ? '<span class="gm-chip ok">✓</span>' : ''}
+      </div>
+      <div class="ad-vs">
+        <div><b>${esc(m.home.club)}</b><small>${esc(m.home.user)}</small></div>
+        <div class="ad-in">
+          <input type="number" inputmode="numeric" min="0" max="99" value="${m.hg ?? ''}" data-hg>
+          <b>:</b>
+          <input type="number" inputmode="numeric" min="0" max="99" value="${m.ag ?? ''}" data-ag>
+        </div>
+        <div><b>${esc(m.away.club)}</b><small>${esc(m.away.user)}</small></div>
+      </div>
+      <div class="ad-row" style="margin-top:10px;">
+        <button class="ad-btn ok sm" data-act="save-match-res">💾 Saqlash</button>
+        ${m.status !== 'scheduled' ? `<button class="ad-btn bad sm" data-act="reset-match-res">🗑 O'chirish</button>` : ''}
+        ${m.chat ? `<button class="ad-btn ghost sm" data-act="viewchat">💬 Chat (${m.chat})</button>` : ''}
+      </div>
+      <div class="ad-chatbox" data-chatbox></div>
+    </div>`;
+  }
+
+  // --- LIGA SUB-TAB: 3. ISHTIROKCHILAR ---
+  function ligaPlayersHtml() {
+    const d = pl.data;
+    if (!d) return '<p class="ad-hint">Yuklanmoqda…</p>';
+
+    let players = d.players || [];
+    if (pl.search) {
+      const q = pl.search.toLowerCase();
+      players = players.filter((p) => p.club?.toLowerCase().includes(q) || p.user?.toLowerCase().includes(q) || String(p.telegramId).includes(q));
+    }
+
+    return `<div class="g-card live-filters" style="margin-bottom:12px;">
+      <div class="lf-item" style="flex:1;">
+        <label>🔍 Qidiruv (username yoki klub)</label>
+        <input type="text" class="lf-select" id="plSearchInp" value="${esc(pl.search)}" placeholder="@username, klub yoki ID...">
+      </div>
+    </div>
+    
+    <div class="g-label"><span>Mavjud ishtirokchilar (${players.length}/${d.max})</span></div>
+    ${players.map((p) => `<div class="g-card ad-pl" data-tid="${p.telegramId}" data-club="${esc(p.club)}">
+      <span><b>${esc(p.club)}</b><small>${esc(p.user)} · ${p.pts || 0} ball · ID: ${p.telegramId}</small></span>
+      <div class="ad-row">
+        <button class="ad-btn ghost sm" data-act="transfer-player" data-tid="${p.telegramId}" data-club="${esc(p.club)}">🔄 Almashtirish</button>
+        <button class="ad-btn bad sm" data-act="remove-player" data-tid="${p.telegramId}" data-name="${esc(p.club)}">🚪 Chiqarish</button>
+      </div>
+    </div>`).join('') || '<p class="ad-hint">Ishtirokchi topilmadi</p>'}
+
+    <div class="g-label" style="margin-top:16px;"><span>➕ Yangi ishtirokchi qo'shish</span></div>
+    <div class="g-card ad-add">
+      <label class="ad-lbl">Foydalanuvchi username yoki Telegram ID:
+        <input type="text" id="addUserInput" placeholder="@username yoki 123456789">
+      </label>
+      <label class="ad-lbl">Bo'sh klub:
+        <select id="addClubSelect">
+          ${(d.free || []).map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}
+        </select>
+      </label>
+      <button class="ad-btn ok sm" data-act="add-player" style="margin-top:10px;">➕ Ishtirokchini qo'shish</button>
+    </div>`;
+  }
+
+  // --- LIGA SUB-TAB: 4. XABARLAR ---
+  const hm2 = (d) => new Date(d).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const bubble = (x) => `<div class="m-b ${x.mine ? 'me' : 'op'}">${x.fileId ? `<img class="m-img" data-fid="${esc(x.fileId)}" alt="">` : ''}${x.text ? `<span>${esc(x.text)}</span>` : ''}<small>${hm2(x.at)}</small></div>`;
+
+  function ligaSupportHtml() {
+    if (sp.open) {
+      return `<button class="back" data-act="spback"><span>‹</span> Murojaatlar ro'yxati</button>
+        <div class="g-card ad-thread-h"><b>${esc(sp.name)}</b><small>ID ${sp.open} · 🏆 ${esc(sp.leagueName)}</small></div>
+        <div class="m-msgs ad-msgs" id="spMsgs">${sp.msgs.map(bubble).join('') || '<p class="m-empty">Xabar yo\'q</p>'}</div>
+        <div class="m-send">
+          <input id="spText" maxlength="800" placeholder="Javob yozing…" autocomplete="off">
+          <button class="m-ic go" data-act="spsend">➤</button>
+        </div>`;
+    }
+    const threads = (sp.threads || []).filter((x) => !curLeague || x.league === curLeague);
+    return `<div class="g-label"><span>Foydalanuvchilar murojaatlari</span></div>
+      ${threads.map((x) => `<button class="g-card ad-thread" data-act="spopen" data-uid="${x.uid}" data-name="${esc(x.name)}" data-league="${esc(x.league || '')}" data-lname="${esc(x.leagueName || '')}">
+        <span>
+          <b>${esc(x.name)}</b>${x.leagueName ? `<em>🏆 ${esc(x.leagueName)}</em>` : ''}
+          <small>${x.fromAdmin ? 'Siz: ' : ''}${esc((x.text || '').slice(0, 70))}</small>
+        </span>
+        <span class="ad-thread-r">
+          <small>${hm2(x.at)}</small>
+          ${x.unread ? `<i class="gm-badge" style="position:static">${x.unread}</i>` : ''}
+        </span>
+      </button>`).join('') || '<div class="pf-empty"><span>📭</span><p>Murojaatlar yo\'q</p></div>'}`;
+  }
+
+  // --- KUBOK BO'LIMI ---
+  function cupDrawHtml() {
+    if (!cupState) return '<p class="ad-hint">Yuklanmoqda…</p>';
+    return `<p class="ad-hint">Saralash va asosiy to'r bosqichlarini ochish, dedlayn belgilash va qura o'tkazish.</p>` +
+      (cupState.stages || []).map((s) => {
+        const drawn = !!s.drawnAt;
+        return `<div class="g-card ad-lg" data-cupstage="${s.stage}" style="margin-bottom:12px;">
+          <div class="ad-meta">
+            <b>${esc(s.label)}</b>
+            <span class="ad-st ${drawn ? 'confirmed' : 'pending'}">${drawn ? 'Qura o\'tgan' : 'Qura qilinmagan'}</span>
+          </div>
+          <p class="ad-hint">
+            ${drawn ? `🎲 ${fmtShow(s.drawnAt)}` : '🎲 Qura hali o\'tkazilmagan'}
+            ${s.startedAt ? ` · 🟢 Boshlangan: ${fmtShow(s.startedAt)}` : ''}
+            ${s.deadline ? ` · ⏰ Dedlayn: ${fmtShow(s.deadline)}` : ''}
+            ${s.matches ? ` · ✅ ${s.confirmed}/${s.matches}` : ''}
+          </p>
+          <div class="ad-row" style="margin-top:10px;">
+            ${drawn
+              ? `<label class="ad-lbl" style="flex:1;">Dedlayn (soat):<input type="number" min="0" max="720" value="24" data-hours></label>
+                 <button class="ad-btn ok sm" data-act="cup-start">▶️ Ochish / Start</button>
+                 <button class="ad-btn bad sm" data-act="cup-reset">🔒 Qulflash / Tozalash</button>`
+              : `<button class="ad-btn ok sm" data-act="cup-draw">🎲 Hozir qura qilish</button>`}
+          </div>
+          ${s.stage !== 'final' ? `<div style="margin-top:8px;"><button class="ad-btn ghost sm" data-act="cup-advance">➡️ Keyingi bosqichga o'tish</button></div>` : ''}
+        </div>`;
+      }).join('');
+  }
+
+  function cupResultsHtml() {
+    if (!cupState) return '<p class="ad-hint">Yuklanmoqda…</p>';
+    const stages = cupState.stages || [];
+    const filterStage = mt.filterStage || 'all';
+
+    let qMatches = (cupState.qualifiers || []).concat(cupState.bracket || []);
+    if (filterStage !== 'all') {
+      const stg = stages.find((s) => s.stage === filterStage);
+      if (stg) qMatches = qMatches.filter((m) => m.round === stg.round);
+    }
+
+    const pendingMatches = qMatches.filter((m) => m.status === 'pending' || m.status === 'disputed');
+    const pendingBlock = pendingMatches.length ? `<div class="g-label"><span>⏳ Tasdiqlash kutayotgan kubok natijalari (${pendingMatches.length})</span></div>
+      ${pendingMatches.map((m) => `<div class="g-card ad-pending-card" data-act="open-approval" data-mid="${m.id}" style="cursor:pointer">
+        <div class="ad-pending-left">
+          <span>⚽ <b>${esc(m.home?.club)}</b> <b class="ad-pending-sc">${m.hg ?? '–'}:${m.ag ?? '–'}</b> <b>${esc(m.away?.club)}</b></span>
+          <small>Tur ${m.round} · Tasdiqlash kutilmoqda</small>
+        </div>
+        <button class="ad-btn ghost sm" data-act="open-approval" data-mid="${m.id}">Batafsil ›</button>
+      </div>`).join('')}` : '';
+
+    return `${pendingBlock}
+      <div class="g-label" style="margin-top:16px;"><span>📋 Kubok o'yinlari va natijalari</span></div>
+      <div class="g-card live-filters" style="margin-bottom:12px;">
+        <div class="lf-item">
+          <label>🔢 Bosqich / Saralashni tanlash</label>
+          <select class="lf-select" data-act="cup-res-filter-stage">
+            <option value="all" ${filterStage === 'all' ? 'selected' : ''}>Barcha bosqichlar</option>
+            ${stages.map((s) => `<option value="${s.stage}" ${filterStage === s.stage ? 'selected' : ''}>${esc(s.label)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      ${qMatches.map((m) => `<div class="g-card ad-match" data-mid="${m.id}">
+        <div class="ad-meta"><small>Tur ${m.round} · <b>${m.status || 'kutilmoqda'}</b></small></div>
+        <div class="ad-vs">
+          <div><b>${esc(m.home?.club)}</b><small>${esc(m.home?.user || '')}</small></div>
+          <div class="ad-in">
+            <input type="number" min="0" max="99" value="${m.hg ?? ''}" data-hg>
+            <b>:</b>
+            <input type="number" min="0" max="99" value="${m.ag ?? ''}" data-ag>
+          </div>
+          <div><b>${esc(m.away?.club)}</b><small>${esc(m.away?.user || '')}</small></div>
+        </div>
+        <div class="ad-row" style="margin-top:10px;">
+          <button class="ad-btn ok sm" data-act="save-match-res">💾 Saqlash</button>
+          <button class="ad-btn bad sm" data-act="reset-match-res">🗑 O'chirish</button>
+        </div>
+      </div>`).join('') || '<div class="pf-empty"><span>⚽</span><p>O\'yinlar topilmadi</p></div>'}`;
+  }
+
+  // --- MODAL: TASDIQLASH (APPROVAL) MODAL ---
+  function approvalModalHtml(m) {
+    if (!m) return '';
+    const hClub = m.home?.club || 'Home';
+    const aClub = m.away?.club || 'Away';
+    const hUser = m.home?.user || '—';
+    const aUser = m.away?.user || '—';
+    const proofs = m.proofs || [];
+
+    const shots = proofs.map((p) => p.fileId ? `<div class="ad-shot-box"><p>📎 ${esc(p.by || 'Foydalanuvchi')}</p><img class="ad-shot" data-fid="${esc(p.fileId)}" alt="Skrinshot"></div>` : '').join('');
+
+    return `<div class="modal" id="approvalModal"><div class="modal-box">
+      <h3>⚽ Natijani tasdiqlash</h3>
+      <div class="ad-vs" style="margin:16px 0;">
+        <div><b>${esc(hClub)}</b><small>${esc(hUser)}</small></div>
+        <div style="font-size:24px;font-weight:700;color:#22d3ee;">${m.hg ?? 0} : ${m.ag ?? 0}</div>
+        <div><b>${esc(aClub)}</b><small>${esc(aUser)}</small></div>
+      </div>
+      ${shots || '<p class="ad-hint">Skrinshot yuborilmagan</p>'}
+      <div class="modal-btns" style="margin-top:16px;">
+        <button class="mb-no" data-act="reject-approval" data-mid="${m.id}">❌ Rad etish</button>
+        <button class="mb-ok" data-act="confirm-approval" data-mid="${m.id}" data-hg="${m.hg ?? 0}" data-ag="${m.ag ?? 0}">✅ Tasdiqlash</button>
+      </div>
+      <button class="tu-close" data-act="close-approval" style="margin-top:12px;">Yopish</button>
+    </div></div>`;
+  }
+
+  // --- MODAL: ISHTIROKCHINI ALMASHTIRISH ---
+  function transferModalHtml(tid, club) {
+    return `<div class="modal" id="transferModal"><div class="modal-box">
+      <h3>🔄 ${esc(club)} klubini almashtirish</h3>
+      <p class="ad-hint">Yangi foydalanuvchi @username yoki Telegram ID sini kiriting. Klub va uning barcha o'yinlari unga o'tkaziladi.</p>
+      <input type="text" id="transferUserInput" placeholder="@username yoki 123456789" style="width:100%;margin:12px 0;">
+      <div class="modal-btns">
+        <button class="mb-no" data-act="close-transfer">Bekor qilish</button>
+        <button class="mb-ok" data-act="confirm-transfer" data-club="${esc(club)}">Tasdiqlash</button>
+      </div>
+    </div></div>`;
+  }
+
+  // --- ASOSIY RENDER FUNKSIYASI ---
+  function render() {
+    if (!el) return;
+    if (!ov) { el.innerHTML = '<div class="page ad-page"><p class="ad-hint">Yuklanmoqda…</p></div>'; return; }
+
+    const superAdmin = !!ov.superAdmin;
+    const myLeagues = superAdmin ? (ov.leagues || []) : (ov.leagues || []).filter((l) => (ov.helperLeagues || []).includes(l.id));
+
+    if (!curLeague && myLeagues.length) curLeague = myLeagues[0].id;
+
+    // Switcher: Liga | Kubok
+    const topSwitch = `<div class="seg seg-top" style="margin-bottom:14px;">
+      <button class="${mainTab === 'liga' ? 'on' : ''}" data-act="switch-main" data-tab="liga">🏆 Liga</button>
+      <button class="${mainTab === 'cup' ? 'on' : ''}" data-act="switch-main" data-tab="cup">🎟️ Kubok</button>
+    </div>`;
+
+    let content = '';
+
+    if (mainTab === 'liga') {
+      const leagueChips = `<div class="chips" style="margin-bottom:12px;">${myLeagues.map((l) => `<button class="chip${curLeague === l.id ? ' on' : ''}" data-act="pick-league" data-lid="${l.id}">${esc(l.name)}</button>`).join('')}</div>`;
+
+      const subNav = `<div class="ad-tabs" style="margin-bottom:14px;">
+        <button class="${ligaSubTab === 'draw' ? 'on' : ''}" data-act="sub-liga" data-sub="draw">🎲 Qura</button>
+        <button class="${ligaSubTab === 'results' ? 'on' : ''}" data-act="sub-liga" data-sub="results">⚽ Natijalar</button>
+        <button class="${ligaSubTab === 'players' ? 'on' : ''}" data-act="sub-liga" data-sub="players">👥 Ishtirokchilar</button>
+        <button class="${ligaSubTab === 'support' ? 'on' : ''}" data-act="sub-liga" data-sub="support">💬 Xabarlar${ov.support ? ` <i>${ov.support}</i>` : ''}</button>
+      </div>`;
+
+      let inner = '';
+      if (ligaSubTab === 'draw') inner = ligaDrawHtml();
+      else if (ligaSubTab === 'results') inner = ligaResultsHtml();
+      else if (ligaSubTab === 'players') inner = ligaPlayersHtml();
+      else inner = ligaSupportHtml();
+
+      content = `${leagueChips}${subNav}${inner}`;
+    } else {
+      const cups = [
+        { id: 'fa-cup', name: 'FA Cup (Angliya)', flag: '🇬🇧' },
+        { id: 'copa-del-rey', name: 'Copa del Rey (Ispaniya)', flag: '🇪🇸' },
+      ];
+      const cupChips = `<div class="chips" style="margin-bottom:12px;">${cups.map((c) => `<button class="chip${curCup === c.id ? ' on' : ''}" data-act="pick-cup" data-cid="${c.id}">${c.flag} ${esc(c.name)}</button>`).join('')}</div>`;
+
+      const subNav = `<div class="ad-tabs" style="margin-bottom:14px;">
+        <button class="${cupSubTab === 'draw' ? 'on' : ''}" data-act="sub-cup" data-sub="draw">🎲 Qura</button>
+        <button class="${cupSubTab === 'results' ? 'on' : ''}" data-act="sub-cup" data-sub="results">⚽ Natijalar</button>
+      </div>`;
+
+      let inner = cupSubTab === 'draw' ? cupDrawHtml() : cupResultsHtml();
+      content = `${cupChips}${subNav}${inner}`;
+    }
+
+    el.innerHTML = `<div class="page ad-page">
+      <h1 class="section-title">🛠 Admin panel</h1>
+      ${topSwitch}
+      ${content}
+      ${selApprovalMatch ? approvalModalHtml(selApprovalMatch) : ''}
+    </div>`;
+
+    loadImgs(el);
+    const sb = el.querySelector('#spMsgs'); if (sb) sb.scrollTop = sb.scrollHeight;
+  }
+
+  // --- DATA LOADERS ---
+  async function loadOverview() {
+    const r = await api('/api/admin/overview');
+    if (r.ok) {
+      ov = r;
+      if (!curLeague && r.leagues?.length) curLeague = r.leagues[0].id;
+      render();
+    }
+  }
+
+  async function loadMatches() {
+    const r = await api('/api/admin/matches?status=all&league=' + (curLeague || ''));
+    if (r.ok) {
+      mt.list = r.matches || [];
+      mt.total = r.total || 0;
+      render();
+    }
+  }
+
+  async function loadPlayers() {
+    if (!curLeague) return;
+    const r = await api(`/api/admin/league/${curLeague}/players`);
+    if (r.ok) {
+      pl.data = r;
+      render();
+    }
+  }
+
+  async function loadSupport() {
+    const r = await api('/api/admin/support');
+    if (r.ok) {
+      sp.threads = r.threads || [];
+      render();
+    }
+  }
+
+  async function loadThread(scroll) {
+    if (!sp.open) return;
+    const r = await api('/api/admin/support/' + sp.open + '?league=' + encodeURIComponent(sp.league || ''));
+    if (!r.ok || !sp.open) return;
+    sp.msgs = r.messages || [];
+    render();
+    const box = el.querySelector('#spMsgs');
+    if (box && scroll) box.scrollTop = box.scrollHeight;
+  }
+
+  async function loadCup() {
+    const r = await api('/api/admin/cup?cup=' + curCup);
+    if (r.ok) {
+      cupState = r;
+      render();
+    }
+  }
+
+  // --- CLICK EVENT HANDLERS ---
   async function onClick(e) {
-    const t = e.target.closest('[data-tab]'), a = e.target.closest('[data-act]');
-    if (t) { tab = t.dataset.tab; render(); if (tab === 'stats') loadStats(); if (tab === 'broadcast') { loadBroadcasts(); loadBcCount(); } if (tab === 'results') loadMatches(); if (tab === 'players') loadPlayers(); if (tab === 'helpers') loadHelpers(); if (tab === 'clubs') loadClubs(); if (tab === 'tour') loadTours(); if (tab === 'cups') loadCups(); if (tab === 'cup') loadCup(); if (tab === 'support') { sp.open = null; loadSupport(); } loadOverview(); return; }
-    if (!a) return;
-    const act = a.dataset.act, lg = a.dataset.lg;
-    if (act === 'clc') { cl.country = a.dataset.cid; cl.league = null; return render(); }
-    if (act === 'cll') { cl.league = a.dataset.lid; return render(); }
-    if (act === 'hadd') {
-      const tid = Number(el.querySelector('#hId')?.value), lgId = el.querySelector('#hLg')?.value || '';
-      if (!Number.isInteger(tid) || tid <= 0 || !lgId) return toast(ERR.fail);
-      const r = await post('/api/admin/helpers', { telegramId: tid, league: lgId });
-      return done(r, "Yordamchi admin qo'shildi ✅", loadHelpers);
-    }
-    if (act === 'hdel') {
-      if (!(await confirmBox("Yordamchi admin huquqini olib tashlaysizmi?"))) return;
-      const r = await post('/api/admin/helpers/remove', { telegramId: Number(a.dataset.id), league: a.dataset.league });
-      return done(r, "Olib tashlandi", loadHelpers);
-    }
-    if (act === 'cupsave') {
-      const box = a.closest('[data-cup]'), price = Math.round(Number(box.querySelector('[data-price]').value || 0));
-      if (!(price >= 0 && price <= 1e9)) return toast("Narxni to'g'ri kiriting");
-      const r = await post('/api/admin/cup-prices', { league: box.dataset.cup, price });
-      if (!r.ok) return toast(ERR.fail);
-      const c = cups.find((x) => x.id === box.dataset.cup); if (c) c.price = price;
-      tg?.HapticFeedback?.notificationOccurred('success'); toast(price ? 'Narx saqlandi ✅' : "Narx o'chirildi");
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    const act = btn.dataset.act;
+
+    if (act === 'switch-main') {
+      mainTab = btn.dataset.tab;
+      if (mainTab === 'cup' && !cupState) loadCup();
+      if (mainTab === 'liga' && !mt.list.length) loadMatches();
       return render();
     }
-        if (act === 'cup-shield') {
-      const r = await post('/api/admin/cup/shield', { cup: cupSel });
-      if (!r.ok) return toast(r.error === 'pl_not_finished' ? '1-liga hali tugamagan' : 'Finalchilar hali aniqlanmagan');
-      toast((cupState?.shieldName || 'Community Shield') + ' yaratildi 🛡'); return loadCup();
-    }
-    if (act === 'cup-award') {
-      if (!(await confirmBox("G'olibga kubok topshiriladimi?"))) return;
-      const r = await post('/api/admin/cup/award', { cup: cupSel, kind: a.dataset.kind });
-      return done(r, 'Kubok topshirildi 🏆', loadCup);
-    }
-    if (act === 'cup-pick') { cupSel = a.dataset.cup; cupState = null; render(); return loadCup(); }
-    if (act.startsWith('cup-')) {
-      const box = a.closest('[data-cupstage]'), stage = box.dataset.cupstage;
-      if (act === 'cup-time') {
-        const v = box.querySelector('[data-dt]')?.value;
-        if (!v) return toast('Vaqtni tanlang');
-        return done(await post('/api/admin/cup/draw-time', { cup: cupSel, stage, drawAt: new Date(v).toISOString() }), 'Qura vaqti saqlandi ✅', loadCup);
-      }
-            if (act === 'cup-draw') {
-        if (!(await confirmBox("Qurani hozir o'tkazamizmi? Ishtirokchilar tasodifiy juftlanadi."))) return;
-        const r = await post('/api/admin/cup/draw', { cup: cupSel, stage });
-        if (!r.ok) return toast(ERR[r.error] || ERR.fail);
-        const p = await api('/api/admin/cup/pairs?cup=' + cupSel + '&stage=' + stage);
-        return reveal(p.pairs || [], stage, loadCup);
-      }
-      if (act === 'cup-start') {
-        const hours = Number(box.querySelector('[data-hours]')?.value || 0);
-        return done(await post('/api/admin/cup/start', { cup: cupSel, stage, hours }), 'Tur ochildi ▶️', loadCup);
-      }
-      if (act === 'cup-advance') {
-        return done(await post('/api/admin/cup/advance', { cup: cupSel, stage }), "Keyingi bosqichga o'tildi ➡️", loadCup);
-      }
-      if (act === 'cup-reset') {
-        if (!(await confirmBox("Bosqich tozalanadi: o'yinlar o'chadi, qayta qura mumkin bo'ladi. Davom etilsinmi?"))) return;
-        return done(await post('/api/admin/cup/reset', { cup: cupSel, stage }), 'Tozalandi 🧹', loadCup);
-      }
-    }
-    if (act === 'bc-test' || act === 'bc-send') {
-      const text = bc.text.trim();
-      if (!text) return toast('Matnni yozing');
-      if (act === 'bc-test') { const r = await post('/api/admin/broadcast', { text, test: true }); return toast(r.ok ? "Sinov xabari o'zingizga yuborildi 🧪" : "Yuborilmadi — avval botga /start bosing"); }
-      if (!(await confirmBox(`Xabar ${bc.count ?? ''} kishiga yuboriladi. Davom etilsinmi?`))) return;
-      const r = await post('/api/admin/broadcast', { text, league: bc.league || undefined, lang: bc.lang || undefined });
-      if (!r.ok) return toast(r.error === 'busy' ? "Boshqa xabar hali yuborilmoqda" : r.error === 'empty' ? "Qabul qiluvchi yo'q" : ERR.fail);
-      tg?.HapticFeedback?.notificationOccurred('success'); toast(`Yuborish boshlandi: ${r.total} kishi 📢`);
-      bc.text = ''; return loadBroadcasts();
-    }
-    if (act === 'zoom') return lightbox(a.src);
-    if (act === 'viewchat') {
-      const box = a.parentElement.querySelector('[data-chatbox]'), mid = a.closest('[data-mid]').dataset.mid;
-      if (box.innerHTML) { box.innerHTML = ''; return; }
-      const r = await api(`/api/admin/matches/${mid}/chat`);
-      box.innerHTML = r.ok ? (r.messages.map((x) => `<div class="m-b ${x.side === 'home' ? 'op' : 'me'}"><b class="ad-by">${esc(x.by)}</b>${x.type === 'room' ? `🎮 Xona ID: <b>${esc(x.text)}</b>` : `<span>${esc(x.text)}</span>`}<small>${hm2(x.at)}</small></div>`).join('') || '<p class="ad-hint">Chat bo\'sh</p>') : '<p class="ad-hint">Yuklanmadi</p>';
+    if (act === 'pick-league') {
+      curLeague = btn.dataset.lid;
+      pl.data = null;
+      render();
+      if (ligaSubTab === 'results') loadMatches();
+      if (ligaSubTab === 'players') loadPlayers();
       return;
     }
-    if (act === 'spopen') { sp.open = a.dataset.uid; sp.name = a.dataset.name; sp.league = a.dataset.league || ''; sp.leagueName = a.dataset.lname || ''; sp.msgs = []; sp.sig = ''; render(); await loadThread(true); startSpTimer(); loadOverview(); return; }
-    if (act === 'spback') { sp.open = null; render(); loadSupport(); loadOverview(); return; }
+    if (act === 'sub-liga') {
+      ligaSubTab = btn.dataset.sub;
+      render();
+      if (ligaSubTab === 'results') loadMatches();
+      if (ligaSubTab === 'players') loadPlayers();
+      if (ligaSubTab === 'support') loadSupport();
+      return;
+    }
+    if (act === 'pick-cup') {
+      curCup = btn.dataset.cid;
+      cupState = null;
+      render();
+      return loadCup();
+    }
+    if (act === 'sub-cup') {
+      cupSubTab = btn.dataset.sub;
+      return render();
+    }
+
+    // --- Qura harakatlari ---
+    if (act === 'settime') {
+      const v = el.querySelector('#lgDrawTime')?.value;
+      if (!v) return toast('Vaqtni tanlang');
+      return done(await post(`/api/admin/league/${btn.dataset.lg}/draw-time`, { drawAt: new Date(v).toISOString(), rounds: 2, roundDays: 7 }), 'Qura vaqti saqlandi ✅');
+    }
+    if (act === 'draw') {
+      if (!(await confirmBox('Qurani hozir o\'tkazamizmi? Ishtirokchilar aralashtirilib, o\'yinlar jadvali tuziladi.'))) return;
+      return done(await post(`/api/admin/league/${btn.dataset.lg}/draw`, { rounds: 2, roundDays: 7 }), 'Qura o\'tkazildi 🎲', loadMatches);
+    }
+    if (act === 'draw-cancel') {
+      if (!(await confirmBox("Qura bekor qilinadimi? Barcha o'yinlar o'chadi, liga 0 dan holatga qaytadi."))) return;
+      return done(await post(`/api/admin/league/${btn.dataset.lg}/draw-cancel`, {}), 'Qura bekor qilindi ✖', loadMatches);
+    }
+    if (act === 'redo') {
+      if (!(await confirmBox('Qurani qayta o\'tkazamizmi? Eski o\'yinlar jadvali o\'chiriladi.'))) return;
+      return done(await post(`/api/admin/league/${btn.dataset.lg}/draw`, { redo: true, rounds: 2, roundDays: 7 }), 'Qayta qura o\'tkazildi 🎲', loadMatches);
+    }
+
+    // --- Tur Dedlayn va Qulf ---
+    if (act === 'save-round-dl') {
+      const v = el.querySelector('#roundDlInput')?.value;
+      if (!v) return toast('Vaqtni tanlang');
+      return done(await post(`/api/admin/league/${btn.dataset.lg}/round-deadline`, { round: Number(btn.dataset.round), deadline: new Date(v).toISOString() }), 'Tur dedlayni saqlandi ✅');
+    }
+    if (act === 'toggle-round-open') {
+      const open = btn.dataset.open === '1';
+      return done(await post(`/api/admin/league/${btn.dataset.lg}/rounds`, { round: Number(btn.dataset.round), open }), open ? `${btn.dataset.round}-tur ochildi 🔓` : `${btn.dataset.round}-tur yopildi 🔒`);
+    }
+    if (act === 'rall') {
+      const open = btn.dataset.open === '1';
+      if (!open && !(await confirmBox('Barcha turlar yopiladi. Davom etilsinmi?'))) return;
+      return done(await post(`/api/admin/league/${btn.dataset.lg}/rounds`, { all: true, open }), open ? 'Barcha turlar ochildi 🔓' : 'Barcha turlar yopildi 🔒');
+    }
+
+    // --- Natijalar tahrirlash ---
+    if (act === 'save-match-res') {
+      const box = btn.closest('[data-mid]'), hg = parseInt(box.querySelector('[data-hg]').value, 10), ag = parseInt(box.querySelector('[data-ag]').value, 10);
+      if (!(hg >= 0 && hg <= 99 && ag >= 0 && ag <= 99)) return toast(ERR.badScore);
+      return done(await post(`/api/admin/matches/${box.dataset.mid}/result`, { hg, ag }), 'Natija saqlandi ✅', () => { loadMatches(); if (mainTab === 'cup') loadCup(); });
+    }
+    if (act === 'reset-match-res') {
+      const box = btn.closest('[data-mid]');
+      if (!(await confirmBox("Natija o'chirilsinmi? O'yin qayta kiritilmagan holatga qaytadi."))) return;
+      return done(await post(`/api/admin/matches/${box.dataset.mid}/reset`, {}), "Natija o'chirildi 🗑", () => { loadMatches(); if (mainTab === 'cup') loadCup(); });
+    }
+
+    // --- Approval Modal ---
+    if (act === 'open-approval') {
+      const mid = btn.dataset.mid;
+      const all = (mt.list || []).concat(cupState?.qualifiers || []).concat(cupState?.bracket || []);
+      selApprovalMatch = all.find((m) => m.id === mid) || null;
+      return render();
+    }
+    if (act === 'close-approval') {
+      selApprovalMatch = null;
+      return render();
+    }
+    if (act === 'confirm-approval') {
+      const mid = btn.dataset.mid, hg = Number(btn.dataset.hg), ag = Number(btn.dataset.ag);
+      selApprovalMatch = null;
+      return done(await post(`/api/admin/matches/${mid}/result`, { hg, ag }), 'Natija tasdiqlandi ✅', () => { loadMatches(); if (mainTab === 'cup') loadCup(); });
+    }
+    if (act === 'reject-approval') {
+      const mid = btn.dataset.mid;
+      if (!(await confirmBox("Natija rad etilib bekor qilinsinmi?"))) return;
+      selApprovalMatch = null;
+      return done(await post(`/api/admin/matches/${mid}/reset`, {}), 'Natija rad etildi ❌', () => { loadMatches(); if (mainTab === 'cup') loadCup(); });
+    }
+
+    // --- Ishtirokchilar ---
+    if (act === 'add-player') {
+      const user = el.querySelector('#addUserInput')?.value.trim();
+      const club = el.querySelector('#addClubSelect')?.value;
+      if (!user || !club) return toast('Foydalanuvchi va klubni kiriting');
+      return done(await post(`/api/admin/league/${curLeague}/add`, { user, club }), "Ishtirokchi qo'shildi ✅", loadPlayers);
+    }
+    if (act === 'remove-player') {
+      if (!(await confirmBox(`${btn.dataset.name} ligadan chiqarilsinmi?`))) return;
+      return done(await post(`/api/admin/league/${curLeague}/remove`, { telegramId: Number(btn.dataset.tid) }), 'Ishtirokchi chiqarildi', loadPlayers);
+    }
+    if (act === 'transfer-player') {
+      el.insertAdjacentHTML('beforeend', transferModalHtml(btn.dataset.tid, btn.dataset.club));
+      return;
+    }
+    if (act === 'close-transfer') {
+      el.querySelector('#transferModal')?.remove();
+      return;
+    }
+    if (act === 'confirm-transfer') {
+      const user = el.querySelector('#transferUserInput')?.value.trim();
+      const club = btn.dataset.club;
+      if (!user) return toast('Foydalanuvchini kiriting');
+      el.querySelector('#transferModal')?.remove();
+      return done(await post(`/api/admin/league/${curLeague}/add`, { user, club }), "Ishtirokchi almashtirildi ✅", loadPlayers);
+    }
+
+    // --- Xabarlar ---
+    if (act === 'spopen') {
+      sp.open = btn.dataset.uid;
+      sp.name = btn.dataset.name;
+      sp.league = btn.dataset.league;
+      sp.leagueName = btn.dataset.lname;
+      render();
+      loadThread(true);
+      return;
+    }
+    if (act === 'spback') {
+      sp.open = null;
+      render();
+      loadSupport();
+      return;
+    }
     if (act === 'spsend') {
-      const inp = el.querySelector('#spText'), text = inp.value.trim();
+      const inp = el.querySelector('#spText'), text = inp?.value.trim();
       if (!text) return;
       inp.value = '';
       const r = await post('/api/admin/support/' + sp.open, { text, league: sp.league || '' });
       if (!r.ok) { inp.value = text; return toast('Yuborilmadi'); }
       return loadThread(true);
     }
-    if (act === 'rtoggle') {
-      const open = a.dataset.open === '1';
-      return done(await post(`/api/admin/league/${lg}/rounds`, { round: Number(a.dataset.round), open }), open ? `${a.dataset.round}-tur ochildi 🔓` : `${a.dataset.round}-tur yopildi 🔒`, loadOverview);
+
+    // --- Kubok harakatlari ---
+    if (act === 'cup-draw') {
+      const box = btn.closest('[data-cupstage]'), stage = box?.dataset.cupstage;
+      if (!(await confirmBox("Qurani hozir o'tkazamizmi?"))) return;
+      return done(await post('/api/admin/cup/draw', { cup: curCup, stage }), 'Qura o\'tkazildi 🎲', loadCup);
     }
-    if (act === 'rall') {
-      const open = a.dataset.open === '1';
-      if (!open && !(await confirmBox('Barcha turlar yopiladi. Davom etilsinmi?'))) return;
-      return done(await post(`/api/admin/league/${lg}/rounds`, { all: true, open }), open ? 'Barcha turlar ochildi 🔓' : 'Barcha turlar yopildi 🔒', loadOverview);
+    if (act === 'cup-start') {
+      const box = btn.closest('[data-cupstage]'), stage = box?.dataset.cupstage;
+      const hours = Number(box?.querySelector('[data-hours]')?.value || 24);
+      return done(await post('/api/admin/cup/start', { cup: curCup, stage, hours }), 'Bosqich ochildi ▶️', loadCup);
     }
-    if (act === 'toggleopen') {
-      const closed = a.dataset.closed === '1';
-      if (closed && !(await confirmBox('Ligani yopamizmi? Yangi ishtirokchilar ro\'yxatdan o\'ta olmaydi.'))) return;
-      return done(await post(`/api/admin/league/${lg}/closed`, { closed }), closed ? 'Liga yopildi 🔒' : 'Liga ochildi 🔓');
+    if (act === 'cup-reset') {
+      const box = btn.closest('[data-cupstage]'), stage = box?.dataset.cupstage;
+      if (!(await confirmBox("Bosqich tozalanadi va qulflanadi. Davom etilsinmi?"))) return;
+      return done(await post('/api/admin/cup/reset', { cup: curCup, stage }), 'Bosqich tozalandi 🧹', loadCup);
     }
-    if (act === 'tour-open') { location.hash = '#unofficial/' + a.dataset.tid; return; }
-    if (act === 'result') {
-      const box = a.closest('[data-mid]'), hg = parseInt(box.querySelector('[data-hg]').value, 10), ag = parseInt(box.querySelector('[data-ag]').value, 10);
-      if (!(hg >= 0 && hg <= 99 && ag >= 0 && ag <= 99)) return toast(ERR.badScore);
-      return done(await post(`/api/admin/matches/${box.dataset.mid}/result`, { hg, ag }), 'Natija saqlandi ✅', loadMatches);
-    }
-    if (act === 'reset') {
-      const box = a.closest('[data-mid]');
-      if (!(await confirmBox("Natija o'chirilsinmi? O'yin qayta «kiritilmagan» holatiga qaytadi, jadval qayta hisoblanadi."))) return;
-      return done(await post(`/api/admin/matches/${box.dataset.mid}/reset`, {}), "Natija o'chirildi 🗑", loadMatches);
-    }
-    if (act === 'rdl') {
-      const v = a.closest('.ad-rdl').querySelector('[data-rdt]').value;
-      if (!v) return toast('Vaqtni tanlang');
-      return done(await post(`/api/admin/league/${a.dataset.lg}/round-deadline`, { round: Number(a.dataset.round), deadline: new Date(v).toISOString() }), 'Tur dedlayni saqlandi ✅', loadOverview);
-    }
-    if (act === 'settime' || act === 'cleartime' || act === 'draw') {
-      const box = a.closest('[data-lgbox]'), v = box.querySelector('[data-dt]')?.value, rounds = Number(box.querySelector('[data-rounds]')?.value || 2), roundDays = Number(box.querySelector('[data-rdays]')?.value || 7);
-      if (act === 'settime') { if (!v) return toast('Vaqtni tanlang'); return done(await post(`/api/admin/league/${lg}/draw-time`, { drawAt: new Date(v).toISOString(), rounds, roundDays }), 'Qura vaqti saqlandi ✅'); }
-      if (act === 'cleartime') return done(await post(`/api/admin/league/${lg}/draw-time`, { drawAt: null, rounds, roundDays }), "Qura vaqti o'chirildi");
-      if (!(await confirmBox('Qurani hozir o\'tkazamizmi? Ishtirokchilar aralashtirilib, o\'yinlar jadvali tuziladi.'))) return;
-      return done(await post(`/api/admin/league/${lg}/draw`, { rounds, roundDays }), 'Qura o\'tkazildi 🎲');
-    }
-    if (act === 'deadlines') {
-      const days = Number(a.closest('[data-lgbox]')?.querySelector('[data-rdays]')?.value || 7);
-      if (!(await confirmBox(`Tugallanmagan o'yinlarga dedlayn beriladi (tur ${days} kun, hozirdan boshlab). Dedlayn o'tgach avtomatik texnik natija qo'llanadi. Davom etilsinmi?`))) return;
-      const r = await post(`/api/admin/league/${lg}/deadlines`, { roundDays: days });
-      return done(r, `Dedlayn berildi: ${r.matches} ta o'yin ⏰`, null).then(() => r.ok || toast(r.error === 'nodl' ? "Dedlaynsiz o'yin yo'q" : ERR.fail));
-    }
-    if (act === 'draw-cancel') {
-      if (!(await confirmBox("Qura bekor qilinadimi? Barcha o'yinlar o'chadi, liga 0 dan (qura o'tkazilmagan) holatga qaytadi. Ishtirokchilar qoladi."))) return;
-      return done(await post(`/api/admin/league/${lg}/draw-cancel`, {}), 'Qura bekor qilindi ✖');
-    }
-    if (act === 'redo') {
-      if (!(await confirmBox('Qurani qayta o\'tkazamizmi? Eski o\'yinlar jadvali o\'chiriladi.'))) return;
-      return done(await post(`/api/admin/league/${lg}/draw`, { redo: true, rounds: ov.leagues.find((l) => l.id === lg)?.rounds, roundDays: Number(a.closest('[data-lgbox]')?.querySelector('[data-rdays]')?.value || 7) }), 'Qayta qura o\'tkazildi 🎲');
-    }
-    if (act === 'award') {
-      const lname = ov?.leagues.find((l) => l.id === pl.league)?.name || '';
-      if (!(await confirmBox(`${a.dataset.name} — ${lname} g'olibi sifatida kubok topshirilsinmi? Kubok uning Me → Kolleksiyasiga tushadi.`))) return;
-      const r = await post(`/api/admin/league/${pl.league}/award`, { telegramId: Number(a.dataset.tid) });
-      if (r.ok) { tg?.HapticFeedback?.notificationOccurred('success'); return toast('Kubok topshirildi 🏆'); }
-      return toast(r.error === 'already' ? 'Bu kubok unga allaqachon berilgan' : ERR[r.error] || ERR.fail);
-    }
-    if (act === 'remove') {
-      if (!(await confirmBox(`${a.dataset.name} ligadan chiqarilsinmi? Klub o'yinlari va natijalari bilan bo'sh qoladi, keyin qo'shilgan ishtirokchi shu holatdan davom etadi.`))) return;
-      return done(await post(`/api/admin/league/${pl.league}/remove`, { telegramId: Number(a.dataset.tid) }), 'Ishtirokchi chiqarildi', loadPlayers);
-    }
-    if (act === 'restore') {
-      const box = a.closest('.ad-rec'), from = Number(box.querySelector('[data-from]').value), to = Number(box.dataset.to);
-      if (!from || !to) return toast('Eski egasini tanlang');
-      if (!(await confirmBox("Tanlangan eski egasining o'yinlari va natijalari shu klubga qaytarilsinmi?"))) return;
-      return done(await post(`/api/admin/league/${pl.league}/restore`, { from, to }), "O'yinlar tiklandi ✅", loadPlayers);
-    }
-    if (act === 'add') {
-      const box = a.closest('.ad-add'), user = box.querySelector('[data-user]').value.trim(), club = box.querySelector('[data-club]').value;
-      if (!user || !club) return toast('Foydalanuvchi va klubni kiriting');
-      return done(await post(`/api/admin/league/${pl.league}/add`, { user, club }), "Ishtirokchi qo'shildi ✅", loadPlayers);
+    if (act === 'cup-advance') {
+      const box = btn.closest('[data-cupstage]'), stage = box?.dataset.cupstage;
+      return done(await post('/api/admin/cup/advance', { cup: curCup, stage }), "Keyingi bosqichga o'tildi ➡️", loadCup);
     }
   }
-  function onInput(e) {
-    if (e.target.id !== 'bcText') return;
-    bc.text = e.target.value;
-    const l = el.querySelector('#bcLen'); if (l) l.textContent = bc.text.length + '/3500';
-  }
+
   function onChange(e) {
-    const f = e.target.dataset.f;
-    if (f === 'league' || f === 'status') { mt[f] = e.target.value; loadMatches(); }
-    if (f === 'bcleague' || f === 'bclang') { bc[f === 'bcleague' ? 'league' : 'lang'] = e.target.value; bc.count = null; loadBcCount(); }
-    if (f === 'plleague') { pl = { league: e.target.value, data: null }; render(); loadPlayers(); }
+    const act = e.target.dataset.act;
+    if (act === 'pick-round') {
+      selRoundNum = Number(e.target.value);
+      render();
+    } else if (act === 'res-filter-round') {
+      mt.filterRound = e.target.value;
+      render();
+    } else if (act === 'res-filter-club') {
+      mt.filterClub = e.target.value;
+      render();
+    } else if (act === 'cup-res-filter-stage') {
+      mt.filterStage = e.target.value;
+      render();
+    }
+  }
+
+  function onInput(e) {
+    if (e.target.id === 'plSearchInp') {
+      pl.search = e.target.value;
+      render();
+    }
   }
 
   function show(root, toastFn) {
-    el = root; toast = toastFn;
-    if (window.ADMIN_START_TAB) { tab = window.ADMIN_START_TAB; window.ADMIN_START_TAB = null; }
-    if (!el.dataset.bound) { el.dataset.bound = '1'; el.addEventListener('click', onClick); el.addEventListener('change', onChange); el.addEventListener('input', onInput); el.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'spText') { e.preventDefault(); el.querySelector('[data-act="spsend"]')?.click(); } }); }
+    el = root;
+    toast = toastFn;
+    if (!el.dataset.bound) {
+      el.dataset.bound = '1';
+      el.addEventListener('click', onClick);
+      el.addEventListener('change', onChange);
+      el.addEventListener('input', onInput);
+    }
     render();
-    if (el.dataset.loaded !== '1') { el.dataset.loaded = '1'; loadOverview(); loadMatches(); }
+    loadOverview().then(() => {
+      loadMatches();
+      loadCup();
+    });
   }
-  const leave = () => { if (el) el.dataset.loaded = ''; };
+
+  const leave = () => { if (el) el.dataset.loaded = ''; clearInterval(spTimer); };
   return { show, leave };
 })();

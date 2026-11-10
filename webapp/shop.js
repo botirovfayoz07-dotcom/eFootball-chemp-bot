@@ -110,7 +110,7 @@ window.ShopView = (() => {
       const act = waiting ? `<p class="sell-wait">${t.sellWait}</p>`
         : !price ? `<p class="sell-wait">${t.sellNoPrice}</p>`
         : `<button class="sell-red${free.length ? '' : ' off'}" data-act="sellcup" data-league="${esc(id)}">Sell</button>`;
-      return `<div class="sell-card${mine.length ? ' own' : ''}"><span class="sell-img">${cupImg(id)}<i class="sell-n${mine.length ? '' : ' zero'}">${mine.length}</i></span><b>${esc(EFL.trophyName(id))}</b>${price ? `<small class="sell-price"><b>${fmt(price)} UZS</b></small>` : ''}${act}</div>`;
+      return `<div class="sell-card${mine.length ? ' own' : ''}" data-act="sellcup" data-league="${esc(id)}" style="cursor:pointer"><span class="sell-img">${cupImg(id)}<i class="sell-n${mine.length ? '' : ' zero'}">${mine.length}</i></span><b>${esc(EFL.trophyName(id))}</b>${price ? `<small class="sell-price"><b>${fmt(price)} UZS</b></small>` : `<small class="sell-price">${t.sellNoPrice}</small>`}${act}</div>`;
     }).join('');
     return `<p class="shop-note">${t.sellIntro}</p>${cards ? `<div class="sell-grid">${cards}</div>` : `<div class="pf-empty"><span>🏆</span><p>${t.sellEmpty}</p></div>`}`;
   }

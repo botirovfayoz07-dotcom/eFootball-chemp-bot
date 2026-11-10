@@ -375,7 +375,7 @@ app.get('/api/profile', ah(async (req, res) => {
     ...(me?.cosmetics || []).map((id) => ({ kind: 'item', id })),
   ];
   const supportUnread = await ChatMessage.countDocuments({ kind: 'support', key: String(u.id), admin: true, readBy: { $ne: u.id } });
-  res.json({ clubs, collection, equipped: eqOf(me), supportUnread });
+  res.json({ clubs, collection, equipped: eqOf(me), supportUnread, favPlayer: me?.favPlayer || null });
 }));
 
 // Klublarim belgisi uchun: har bir klub bo'yicha o'qilmagan chat xabarlari (raqib yozganlari). Yengil — tez-tez so'raladi
@@ -563,6 +563,82 @@ app.post('/api/auction/cancel', async (req, res) => {
   if (!r) return res.status(404).json({ error: 'fail' });
   res.json({ ok: true });
 });
+// Auksion bid qilish (taklif berish)
+app.post('/api/auction/bid', async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const { league, club, bid } = req.body || {};
+  const amount = Math.floor(Number(bid));
+  if (!(amount >= 1 && amount <= 1e9)) return res.status(400).json({ error: 'badPrice' });
+  
+  // Auksion lotini topamiz
+  const lot = await Registration.findOne({ season, league, club, 'auction.price': { $gt: 0 } }).lean();
+  if (!lot) return res.status(404).json({ error: 'gone' });
+  if (lot.telegramId === u.id) return res.status(400).json({ error: 'ownClub' });
+  if (amount <= (lot.auction.currentBid || lot.auction.price)) return res.status(400).json({ error: 'lowBid' });
+  
+  // Auksion vaqti tekshiruv
+  const cfg = await LeagueConfig.findOne({ season, league: 'auction' }).lean();
+  const aEnd = cfg?.auctionEnd ? new Date(cfg.auctionEnd) : null;
+  if (aEnd && aEnd < new Date()) return res.status(409).json({ error: 'aucClosed' });
+  
+  // Eski bid qilganning coinlarini qaytaramiz
+  const prevBidder = lot.auction.bidder;
+  const prevBid = lot.auction.currentBid || 0;
+  if (prevBidder && prevBidder !== u.id && prevBid > 0) {
+    await User.updateOne({ telegramId: prevBidder }, { $inc: { coins: prevBid } });
+  }
+  
+  // Yangi bidder coinlarini ayiramiz
+  const me = await User.findOne({ telegramId: u.id }).lean();
+  if (!me || me.coins < amount) return res.status(400).json({ error: 'noCoins' });
+  await User.updateOne({ telegramId: u.id }, { $inc: { coins: -amount } });
+  
+  // Bidni yangilaymiz
+  await Registration.updateOne(
+    { season, league, club },
+    { $set: { 'auction.currentBid': amount, 'auction.bidder': u.id, 'auction.bidAt': new Date() } }
+  );
+  
+  res.json({ ok: true, coins: me.coins - amount });
+});
+
+// Auksion holatini tekshirish va yakunlash (admin yoki cron tomonidan)
+app.post('/api/admin/auction/config', staffOnly, ah(async (req, res) => {
+  const { auctionEnd } = req.body || {};
+  await LeagueConfig.findOneAndUpdate(
+    { season, league: 'auction' },
+    { $set: { auctionEnd: auctionEnd ? new Date(auctionEnd) : null } },
+    { upsert: true }
+  );
+  res.json({ ok: true });
+}));
+
+app.get('/api/admin/auction/config', staffOnly, ah(async (req, res) => {
+  const cfg = await LeagueConfig.findOne({ season, league: 'auction' }).lean();
+  res.json({ ok: true, auctionEnd: cfg?.auctionEnd || null });
+}));
+
+// Auksionni yakunlash: oxirgi bidder ga klub o'tkazish
+app.post('/api/admin/auction/finalize', staffOnly, ah(async (req, res) => {
+  const lots = await Registration.find({ season, 'auction.bidder': { $exists: true }, 'auction.currentBid': { $gt: 0 } }).lean();
+  let done = 0;
+  for (const lot of lots) {
+    const bidder = lot.auction.bidder;
+    const bid = lot.auction.currentBid;
+    if (!bidder || !bid) continue;
+    // Klubi bo'sh qilish (eski egadan)
+    await Registration.findOneAndUpdate(
+      { season, telegramId: lot.telegramId, league: lot.league, club: lot.club },
+      { $set: { telegramId: bidder, vacant: false }, $unset: { auction: 1 } },
+      { new: true }
+    );
+    // Eski egaga coinlar ketmaydi (u auksionga qo'ydi = klub sotdi)
+    done++;
+  }
+  res.json({ ok: true, done });
+}));
+
 // Do'kon -> Auksion: hamma lotlar (yangilari birinchi)
 app.get('/api/auctions', async (req, res) => {
   const u = tgUser(req);

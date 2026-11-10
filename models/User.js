@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema({
   referredBy: { type: Number, default: null },   // kim taklif qilgan (Telegram ID)
   refPaid: { type: Boolean, default: false },    // taklif bonusi to'landimi (taklif qilingan odam ligaga yozilgach)
   refCount: { type: Number, default: 0 },        // taklif qilgan va bonus to'langan do'stlar soni
+  favPlayer: { type: String, default: null },   // Sevimli o'yinchi rasmi
 });
 userSchema.index({ lastSeen: 1 });
 userSchema.index({ createdAt: 1 });
