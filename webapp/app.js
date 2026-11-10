@@ -35,27 +35,26 @@
     route();
   }
 
-  // Marshrut: '' (bosh sahifa) | #guide | #guide/<mavzu>
+  // Marshrut: '' (bosh sahifa) | #rules | #rules/<bo'lim>
   function route() {
     const parts = location.hash.slice(1).split('/');
-    const inGuide = parts[0] === 'guide', inOfficial = parts[0] === 'official', inLeague = parts[0] === 'league', inAdmin = parts[0] === 'admin', inUn = parts[0] === 'unofficial';
+    const inGuide = parts[0] === 'rules', inOfficial = parts[0] === 'official', inLeague = parts[0] === 'league', inAdmin = parts[0] === 'admin', inUn = parts[0] === 'unofficial';
     document.querySelector('.topbar').hidden = inGuide || inAdmin;
     document.querySelector('main.page').hidden = inGuide || inOfficial || inLeague || inAdmin || inUn;
     $('#official').hidden = !inOfficial;
     $('#league').hidden = !inLeague;
-    $('#guide').hidden = !inGuide;
+    $('#rules').hidden = !inGuide;
     $('#admin').hidden = !inAdmin;
     $('#unofficial').hidden = !inUn;
     if (inUn) window.UnofficialView.show($('#unofficial'), lang, toast, parts[1], parts[2]); else window.UnofficialView.leave();
     if (inAdmin) window.AdminView.show($('#admin'), toast); else window.AdminView.leave();
     if (inLeague) window.LeagueView.show($('#league'), lang, toast); else window.LeagueView.leave();
-    if (inGuide) window.GuideView.render($('#guide'), lang, parts[1]);
-    else window.scrollTo(0, 0);
+    if (inGuide) window.RulesView.show($('#rules'), lang, toast, parts[1]); else { window.RulesView.leave(); window.scrollTo(0, 0); }
     if (tg?.BackButton) { (inGuide || inOfficial || inLeague || inAdmin || inUn) ? tg.BackButton.show() : tg.BackButton.hide(); }
   }
-  const go = (id) => { location.hash = id === '' ? '' : id === 'index' ? '#guide' : '#guide/' + id; if (id === '') history.replaceState(null, '', location.pathname + location.search); route(); };
+  const go = (id) => { location.hash = id === '' ? '' : '#rules'; if (id === '') history.replaceState(null, '', location.pathname + location.search); route(); };
   window.addEventListener('hashchange', route);
-  tg?.BackButton?.onClick(() => location.hash.startsWith('#unofficial') ? (window.UnofficialView.back() || go('')) : location.hash === '#league' ? (window.LeagueView.back() || (location.hash = '#official')) : go(location.hash.split('/')[1] ? 'index' : ''));
+  tg?.BackButton?.onClick(() => location.hash.startsWith('#unofficial') ? (window.UnofficialView.back() || go('')) : location.hash === '#league' ? (window.LeagueView.back() || (location.hash = '#official')) : location.hash.startsWith('#rules') ? (window.RulesView.back() || go('')) : go(''));
   $('#official').addEventListener('click', (e) => {
     if (e.target.closest('[data-back]')) return go('');
     const m = e.target.closest('[data-mode]');
@@ -63,12 +62,6 @@
     if (m) { tg?.HapticFeedback?.impactOccurred('light'); toast(window.I18N[lang].soon); } // bo'limlar keyingi qismlarda
   });
   $('#admin').addEventListener('click', (e) => { if (e.target.closest('[data-back]')) go(''); });
-  $('#guide').addEventListener('click', (e) => {
-    const a = e.target.closest('a[data-admin]');
-    if (a && tg?.openTelegramLink) { e.preventDefault(); tg.openTelegramLink(a.href); return; }
-    const b = e.target.closest('[data-go]');
-    if (b) go(b.dataset.go);
-  });
 
   // Til menyusi
   const btn = $('#langBtn'), menu = $('#langMenu');
@@ -97,7 +90,7 @@
   }
   function openSection(name) {
     tg?.HapticFeedback?.impactOccurred('light');
-    if (name === 'guide') return go('index');
+    if (name === 'rules') { location.hash = '#rules'; return; }
     if (name === 'official') { location.hash = '#official'; return; }
     if (name === 'admin') { location.hash = '#admin'; return; }
     if (name === 'private') { location.hash = '#unofficial'; return; }
@@ -107,14 +100,6 @@
   document.querySelectorAll('[data-section]').forEach((el) =>
     el.addEventListener('click', () => openSection(el.dataset.section))
   );
-
-  // Karusel nuqtalari
-  const car = $('#carousel'), dots = document.querySelectorAll('#dots i');
-  car.addEventListener('scroll', () => {
-    const step = car.firstElementChild.offsetWidth + 14;
-    const i = Math.min(dots.length - 1, Math.round(car.scrollLeft / step));
-    dots.forEach((d, k) => d.classList.toggle('on', k === i));
-  }, { passive: true });
 
   // Rejimlar slayderi nuqtalari
   const ms = $('#modeSlider'), mdots = document.querySelectorAll('#modeDots i');
@@ -128,8 +113,8 @@
   const first = tg?.initDataUnsafe?.user?.first_name;
   if (first) $('#uname').textContent = first;
 
-  // ?open=guide — botdagi "Qo'llanma" tugmasi
-  if (new URLSearchParams(location.search).get('open') === 'guide' && !location.hash) history.replaceState(null, '', '#guide');
+  // ?open=rules — botdagi "Umumiy qoidalar" tugmasi (eski ?open=guide ham shu sahifani ochadi)
+  if (['rules', 'guide'].includes(new URLSearchParams(location.search).get('open')) && !location.hash) history.replaceState(null, '', '#rules');
 
   // ?open=games — o'yin hisobi xabaridagi tugma (Profil → Mening o'yinlarim); ?open=admin — /admin tugmasi
   const openParam = new URLSearchParams(location.search).get('open');

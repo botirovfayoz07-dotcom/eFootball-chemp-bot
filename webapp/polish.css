@@ -145,3 +145,18 @@
 .gh-sub:disabled, .gh-sub.off { opacity: .45; }
 .gh-sub .gm-badge { position: absolute; top: -6px; right: -4px; }
 .gh-main:active, .gh-sub:active { transform: scale(.97); }
+
+/* Bosh sahifa: Rasmiy va Norasmiy turnirlar ketma-ket (tepa va past) */
+main.page .carousel { flex-direction: column; overflow: visible; scroll-snap-type: none; margin: 0; padding: 4px 0 6px; gap: 14px; }
+main.page .carousel > .card { flex: none; width: 100%; min-height: 168px; }
+/* Umumiy Qoidalar */
+.rl-plus { font-size: 24px; line-height: 1; color: #22d3ee; }
+.rl-text { white-space: pre-wrap; line-height: 1.55; font-size: 16px; }
+.rl-adm { display: flex; gap: 10px; margin: 12px 0; }
+.rl-btn { flex: 1; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.06); color: #e2e8f0; border-radius: 12px; padding: 11px; font: 600 15px 'Rajdhani', sans-serif; cursor: pointer; }
+.rl-btn.bad { color: #fca5a5; border-color: rgba(239,68,68,.45); }
+.rl-lbl { display: block; color: #94a3b8; font-size: 13px; margin: 14px 0 6px; }
+.rl-input { width: 100%; box-sizing: border-box; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16); border-radius: 12px; color: #fff; padding: 12px 14px; font: 500 16px 'Inter', sans-serif; outline: none; }
+.rl-input:focus { border-color: #22d3ee; }
+.rl-area { min-height: 260px; resize: vertical; line-height: 1.5; }
+.rl-save { width: 100%; margin-top: 16px; border: 0; border-radius: 14px; padding: 14px; font: 700 17px 'Rajdhani', sans-serif; letter-spacing: .04em; color: #04121a; background: linear-gradient(135deg, #22d3ee, #34d399); cursor: pointer; }

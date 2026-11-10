@@ -15,6 +15,7 @@ const FX = require('./fixtures');
 const EFL = require('./webapp/league-data');
 const SHOP = require('./webapp/shop-data');
 const Trophy = require('./models/Trophy');
+const Rule = require('./models/Rule');
 const CupPrice = require('./models/CupPrice');
 const ChatMessage = require('./models/ChatMessage');
 const https = require('https');
@@ -47,11 +48,11 @@ const langKeyboard = Markup.inlineKeyboard([
   [Markup.button.callback('Русский', 'lang_ru')],
 ]);
 
-// "Kirish" va "Qo'llanma" ilovani to'g'ridan-to'g'ri ochadi (?open=guide — Qo'llanma sahifasi)
+// "Kirish" va "Umumiy qoidalar" ilovani to'g'ridan-to'g'ri ochadi (?open=rules — Qoidalar sahifasi)
 const mainKeyboard = (lang) =>
   Markup.inlineKeyboard([
     [Markup.button.webApp(t[lang].enter, `${MINI_APP_URL}?lang=${lang}`)],
-    [Markup.button.webApp(t[lang].guide, `${MINI_APP_URL}?lang=${lang}&open=guide`)],
+    [Markup.button.webApp(t[lang].rules, `${MINI_APP_URL}?lang=${lang}&open=rules`)],
   ]);
 
 bot.start(async (ctx) => {
@@ -1088,6 +1089,36 @@ app.post('/api/admin/coins/adjust', adminOnly, ah(async (req, res) => {
 }));
 
 // ——— Admin ———
+// ——— Umumiy qoidalar: hamma o'qiydi, faqat katta admin qo'shadi/tahrirlaydi/o'chiradi ———
+app.get('/api/rules', ah(async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const rows = await Rule.find({}).sort({ order: 1, createdAt: 1 }).lean();
+  res.json({ canEdit: ADMINS.includes(u.id), rules: rows.map((r) => ({ id: String(r._id), title: r.title, text: r.text })) });
+}));
+const cleanRule = (b) => ({ title: String(b?.title || '').trim().slice(0, 80), text: String(b?.text || '').trim().slice(0, 8000) });
+app.post('/api/admin/rules', adminOnly, ah(async (req, res) => {
+  const d = cleanRule(req.body);
+  if (!d.title) return res.status(400).json({ error: 'noTitle' });
+  if (!d.text) return res.status(400).json({ error: 'noText' });
+  const last = await Rule.findOne({}).sort({ order: -1 }).select('order').lean();
+  const r = await Rule.create({ ...d, order: (last?.order || 0) + 1, by: req.admin.id });
+  res.json({ ok: true, id: String(r._id) });
+}));
+app.post('/api/admin/rules/:id', adminOnly, ah(async (req, res) => {
+  if (!validId(req.params.id)) return res.status(400).json({ error: 'fail' });
+  const d = cleanRule(req.body);
+  if (!d.title) return res.status(400).json({ error: 'noTitle' });
+  if (!d.text) return res.status(400).json({ error: 'noText' });
+  const r = await Rule.findByIdAndUpdate(req.params.id, { $set: { ...d, updatedAt: new Date() } });
+  res.json(r ? { ok: true } : { error: 'gone' });
+}));
+app.post('/api/admin/rules/:id/delete', adminOnly, ah(async (req, res) => {
+  if (!validId(req.params.id)) return res.status(400).json({ error: 'fail' });
+  await Rule.deleteOne({ _id: req.params.id });
+  res.json({ ok: true });
+}));
+
 app.get('/api/me', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });

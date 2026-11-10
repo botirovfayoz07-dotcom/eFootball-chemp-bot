@@ -4,6 +4,7 @@ module.exports = {
     enter: '📲 Kirish',
     open: '🚀 Ochish',
     guide: "📖 Qo'llanma",
+    rules: '📜 Umumiy qoidalar',
     guideText: "Qo'llanma matni shu yerda bo'ladi.",
   },
   en: {
@@ -11,6 +12,7 @@ module.exports = {
     enter: '📲 Enter',
     open: '🚀 Open',
     guide: '📖 Guide',
+    rules: '📜 General rules',
     guideText: 'Guide text will be here.',
   },
   ru: {
@@ -18,6 +20,7 @@ module.exports = {
     enter: '📲 Войти',
     open: '🚀 Открыть',
     guide: '📖 Руководство',
+    rules: '📜 Общие правила',
     guideText: 'Здесь будет текст руководства.',
   },
 };
