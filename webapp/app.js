@@ -48,7 +48,7 @@
     $('#admin').hidden = !inAdmin;
     $('#unofficial').hidden = !inUn;
     if (inUn) window.UnofficialView.show($('#unofficial'), lang, toast, parts[1], parts[2]); else window.UnofficialView.leave();
-    if (inAdmin) window.AdminView.show($('#admin'), toast); else window.AdminView.leave();
+    if (inAdmin) window.AdminView.show($('#admin'), toast, 'global'); else window.AdminView.leave();
     if (inLeague) window.LeagueView.show($('#league'), lang, toast); else window.LeagueView.leave();
     if (inGuide) window.RulesView.show($('#rules'), lang, toast, parts[1]); else { window.RulesView.leave(); window.scrollTo(0, 0); }
     if (tg?.BackButton) { (inGuide || inOfficial || inLeague || inAdmin || inUn) ? tg.BackButton.show() : tg.BackButton.hide(); }
@@ -62,7 +62,7 @@
     if (m?.dataset.mode === 'leagues') { location.hash = '#league'; return; }
     if (m) { tg?.HapticFeedback?.impactOccurred('light'); toast(window.I18N[lang].soon); } // bo'limlar keyingi qismlarda
   });
-  $('#admin').addEventListener('click', (e) => { if (e.target.closest('[data-back]')) go(''); });
+  $('#admin').addEventListener('click', (e) => { if (e.target.closest('[data-back]') || e.target.closest('[data-act="adm-back"]')) go(''); });
 
   // Til menyusi
   const btn = $('#langBtn'), menu = $('#langMenu');

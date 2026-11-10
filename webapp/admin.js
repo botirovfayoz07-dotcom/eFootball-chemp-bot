@@ -9,7 +9,8 @@ window.AdminView = (() => {
   const BCS = { running: '⏳ Yuborilmoqda', done: '✅ Yakunlandi', interrupted: '⚠️ To\'xtatilgan' };
 
   let el, toast;
-  let mainTab = 'liga'; // 'liga' | 'cup' | 'stats' | 'broadcast' | 'helpers' | 'cups' | 'open' | 'clubs' | 'tour' | 'auction'
+  let viewMode = 'global'; // 'global' (Bo'limni tanlang dan) | 'league' (Ligalar pastki tabbidan)
+  let mainTab = 'stats'; // 'liga' | 'cup' | 'stats' | 'broadcast' | 'helpers' | 'cups' | 'open' | 'clubs' | 'tour' | 'auction'
   let curLeague = '';
   let curCup = 'fa-cup';
   let ligaSubTab = 'draw'; // 'draw' | 'results' | 'players' | 'support'
@@ -551,20 +552,28 @@ window.AdminView = (() => {
   // --- TOP NAVIGATION TABS ---
   function tabsHtml() {
     const superAdmin = !!ov?.superAdmin;
-    const allTabs = [
-      ['liga', '🏆 Liga'],
-      ['cup', '🎟️ Kubok'],
-      ['stats', '📊 Statistika'],
-      ['broadcast', '📢 Xabar'],
-      ['helpers', '👥 Yordamchilar'],
-      ['cups', '💰 Kubok narxi'],
-      ['open', '🔓 Ligalar holati'],
-      ['clubs', '🏟 Klublar'],
-      ['tour', '🎮 Turnirlar'],
-      ['auction', '🏷️ Auksion']
-    ];
-    // Assistant admin can only manage assigned leagues and view clubs
-    const tabs = superAdmin ? allTabs : allTabs.filter(([k]) => k === 'liga' || k === 'clubs');
+    let tabs = [];
+    if (viewMode === 'league') {
+      // Ligalar tabbidagi admin panel: asosan o'yinlar, qura, natijalar boshqaruvi
+      tabs = [
+        ['liga', '🏆 Liga'],
+        ['cup', '🎟️ Kubok'],
+        ['clubs', '🏟 Klublar']
+      ];
+    } else {
+      // Bo'limni tanlang dagi asosiy admin panel: statistika, turnirlar, tizim boshqaruvi
+      const globalTabs = [
+        ['stats', '📊 Statistika'],
+        ['tour', '🎮 Turnirlar'],
+        ['broadcast', '📢 Xabar'],
+        ['helpers', '👥 Yordamchilar'],
+        ['cups', '💰 Kubok narxi'],
+        ['open', '🔓 Ligalar holati'],
+        ['auction', '🏷️ Auksion'],
+        ['clubs', '🏟 Klublar']
+      ];
+      tabs = superAdmin ? globalTabs : globalTabs.filter(([k]) => k === 'tour' || k === 'clubs');
+    }
 
     return `<div class="ad-tabs" style="margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;display:flex;gap:6px;padding-bottom:4px;">
       ${tabs.map(([k, v]) => `<button class="${mainTab === k ? 'on' : ''}" data-act="switch-main" data-tab="${k}" style="white-space:nowrap;flex-shrink:0;">${v}</button>`).join('')}
@@ -769,8 +778,12 @@ window.AdminView = (() => {
     const act = btn.dataset.act;
 
     if (act === 'adm-back') {
-      if (location.hash === '#admin') location.hash = '';
-      else if (window.LeagueView?.back) window.LeagueView.back();
+      if (viewMode === 'league') {
+        if (window.LeagueView?.back) window.LeagueView.back();
+        else location.hash = '#league';
+      } else {
+        location.hash = '';
+      }
       return;
     }
     if (act === 'switch-main') {
@@ -1108,12 +1121,15 @@ window.AdminView = (() => {
     }
   }
 
-  function show(root, toastFn) {
+  function show(root, toastFn, mode = 'global') {
     el = root;
     toast = toastFn;
+    viewMode = mode;
     if (window.ADMIN_START_TAB) {
       mainTab = window.ADMIN_START_TAB;
       window.ADMIN_START_TAB = null;
+    } else {
+      mainTab = mode === 'league' ? 'liga' : 'stats';
     }
     if (!el.dataset.bound) {
       el.dataset.bound = '1';
@@ -1129,8 +1145,10 @@ window.AdminView = (() => {
     }
     render();
     loadOverview().then(() => {
-      loadMatches();
-      loadCup();
+      if (mainTab === 'stats') loadStats();
+      else if (mainTab === 'tour') loadTours();
+      else if (mainTab === 'liga') loadMatches();
+      else if (mainTab === 'cup') loadCup();
     });
   }
 

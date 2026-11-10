@@ -1,38 +1,38 @@
-﻿window.LeagueView = (() => {
+window.LeagueView = (() => {
   const T = {
     uz: { continents: { europe: 'Europe', asia: 'Asia', africa: 'Africa' }, pickCountry: 'Davlatni tanlang', cups: 'Turnir tanlash', cupsLabel: 'Kuboklar', format: 'Turnir formati', cupTypes: { league: 'Liga', league2: '2-liga', cup: 'Kubok', supercup: 'Superkubok' }, noLeagues: "Bu davlatning turnirlari tez orada qo'shiladi", back: 'Ortga', full: "TO'LIQ", open: 'OCHIQ', players: "O'yinchilar", max: 'Maksimal', season: 'Mavsum', register: "Ro'yxatdan o'tish", pick: 'Klubni tanlang',
       clubs: 'Ligadagi klublar', rules: 'Qoidalar', notice: "E'lon", details: 'Batafsil', prize: 'Sovrin', yourLeague: 'Siz qatnashayotgan liga', place: "O'rin",
-      nav: ['Reyting', 'Me', "Do'kon"], subRank: 'Reyting', subLive: 'Live', subCup: 'Kubok', cupBracket: 'Bracket', cupQual: 'Saralash', drawSoon: 'Qura hali tashlanmagan', r16: '1/8 final', quarter: '1/4 final', semi: 'Yarim final', final: 'Final', supercup: 'Superkubok', filterLeague: 'Liga', filterRound: 'Tur', filterClub: 'Klub', allRounds: 'Barcha turlar', allClubs: 'Barcha klublar', noMatches: "O'yinlar topilmadi", played: "o'ynaldi", pending: 'natija kutilmoqda', disputed: 'bahsli', unplayed: "o'ynalmagan", soon: 'Tez orada', ok: "Ro'yxatdan o'tdingiz вњ…", taken: 'Bu klub band', already: "Siz allaqachon ro'yxatdan o'tgansiz", fail: "Xatolik, qayta urinib ko'ring", fullErr: "Liga to'lgan", closed: 'YOPIQ рџ”’', closedErr: "Bu liga hozircha yopiq",
-      aucTitle: "Klubni auksionga qo'yish", aucPrice: 'Narxni kiriting', aucConfirm: 'Tasdiqlash', aucCancel: 'Bekor qilish', aucOk: "Klub auksionga qo'yildi вњ…", aucOff: 'Klub auksiondan olindi', badPrice: "Narx noto'g'ri",
+      nav: ['Reyting', 'Me', "Do'kon"], subRank: 'Reyting', subLive: 'Live', subCup: 'Kubok', cupBracket: 'Bracket', cupQual: 'Saralash', drawSoon: 'Qura hali tashlanmagan', r16: '1/8 final', quarter: '1/4 final', semi: 'Yarim final', final: 'Final', supercup: 'Superkubok', filterLeague: 'Liga', filterRound: 'Tur', filterClub: 'Klub', allRounds: 'Barcha turlar', allClubs: 'Barcha klublar', noMatches: "O'yinlar topilmadi", played: "o'ynaldi", pending: 'natija kutilmoqda', disputed: 'bahsli', unplayed: "o'ynalmagan", soon: 'Tez orada', ok: "Ro'yxatdan o'tdingiz ✅", taken: 'Bu klub band', already: "Siz allaqachon ro'yxatdan o'tgansiz", fail: "Xatolik, qayta urinib ko'ring", fullErr: "Liga to'lgan", closed: 'YOPIQ 🔒', closedErr: "Bu liga hozircha yopiq",
+      aucTitle: "Klubni auksionga qo'yish", aucPrice: 'Narxni kiriting', aucConfirm: 'Tasdiqlash', aucCancel: 'Bekor qilish', aucOk: "Klub auksionga qo'yildi ✅", aucOff: 'Klub auksiondan olindi', badPrice: "Narx noto'g'ri",
       leaveConfirm: "Klubdan voz kechasizmi? Klub yana ro'yxatdan o'tish bo'limiga qaytadi.", leftOk: 'Klubdan voz kechdingiz',
-      rulesList: ["O'yin **8 daqiqa** davom etadi.", 'Ikkitalik himoya yoqish **mumkin emas**.', `O'yinchilar holati **"Excellent"** bo'lishi kerak.`, 'Extra time va penalti **yo\'q**.', 'Dedline har kuni tungi soat **23:30** da.', "Agar raqib javob bermasa yoki hisobni noto'g'ri kiritsa вЂ” **rasm yoki video bilan adminga murojaat qiling**."],
+      rulesList: ["O'yin **8 daqiqa** davom etadi.", 'Ikkitalik himoya yoqish **mumkin emas**.', `O'yinchilar holati **"Excellent"** bo'lishi kerak.`, 'Extra time va penalti **yo\'q**.', 'Dedline har kuni tungi soat **23:30** da.', "Agar raqib javob bermasa yoki hisobni noto'g'ri kiritsa — **rasm yoki video bilan adminga murojaat qiling**."],
       noticeText: "Bot a'zo bo'lishni so'ragan kanalda yangiliklar joriy qilinadi.",
       detailsText: "Botni haqiqiy futbol formatiga asta-sekin o'tkazib boramiz. Ishtirokchilar soni oshsa, ligalar soni 5 taga oshiriladi va Chempionlar ligasi ham qo'shiladi. Milliy ligadagi 1-o'rindan 6-o'ringacha bo'lgan klublar Chempionlar ligasida qatnashish imkoniyatiga ega bo'lishadi.",
       prizeText: 'Sovrinlar masalasida homiylarga mutanosib ravishda pul ham beriladi.' },
     en: { continents: { europe: 'Europe', asia: 'Asia', africa: 'Africa' }, pickCountry: 'Choose a country', cups: 'Choose a tournament', cupsLabel: 'Cups', format: 'Tournament format', cupTypes: { league: 'League', league2: '2nd tier', cup: 'Cup', supercup: 'Super Cup' }, noLeagues: "This country's tournaments are coming soon", back: 'Back', full: 'FULL', open: 'OPEN', players: 'Players', max: 'Maximum', season: 'Season', register: 'Sign up', pick: 'Pick a club',
       clubs: 'Clubs in the league', rules: 'Rules', notice: 'Notice', details: 'Details', prize: 'Prize', yourLeague: 'Your league', place: 'Place',
-      nav: ['Rating', 'Me', 'Shop'], subRank: 'Rating', subLive: 'Live', subCup: 'Cup', cupBracket: 'Bracket', cupQual: 'Qualifiers', drawSoon: 'Draw not made yet', r16: 'Round of 16', quarter: 'Quarter-final', semi: 'Semi-final', final: 'Final', supercup: 'Super Cup', filterLeague: 'League', filterRound: 'Round', filterClub: 'Club', allRounds: 'All rounds', allClubs: 'All clubs', noMatches: 'No matches found', played: 'played', pending: 'pending', disputed: 'disputed', unplayed: 'unplayed', soon: 'Coming soon', ok: 'You are signed up вњ…', taken: 'This club is taken', already: 'You are already signed up', fail: 'Error, please try again', fullErr: 'League is full', closed: 'CLOSED рџ”’', closedErr: 'This league is closed for now',
-      aucTitle: 'Put the club up for auction', aucPrice: 'Enter the price', aucConfirm: 'Confirm', aucCancel: 'Cancel', aucOk: 'The club is on auction вњ…', aucOff: 'The club was taken off auction', badPrice: 'Invalid price',
+      nav: ['Rating', 'Me', 'Shop'], subRank: 'Rating', subLive: 'Live', subCup: 'Cup', cupBracket: 'Bracket', cupQual: 'Qualifiers', drawSoon: 'Draw not made yet', r16: 'Round of 16', quarter: 'Quarter-final', semi: 'Semi-final', final: 'Final', supercup: 'Super Cup', filterLeague: 'League', filterRound: 'Round', filterClub: 'Club', allRounds: 'All rounds', allClubs: 'All clubs', noMatches: 'No matches found', played: 'played', pending: 'pending', disputed: 'disputed', unplayed: 'unplayed', soon: 'Coming soon', ok: 'You are signed up ✅', taken: 'This club is taken', already: 'You are already signed up', fail: 'Error, please try again', fullErr: 'League is full', closed: 'CLOSED 🔒', closedErr: 'This league is closed for now',
+      aucTitle: 'Put the club up for auction', aucPrice: 'Enter the price', aucConfirm: 'Confirm', aucCancel: 'Cancel', aucOk: 'The club is on auction ✅', aucOff: 'The club was taken off auction', badPrice: 'Invalid price',
       leaveConfirm: 'Give up the club? It will go back to the sign-up list.', leftOk: 'You gave up the club',
-      rulesList: ['A match lasts **8 minutes**.', 'Double defence is **not allowed**.', 'Player condition must be **"Excellent"**.', 'No extra time or penalties.', 'The deadline is every day at **23:30**.', "If your opponent doesn't respond or enters the score wrongly вЂ” **contact the admin with a photo or video**."],
+      rulesList: ['A match lasts **8 minutes**.', 'Double defence is **not allowed**.', 'Player condition must be **"Excellent"**.', 'No extra time or penalties.', 'The deadline is every day at **23:30**.', "If your opponent doesn't respond or enters the score wrongly — **contact the admin with a photo or video**."],
       noticeText: 'News is published in the channel the bot asks you to join.',
       detailsText: 'We are gradually moving the bot to a real football format. As the number of participants grows, the number of leagues will rise to 5 and a Champions League will be added. Clubs placed 1st to 6th in a national league will be able to enter the Champions League.',
       prizeText: 'Prize money is also paid out in proportion to sponsor funding.' },
-    ru: { continents: { europe: 'Р•РІСЂРѕРїР°', asia: 'РђР·РёСЏ', africa: 'РђС„СЂРёРєР°' }, pickCountry: 'Р’С‹Р±РµСЂРёС‚Рµ СЃС‚СЂР°РЅСѓ', cups: 'Р’С‹Р±РѕСЂ С‚СѓСЂРЅРёСЂР°', cupsLabel: 'РљСѓР±РєРё', format: 'Р¤РѕСЂРјР°С‚ С‚СѓСЂРЅРёСЂР°', cupTypes: { league: 'Р›РёРіР°', league2: '2-СЏ Р»РёРіР°', cup: 'РљСѓР±РѕРє', supercup: 'РЎСѓРїРµСЂРєСѓР±РѕРє' }, noLeagues: 'РўСѓСЂРЅРёСЂС‹ СЌС‚РѕР№ СЃС‚СЂР°РЅС‹ СЃРєРѕСЂРѕ РїРѕСЏРІСЏС‚СЃСЏ', back: 'РќР°Р·Р°Рґ', full: 'Р—РђРџРћР›РќР•РќРђ', open: 'РћРўРљР Р«РўРђ', players: 'РРіСЂРѕРєРё', max: 'РњР°РєСЃРёРјСѓРј', season: 'РЎРµР·РѕРЅ', register: 'Р—Р°РїРёСЃР°С‚СЊСЃСЏ', pick: 'Р’С‹Р±РµСЂРёС‚Рµ РєР»СѓР±',
-      clubs: 'РљР»СѓР±С‹ Р»РёРіРё', rules: 'РџСЂР°РІРёР»Р°', notice: 'РћР±СЉСЏРІР»РµРЅРёРµ', details: 'РџРѕРґСЂРѕР±РЅРµРµ', prize: 'РџСЂРёР·С‹', yourLeague: 'Р’Р°С€Р° Р»РёРіР°', place: 'РњРµСЃС‚Рѕ',
-      nav: ['Р РµР№С‚РёРЅРі', 'РЇ', 'РњР°РіР°Р·РёРЅ'], subRank: 'Р РµР№С‚РёРЅРі', subLive: 'Live', subCup: 'РљСѓР±РѕРє', cupBracket: 'РЎРµС‚РєР°', cupQual: 'РљРІР°Р»РёС„РёРєР°С†РёСЏ', drawSoon: 'Р–РµСЂРµР±СЊС‘РІРєР° РµС‰С‘ РЅРµ РїСЂРѕРІРµРґРµРЅР°', r16: '1/8 С„РёРЅР°Р»Р°', quarter: '1/4 С„РёРЅР°Р»Р°', semi: 'РџРѕР»СѓС„РёРЅР°Р»', final: 'Р¤РёРЅР°Р»', supercup: 'РЎСѓРїРµСЂРєСѓР±РѕРє', filterLeague: 'Р›РёРіР°', filterRound: 'РўСѓСЂ', filterClub: 'РљР»СѓР±', allRounds: 'Р’СЃРµ С‚СѓСЂС‹', allClubs: 'Р’СЃРµ РєР»СѓР±С‹', noMatches: 'РњР°С‚С‡Рё РЅРµ РЅР°Р№РґРµРЅС‹', played: 'СЃС‹РіСЂР°РЅ', pending: 'РѕР¶РёРґР°РµС‚', disputed: 'СЃРїРѕСЂРЅС‹Р№', unplayed: 'РЅРµ СЃС‹РіСЂР°РЅ', soon: 'РЎРєРѕСЂРѕ', ok: 'Р’С‹ Р·Р°РїРёСЃР°РЅС‹ вњ…', taken: 'Р­С‚РѕС‚ РєР»СѓР± Р·Р°РЅСЏС‚', already: 'Р’С‹ СѓР¶Рµ Р·Р°РїРёСЃР°РЅС‹', fail: 'РћС€РёР±РєР°, РїРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·', fullErr: 'Р›РёРіР° Р·Р°РїРѕР»РЅРµРЅР°', closed: 'Р—РђРљР Р«РўРђ рџ”’', closedErr: 'Р­С‚Р° Р»РёРіР° РїРѕРєР° Р·Р°РєСЂС‹С‚Р°',
-      aucTitle: 'Р’С‹СЃС‚Р°РІРёС‚СЊ РєР»СѓР± РЅР° Р°СѓРєС†РёРѕРЅ', aucPrice: 'РЈРєР°Р¶РёС‚Рµ С†РµРЅСѓ', aucConfirm: 'РџРѕРґС‚РІРµСЂРґРёС‚СЊ', aucCancel: 'РћС‚РјРµРЅР°', aucOk: 'РљР»СѓР± РІС‹СЃС‚Р°РІР»РµРЅ РЅР° Р°СѓРєС†РёРѕРЅ вњ…', aucOff: 'РљР»СѓР± СЃРЅСЏС‚ СЃ Р°СѓРєС†РёРѕРЅР°', badPrice: 'РќРµРІРµСЂРЅР°СЏ С†РµРЅР°',
-      leaveConfirm: 'РћС‚РєР°Р·Р°С‚СЊСЃСЏ РѕС‚ РєР»СѓР±Р°? РћРЅ РІРµСЂРЅС‘С‚СЃСЏ РІ СЃРїРёСЃРѕРє РґР»СЏ Р·Р°РїРёСЃРё.', leftOk: 'Р’С‹ РѕС‚РєР°Р·Р°Р»РёСЃСЊ РѕС‚ РєР»СѓР±Р°',
-      rulesList: ['РњР°С‚С‡ РґР»РёС‚СЃСЏ **8 РјРёРЅСѓС‚**.', 'Р”РІРѕР№РЅСѓСЋ Р·Р°С‰РёС‚Сѓ РІРєР»СЋС‡Р°С‚СЊ **РЅРµР»СЊР·СЏ**.', 'РЎРѕСЃС‚РѕСЏРЅРёРµ РёРіСЂРѕРєРѕРІ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ **В«ExcellentВ»**.', 'Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕРіРѕ РІСЂРµРјРµРЅРё Рё РїРµРЅР°Р»СЊС‚Рё **РЅРµС‚**.', 'Р”РµРґР»Р°Р№РЅ РєР°Р¶РґС‹Р№ РґРµРЅСЊ РІ **23:30**.', 'Р•СЃР»Рё СЃРѕРїРµСЂРЅРёРє РЅРµ РѕС‚РІРµС‡Р°РµС‚ РёР»Рё РЅРµРІРµСЂРЅРѕ РІРІРѕРґРёС‚ СЃС‡С‘С‚ вЂ” **РѕР±СЂР°С‚РёС‚РµСЃСЊ Рє Р°РґРјРёРЅСѓ СЃ С„РѕС‚Рѕ РёР»Рё РІРёРґРµРѕ**.'],
-      noticeText: 'РќРѕРІРѕСЃС‚Рё РїСѓР±Р»РёРєСѓСЋС‚СЃСЏ РІ РєР°РЅР°Р»Рµ, РЅР° РєРѕС‚РѕСЂС‹Р№ Р±РѕС‚ РїСЂРѕСЃРёС‚ РїРѕРґРїРёСЃР°С‚СЊСЃСЏ.',
-      detailsText: 'РњС‹ РїРѕСЃС‚РµРїРµРЅРЅРѕ РїРµСЂРµРІРѕРґРёРј Р±РѕС‚Р° РЅР° С„РѕСЂРјР°С‚ РЅР°СЃС‚РѕСЏС‰РµРіРѕ С„СѓС‚Р±РѕР»Р°. РЎ СЂРѕСЃС‚РѕРј С‡РёСЃР»Р° СѓС‡Р°СЃС‚РЅРёРєРѕРІ Р»РёРі СЃС‚Р°РЅРµС‚ 5 Рё РґРѕР±Р°РІРёС‚СЃСЏ Р›РёРіР° С‡РµРјРїРёРѕРЅРѕРІ. РљР»СѓР±С‹, Р·Р°РЅСЏРІС€РёРµ РІ РЅР°С†РёРѕРЅР°Р»СЊРЅРѕР№ Р»РёРіРµ РјРµСЃС‚Р° СЃ 1-РіРѕ РїРѕ 6-Рµ, РїРѕР»СѓС‡Р°С‚ С€Р°РЅСЃ СЃС‹РіСЂР°С‚СЊ РІ Р›РёРіРµ С‡РµРјРїРёРѕРЅРѕРІ.',
-      prizeText: 'Р”РµРЅРµР¶РЅС‹Рµ РїСЂРёР·С‹ РІС‹РїР»Р°С‡РёРІР°СЋС‚СЃСЏ РїСЂРѕРїРѕСЂС†РёРѕРЅР°Р»СЊРЅРѕ СЃСЂРµРґСЃС‚РІР°Рј СЃРїРѕРЅСЃРѕСЂРѕРІ.' },
+    ru: { continents: { europe: 'Европа', asia: 'Азия', africa: 'Африка' }, pickCountry: 'Выберите страну', cups: 'Выбор турнира', cupsLabel: 'Кубки', format: 'Формат турнира', cupTypes: { league: 'Лига', league2: '2-я лига', cup: 'Кубок', supercup: 'Суперкубок' }, noLeagues: 'Турниры этой страны скоро появятся', back: 'Назад', full: 'ЗАПОЛНЕНА', open: 'ОТКРЫТА', players: 'Игроки', max: 'Максимум', season: 'Сезон', register: 'Записаться', pick: 'Выберите клуб',
+      clubs: 'Клубы лиги', rules: 'Правила', notice: 'Объявление', details: 'Подробнее', prize: 'Призы', yourLeague: 'Ваша лига', place: 'Место',
+      nav: ['Рейтинг', 'Я', 'Магазин'], subRank: 'Рейтинг', subLive: 'Live', subCup: 'Кубок', cupBracket: 'Сетка', cupQual: 'Квалификация', drawSoon: 'Жеребьёвка ещё не проведена', r16: '1/8 финала', quarter: '1/4 финала', semi: 'Полуфинал', final: 'Финал', supercup: 'Суперкубок', filterLeague: 'Лига', filterRound: 'Тур', filterClub: 'Клуб', allRounds: 'Все туры', allClubs: 'Все клубы', noMatches: 'Матчи не найдены', played: 'сыгран', pending: 'ожидает', disputed: 'спорный', unplayed: 'не сыгран', soon: 'Скоро', ok: 'Вы записаны ✅', taken: 'Этот клуб занят', already: 'Вы уже записаны', fail: 'Ошибка, попробуйте ещё раз', fullErr: 'Лига заполнена', closed: 'ЗАКРЫТА 🔒', closedErr: 'Эта лига пока закрыта',
+      aucTitle: 'Выставить клуб на аукцион', aucPrice: 'Укажите цену', aucConfirm: 'Подтвердить', aucCancel: 'Отмена', aucOk: 'Клуб выставлен на аукцион ✅', aucOff: 'Клуб снят с аукциона', badPrice: 'Неверная цена',
+      leaveConfirm: 'Отказаться от клуба? Он вернётся в список для записи.', leftOk: 'Вы отказались от клуба',
+      rulesList: ['Матч длится **8 минут**.', 'Двойную защиту включать **нельзя**.', 'Состояние игроков должно быть **«Excellent»**.', 'Дополнительного времени и пенальти **нет**.', 'Дедлайн каждый день в **23:30**.', 'Если соперник не отвечает или неверно вводит счёт — **обратитесь к админу с фото или видео**.'],
+      noticeText: 'Новости публикуются в канале, на который бот просит подписаться.',
+      detailsText: 'Мы постепенно переводим бота на формат настоящего футбола. С ростом числа участников лиг станет 5 и добавится Лига чемпионов. Клубы, занявшие в национальной лиге места с 1-го по 6-е, получат шанс сыграть в Лиге чемпионов.',
+      prizeText: 'Денежные призы выплачиваются пропорционально средствам спонсоров.' },
   };
   // Do'kon xabarlari (toast)
   const ST = {
-    uz: { payOpened: "To'lov sahifasi ochildi. To'lovdan keyin Coins avtomatik qo'shiladi", duplicate: "Bu chek allaqachon yuborilgan", dailyOk: "рџЋЃ +{n} Coins olindi", claimed: "Bugungi bonus allaqachon olingan", refCopied: "Havola nusxalandi", coinSent: "Chek adminga yuborildi вњ… Tasdiqlangach Coins qo'shiladi", badImage: "Rasm noto'g'ri yoki juda katta", tooMany: "Tasdiqlanmagan to'lovlar ko'p, biroz kuting", noCoins: "Coins yetarli emas вЂ” avval Coins sotib oling", owned: 'Bu allaqachon sizda', bought: 'Sotib olindi вњ…', copied: 'Karta raqami nusxalandi', sellOk: "So'rov adminga yuborildi. 24 soat ichida pulni tashlab beramiz вњ…", badCard: "Karta raqami noto'g'ri (16 ta raqam)", gone: "Kubok holati o'zgargan", noPrice: "Bu kubok uchun narx hali belgilanmagan", fail: "Xatolik, qayta urinib ko'ring" },
-    en: { payOpened: "The payment page is open. Coins are added automatically after payment", duplicate: "This receipt was already sent", dailyOk: "рџЋЃ +{n} Coins claimed", claimed: "Today's bonus is already claimed", refCopied: "Link copied", coinSent: 'Receipt sent to the admin вњ… Coins are added once it is confirmed', badImage: 'The image is invalid or too large', tooMany: 'Too many unconfirmed payments, please wait', noCoins: 'Not enough Coins вЂ” buy Coins first', owned: 'You already own this', bought: 'Purchased вњ…', copied: 'Card number copied', sellOk: 'Request sent to the admin. We will send the money within 24 hours вњ…', badCard: 'Invalid card number (16 digits)', gone: 'The trophy status has changed', noPrice: 'The price for this trophy is not set yet', fail: 'Error, please try again' },
-    ru: { payOpened: 'РЎС‚СЂР°РЅРёС†Р° РѕРїР»Р°С‚С‹ РѕС‚РєСЂС‹С‚Р°. Coins РґРѕР±Р°РІСЏС‚СЃСЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїРѕСЃР»Рµ РѕРїР»Р°С‚С‹', duplicate: 'Р­С‚РѕС‚ С‡РµРє СѓР¶Рµ РѕС‚РїСЂР°РІР»РµРЅ', dailyOk: 'рџЋЃ +{n} Coins РїРѕР»СѓС‡РµРЅРѕ', claimed: 'Р‘РѕРЅСѓСЃ Р·Р° СЃРµРіРѕРґРЅСЏ СѓР¶Рµ РїРѕР»СѓС‡РµРЅ', refCopied: 'РЎСЃС‹Р»РєР° СЃРєРѕРїРёСЂРѕРІР°РЅР°', coinSent: 'Р§РµРє РѕС‚РїСЂР°РІР»РµРЅ Р°РґРјРёРЅСѓ вњ… Coins РґРѕР±Р°РІСЏС‚СЃСЏ РїРѕСЃР»Рµ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ', badImage: 'РќРµРІРµСЂРЅРѕРµ РёР»Рё СЃР»РёС€РєРѕРј Р±РѕР»СЊС€РѕРµ РёР·РѕР±СЂР°Р¶РµРЅРёРµ', tooMany: 'РЎР»РёС€РєРѕРј РјРЅРѕРіРѕ РЅРµРїРѕРґС‚РІРµСЂР¶РґС‘РЅРЅС‹С… РїР»Р°С‚РµР¶РµР№, РїРѕРґРѕР¶РґРёС‚Рµ', noCoins: 'РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ Coins вЂ” СЃРЅР°С‡Р°Р»Р° РєСѓРїРёС‚Рµ Coins', owned: 'Р­С‚Рѕ СѓР¶Рµ Сѓ РІР°СЃ РµСЃС‚СЊ', bought: 'РљСѓРїР»РµРЅРѕ вњ…', copied: 'РќРѕРјРµСЂ РєР°СЂС‚С‹ СЃРєРѕРїРёСЂРѕРІР°РЅ', sellOk: 'Р—Р°СЏРІРєР° РѕС‚РїСЂР°РІР»РµРЅР° Р°РґРјРёРЅСѓ. РџРµСЂРµРІРµРґС‘Рј РґРµРЅСЊРіРё РІ С‚РµС‡РµРЅРёРµ 24 С‡Р°СЃРѕРІ вњ…', badCard: 'РќРµРІРµСЂРЅС‹Р№ РЅРѕРјРµСЂ РєР°СЂС‚С‹ (16 С†РёС„СЂ)', gone: 'РЎС‚Р°С‚СѓСЃ РєСѓР±РєР° РёР·РјРµРЅРёР»СЃСЏ', noPrice: 'Р¦РµРЅР° Р·Р° СЌС‚РѕС‚ РєСѓР±РѕРє РїРѕРєР° РЅРµ РЅР°Р·РЅР°С‡РµРЅР°', fail: 'РћС€РёР±РєР°, РїРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·' },
+    uz: { payOpened: "To'lov sahifasi ochildi. To'lovdan keyin Coins avtomatik qo'shiladi", duplicate: "Bu chek allaqachon yuborilgan", dailyOk: "🎁 +{n} Coins olindi", claimed: "Bugungi bonus allaqachon olingan", refCopied: "Havola nusxalandi", coinSent: "Chek adminga yuborildi ✅ Tasdiqlangach Coins qo'shiladi", badImage: "Rasm noto'g'ri yoki juda katta", tooMany: "Tasdiqlanmagan to'lovlar ko'p, biroz kuting", noCoins: "Coins yetarli emas — avval Coins sotib oling", owned: 'Bu allaqachon sizda', bought: 'Sotib olindi ✅', copied: 'Karta raqami nusxalandi', sellOk: "So'rov adminga yuborildi. 24 soat ichida pulni tashlab beramiz ✅", badCard: "Karta raqami noto'g'ri (16 ta raqam)", gone: "Kubok holati o'zgargan", noPrice: "Bu kubok uchun narx hali belgilanmagan", fail: "Xatolik, qayta urinib ko'ring" },
+    en: { payOpened: "The payment page is open. Coins are added automatically after payment", duplicate: "This receipt was already sent", dailyOk: "🎁 +{n} Coins claimed", claimed: "Today's bonus is already claimed", refCopied: "Link copied", coinSent: 'Receipt sent to the admin ✅ Coins are added once it is confirmed', badImage: 'The image is invalid or too large', tooMany: 'Too many unconfirmed payments, please wait', noCoins: 'Not enough Coins — buy Coins first', owned: 'You already own this', bought: 'Purchased ✅', copied: 'Card number copied', sellOk: 'Request sent to the admin. We will send the money within 24 hours ✅', badCard: 'Invalid card number (16 digits)', gone: 'The trophy status has changed', noPrice: 'The price for this trophy is not set yet', fail: 'Error, please try again' },
+    ru: { payOpened: 'Страница оплаты открыта. Coins добавятся автоматически после оплаты', duplicate: 'Этот чек уже отправлен', dailyOk: '🎁 +{n} Coins получено', claimed: 'Бонус за сегодня уже получен', refCopied: 'Ссылка скопирована', coinSent: 'Чек отправлен админу ✅ Coins добавятся после подтверждения', badImage: 'Неверное или слишком большое изображение', tooMany: 'Слишком много неподтверждённых платежей, подождите', noCoins: 'Недостаточно Coins — сначала купите Coins', owned: 'Это уже у вас есть', bought: 'Куплено ✅', copied: 'Номер карты скопирован', sellOk: 'Заявка отправлена админу. Переведём деньги в течение 24 часов ✅', badCard: 'Неверный номер карты (16 цифр)', gone: 'Статус кубка изменился', noPrice: 'Цена за этот кубок пока не назначена', fail: 'Ошибка, попробуйте ещё раз' },
   };
   const tg = window.Telegram?.WebApp;
   const EFL = window.EFL;
@@ -42,8 +42,8 @@
   const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body) });
   const confirmBox = (msg) => new Promise((res) => (tg?.showConfirm ? tg.showConfirm(msg, res) : res(window.confirm(msg))));
 
-  // Rasm zanjiri: birinchi manba yuklanmasa keyingisi, hammasi bo'lmasa рџЏ†
-  const FALLBACK = `var f=(this.dataset.f||'').split('|').filter(Boolean);if(f.length){this.dataset.f=f.slice(1).join('|');this.src=f[0];}else{this.replaceWith(Object.assign(document.createElement('span'),{className:'lc-cup',textContent:'рџЏ†'}))}`;
+  // Rasm zanjiri: birinchi manba yuklanmasa keyingisi, hammasi bo'lmasa 🏆
+  const FALLBACK = `var f=(this.dataset.f||'').split('|').filter(Boolean);if(f.length){this.dataset.f=f.slice(1).join('|');this.src=f[0];}else{this.replaceWith(Object.assign(document.createElement('span'),{className:'lc-cup',textContent:'🏆'}))}`;
   const chain = (srcs) => `<img src="${esc(srcs[0])}" data-f="${esc(srcs.slice(1).join('|'))}" loading="lazy" alt="" onerror="${FALLBACK}">`;
 
   // tab: home (davlat -> ro'yxatdan o'tish; faqat ro'yxatdan o'tmaganlar) | info | me | shop (ro'yxatdan o'tgach)
@@ -57,27 +57,27 @@
 
   const stat = (id) => data.stats[id] || { players: 0, taken: [] };
   const isFull = (l) => stat(l.id).players >= l.max;
-  const isShut = (l) => !!stat(l.id).closed || isFull(l);   // yopiq yoki to'lgan вЂ” ro'yxatdan o'tib bo'lmaydi
+  const isShut = (l) => !!stat(l.id).closed || isFull(l);   // yopiq yoki to'lgan — ro'yxatdan o'tib bo'lmaydi
   const badge = (t, l) => (stat(l.id).closed ? `<span class="l-badge full">${t.closed}</span>` : `<span class="l-badge ${isFull(l) ? 'full' : 'open'}">${isFull(l) ? t.full : t.open}</span>`);
 
-  // Pastki menyu: Ma'lumotlar В· Me В· Do'kon вЂ” faqat ro'yxatdan o'tgandan keyin
+  // Pastki menyu: Ma'lumotlar · Me · Do'kon — faqat ro'yxatdan o'tgandan keyin
   const navHtml = (t, active) => {
     const base = [
-      { id: 'info', icon: 'рџЏ†', label: t.nav[0] },
-      { id: 'me', icon: 'рџ‘¤', label: t.nav[1] },
-      { id: 'club', icon: data.mine ? EFL.crest(data.mine.league, data.mine.club, EFL.clubName(data.mine.league, data.mine.club), 'nav-crest') : 'вљЅ', label: 'Game', badge: data.mine && unread.total ? (unread.total > 99 ? '99+' : unread.total) : 0 },
-      { id: 'shop', icon: 'рџ›’', label: t.nav[2] },
+      { id: 'info', icon: '🏆', label: t.nav[0] },
+      { id: 'me', icon: '👤', label: t.nav[1] },
+      { id: 'club', icon: data.mine ? EFL.crest(data.mine.league, data.mine.club, EFL.clubName(data.mine.league, data.mine.club), 'nav-crest') : '⚽', label: 'Game', badge: data.mine && unread.total ? (unread.total > 99 ? '99+' : unread.total) : 0 },
+      { id: 'shop', icon: '🛒', label: t.nav[2] },
     ];
-    if (window.IS_STAFF) base.push({ id: 'admin', icon: 'рџ› ', label: 'Admin' });
+    if (window.IS_STAFF) base.push({ id: 'admin', icon: '🛠', label: 'Admin' });
     return `<nav class="l-nav">${base.map((b, k) => {
       const on = b.id === active || k === active;
       return `<button class="${on ? 'on' : ''}" data-act="${b.id}"><span>${b.icon}</span>${b.badge ? `<i class="nav-badge">${b.badge > 99 ? '99+' : b.badge}</i>` : ''}<small>${b.label}</small></button>`;
     }).join('')}</nav>`;
   };
   const nav = (t, active) => (data.mine ? navHtml(t, active) : '');
-  const backBtn = (act = 'back') => `<button class="back" data-act="${act}"><span>вЂ№</span> ${T[lang].back}</button>`;
+  const backBtn = (act = 'back') => `<button class="back" data-act="${act}"><span>‹</span> ${T[lang].back}</button>`;
 
-  // вЂ”вЂ”вЂ” Kuboklar (bosilmaydi) va formatlar вЂ”вЂ”вЂ”
+  // ——— Kuboklar (bosilmaydi) va formatlar ———
   function cupsHtml(c) {
     const t = T[lang];
     if (!c?.cups?.length) return '';
@@ -90,14 +90,14 @@
     const lf = f.leagues[leagueId];
     if (lf) blocks.push({ title: EFL.byId[leagueId].name, lines: lf[lang] });
     (f.cups || []).forEach((k) => blocks.push({ title: k.name, lines: k[lang] }));
-    return `<div class="g-label"><span>${T[lang].format}</span></div>` + blocks.map((b) => `<div class="g-card l-rules"><h3>рџЏ† ${esc(b.title)}</h3><ul>${b.lines.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('');
+    return `<div class="g-label"><span>${T[lang].format}</span></div>` + blocks.map((b) => `<div class="g-card l-rules"><h3>🏆 ${esc(b.title)}</h3><ul>${b.lines.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('');
   }
-  const notesHtml = (t) => `<div class="g-card l-rules"><h3>рџ“‹ ${t.rules}</h3><ul>${t.rulesList.map((x) => `<li>${rich(x)}</li>`).join('')}</ul></div>
-      <div class="note n-info"><small>рџ“ў ${t.notice.toUpperCase()}</small><p>${esc(t.noticeText)}</p></div>
+  const notesHtml = (t) => `<div class="g-card l-rules"><h3>📋 ${t.rules}</h3><ul>${t.rulesList.map((x) => `<li>${rich(x)}</li>`).join('')}</ul></div>
+      <div class="note n-info"><small>📢 ${t.notice.toUpperCase()}</small><p>${esc(t.noticeText)}</p></div>
       <div class="note n-det"><small>${t.details.toUpperCase()}</small><p>${esc(t.detailsText)}</p></div>
-      <div class="note n-prize"><small>рџЏ† ${t.prize.toUpperCase()}</small><p>${esc(t.prizeText)}</p></div>`;
+      <div class="note n-prize"><small>🏆 ${t.prize.toUpperCase()}</small><p>${esc(t.prizeText)}</p></div>`;
 
-  // вЂ”вЂ”вЂ” Reyting / Live / Kubok (sub-tabs) вЂ”вЂ”вЂ”
+  // ——— Reyting / Live / Kubok (sub-tabs) ———
   const liveSubHtml = () => {
     const t = T[lang];
     const stLbl = (s) => (s === 'confirmed' ? t.played : s === 'pending' ? t.pending : s === 'disputed' ? t.disputed : t.unplayed);
@@ -109,20 +109,20 @@
 
     const filterHtml = `<div class="g-card live-filters">
       <div class="lf-item">
-        <label>рџЏ† ${t.filterLeague}</label>
+        <label>🏆 ${t.filterLeague}</label>
         <select class="lf-select" data-liveact="sel-league">
           ${EFL.LEAGUES.map((l) => `<option value="${l.id}" ${live.id === l.id ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}
         </select>
       </div>
       <div class="lf-item">
-        <label>рџ”ў ${t.filterRound}</label>
+        <label>🔢 ${t.filterRound}</label>
         <select class="lf-select" data-liveact="sel-round">
           <option value="all" ${liveRoundFilter === 'all' ? 'selected' : ''}>${t.allRounds}</option>
           ${rounds.map((r) => `<option value="${r}" ${String(liveRoundFilter) === String(r) ? 'selected' : ''}>${r}-tur</option>`).join('')}
         </select>
       </div>
       <div class="lf-item">
-        <label>рџ›ЎпёЏ ${t.filterClub}</label>
+        <label>🛡️ ${t.filterClub}</label>
         <select class="lf-select" data-liveact="sel-club">
           <option value="all" ${liveClubFilter === 'all' ? 'selected' : ''}>${t.allClubs}</option>
           ${clubs.map((c) => `<option value="${c.id}" ${liveClubFilter === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
@@ -142,9 +142,9 @@
     if (live.loading) {
       body = `<div class="pf-empty"><p>...</p></div>`;
     } else if (!rows.length) {
-      body = `<div class="pf-empty"><span>рџ“є</span><p>${t.noMatches}</p></div>`;
+      body = `<div class="pf-empty"><span>📺</span><p>${t.noMatches}</p></div>`;
     } else {
-      body = rows.map((m) => `<div class="g-card live-m">${side(m.home)}<div class="live-mid">${m.score ? `<b class="live-score">${m.score}</b>` : '<span class="live-vs">vs</span>'}</div>${side(m.away)}</div><small class="live-meta"><span class="lm-tur"><b>${m.round}-tur</b></span> В· ${stLbl(m.status)}${m.deadline && m.status !== 'confirmed' ? ' В· ' + fmt(m.deadline) : ''}</small>`).join('');
+      body = rows.map((m) => `<div class="g-card live-m">${side(m.home)}<div class="live-mid">${m.score ? `<b class="live-score">${m.score}</b>` : '<span class="live-vs">vs</span>'}</div>${side(m.away)}</div><small class="live-meta"><span class="lm-tur"><b>${m.round}-tur</b></span> · ${stLbl(m.status)}${m.deadline && m.status !== 'confirmed' ? ' · ' + fmt(m.deadline) : ''}</small>`).join('');
     }
 
     return `${filterHtml}${body}`;
@@ -153,22 +153,22 @@
   const cupViewHtml = () => {
     const t = T[lang];
     const cups = [
-      { id: 'fa-cup', name: 'FA Cup (Angliya)', flag: 'рџ‡¬рџ‡§' },
-      { id: 'copa-del-rey', name: 'Copa del Rey (Ispaniya)', flag: 'рџ‡Єрџ‡ё' },
+      { id: 'fa-cup', name: 'FA Cup (Angliya)', flag: '🇬🇧' },
+      { id: 'copa-del-rey', name: 'Copa del Rey (Ispaniya)', flag: '🇪🇸' },
     ];
 
     const cupChips = `<div class="chips" style="margin-bottom:12px;">${cups.map((c) => `<button class="chip${curCup === c.id ? ' on' : ''}" data-act="sel-cup" data-cup="${c.id}">${c.flag} ${esc(c.name)}</button>`).join('')}</div>`;
 
     const subSeg = `<div class="seg" style="margin-bottom:14px;">
-      <button class="${cupSubTab === 'bracket' ? 'on' : ''}" data-act="cuptab-bracket">рџЊі ${t.cupBracket}</button>
-      <button class="${cupSubTab === 'qual' ? 'on' : ''}" data-act="cuptab-qual">рџ“‹ ${t.cupQual}</button>
+      <button class="${cupSubTab === 'bracket' ? 'on' : ''}" data-act="cuptab-bracket">🌳 ${t.cupBracket}</button>
+      <button class="${cupSubTab === 'qual' ? 'on' : ''}" data-act="cuptab-qual">📋 ${t.cupQual}</button>
     </div>`;
 
     if (cupLoading) {
       return `${cupChips}${subSeg}<div class="pf-empty"><p>...</p></div>`;
     }
     if (!cupState) {
-      return `${cupChips}${subSeg}<div class="pf-empty"><span>рџЏ†</span><p>${t.drawSoon}</p></div>`;
+      return `${cupChips}${subSeg}<div class="pf-empty"><span>🏆</span><p>${t.drawSoon}</p></div>`;
     }
 
     const S = cupState;
@@ -185,12 +185,12 @@
       const b = S.bracket || [];
       const rounds = [4, 5, 6, 7].filter((r) => b.some((m) => m.round === r));
       if (!rounds.length) {
-        inner = `<div class="cp-empty"><span>рџЊі</span><p>${t.drawSoon}</p></div>`;
+        inner = `<div class="cp-empty"><span>🌳</span><p>${t.drawSoon}</p></div>`;
       } else {
         const cols = rounds.map((r) => `<div class="cp-col"><h4>${esc(roundLabel(r))}</h4>
           ${b.filter((m) => m.round === r).map((m) => `<div class="cp-bm">
-            <div class="${m.hg != null && m.ag != null && m.hg > m.ag ? 'w' : ''}">${crest(m.home)}<span>${esc(m.home.club)}</span><b>${m.hg ?? 'вЂ“'}</b></div>
-            <div class="${m.hg != null && m.ag != null && m.ag > m.hg ? 'w' : ''}">${crest(m.away)}<span>${esc(m.away.club)}</span><b>${m.ag ?? 'вЂ“'}</b></div>
+            <div class="${m.hg != null && m.ag != null && m.hg > m.ag ? 'w' : ''}">${crest(m.home)}<span>${esc(m.home.club)}</span><b>${m.hg ?? '–'}</b></div>
+            <div class="${m.hg != null && m.ag != null && m.ag > m.hg ? 'w' : ''}">${crest(m.away)}<span>${esc(m.away.club)}</span><b>${m.ag ?? '–'}</b></div>
           </div>`).join('')}</div>`).join('');
         inner = `<div class="cp-br">${cols}<div class="cp-trophy">${chain(EFL.cupSrcs(S.cup))}<small>${esc(S.cupName)}</small></div></div>`;
       }
@@ -198,7 +198,7 @@
       const sm = S.shieldMatches || [];
       if (sm.length) {
         const m = sm[0];
-        inner += `<div class="g-label" style="margin-top:16px;"><span>рџ›ЎпёЏ ${esc(S.shieldName || t.supercup)}</span></div>
+        inner += `<div class="g-label" style="margin-top:16px;"><span>🛡️ ${esc(S.shieldName || t.supercup)}</span></div>
         <div class="g-card live-m">
           <div class="live-side">${crest(m.home)}<b>${esc(m.home.club)}</b></div>
           <div class="live-mid">${m.hg != null && m.ag != null ? `<b class="live-score">${m.hg} : ${m.ag}</b>` : '<span class="live-vs">vs</span>'}</div>
@@ -207,13 +207,13 @@
       }
     } else {
       const qStages = (S.stages || []).filter((s) => ['pl-q', 'ch-q1', 'ch-q2'].includes(s.stage));
-      const statusLines = qStages.map((s) => `<div class="cp-st-row"><span>${esc(s.label)}</span><em>${s.drawnAt ? `${s.teams} klub В· ${s.matches ? s.confirmed + '/' + s.matches : ''}` : s.drawAt ? `рџЋІ ${new Date(s.drawAt).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : t.drawSoon}</em></div>`).join('');
+      const statusLines = qStages.map((s) => `<div class="cp-st-row"><span>${esc(s.label)}</span><em>${s.drawnAt ? `${s.teams} klub · ${s.matches ? s.confirmed + '/' + s.matches : ''}` : s.drawAt ? `🎲 ${new Date(s.drawAt).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : t.drawSoon}</em></div>`).join('');
       const panel = statusLines ? `<div class="cp-panel">${statusLines}</div>` : '';
 
       const qMatches = S.qualifiers || [];
       let matchCards = '';
       if (!qMatches.length) {
-        matchCards = `<div class="cp-empty"><span>рџ“‹</span><p>${t.drawSoon}</p></div>`;
+        matchCards = `<div class="cp-empty"><span>📋</span><p>${t.drawSoon}</p></div>`;
       } else {
         matchCards = qMatches.map((m) => {
           const stLbl = (s) => (s === 'confirmed' ? t.played : s === 'pending' ? t.pending : s === 'disputed' ? t.disputed : t.unplayed);
@@ -221,13 +221,13 @@
             <div class="live-side">${crest(m.home)}<b>${esc(m.home.club)}</b></div>
             <div class="live-mid">${m.hg != null && m.ag != null ? `<b class="live-score">${m.hg} : ${m.ag}</b>` : '<span class="live-vs">vs</span>'}</div>
             <div class="live-side">${crest(m.away)}<b>${esc(m.away.club)}</b></div>
-          </div><small class="live-meta"><span class="lm-tur"><b>${esc(roundLabel(m.round))}</b></span> В· ${stLbl(m.status)}</small>`;
+          </div><small class="live-meta"><span class="lm-tur"><b>${esc(roundLabel(m.round))}</b></span> · ${stLbl(m.status)}</small>`;
         }).join('');
       }
       inner = `${panel}${matchCards}`;
     }
 
-    return `<div class="g-label"><span>рџЏ† ${esc(S.cupName || 'Kubok')}</span></div>${cupChips}${subSeg}${inner}`;
+    return `<div class="g-label"><span>🏆 ${esc(S.cupName || 'Kubok')}</span></div>${cupChips}${subSeg}${inner}`;
   };
 
   async function loadCupPage(id) {
@@ -252,9 +252,9 @@
     const row = rank.rows.find((r) => r.club === m.club);
 
     const subSwitch = `<div class="seg seg-top three">
-      <button class="${infoSubTab === 'rank' ? 'on' : ''}" data-act="infotab-rank">рџЏ† ${t.subRank}</button>
-      <button class="${infoSubTab === 'live' ? 'on' : ''}" data-act="infotab-live">рџ“є ${t.subLive}</button>
-      <button class="${infoSubTab === 'cup' ? 'on' : ''}" data-act="infotab-cup">рџЋџпёЏ ${t.subCup}</button>
+      <button class="${infoSubTab === 'rank' ? 'on' : ''}" data-act="infotab-rank">🏆 ${t.subRank}</button>
+      <button class="${infoSubTab === 'live' ? 'on' : ''}" data-act="infotab-live">📺 ${t.subLive}</button>
+      <button class="${infoSubTab === 'cup' ? 'on' : ''}" data-act="infotab-cup">🎟️ ${t.subCup}</button>
     </div>`;
 
     if (infoSubTab === 'live') {
@@ -268,7 +268,7 @@
       <div class="g-label"><span>${t.yourLeague}</span></div>
       <div class="g-card inf-league"><span class="inf-logo">${chain([EFL.leagueSrc(l.id)])}</span>
         <div class="inf-txt"><b>${esc(l.name)}</b><small>${c ? c.flag + ' ' + esc(c.name[lang]) : ''}</small><span class="inf-club">${EFL.crest(l.id, m.club, name)}<i>${esc(name)}</i></span></div>
-        <div class="inf-pos"><b>${row ? '#' + row.pos : 'вЂ”'}</b><small>${t.place}</small></div></div>
+        <div class="inf-pos"><b>${row ? '#' + row.pos : '—'}</b><small>${t.place}</small></div></div>
       ${window.RatingView.html(lang, { ...rank, single: false })}</div>${nav(t, 0)}`;
   }
   async function loadRank(pick) {
@@ -280,14 +280,14 @@
     if (id === rank.league) { rank.loading = false; if (r.ok) rank.rows = r.rows; if (tab === 'info') render(); }
   }
 
-  // вЂ”вЂ”вЂ” Me va Do'kon вЂ”вЂ”вЂ”
+  // ——— Me va Do'kon ———
   const renderMe = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { clubs: prof.clubs, unread: unread.clubs, collection: prof.collection, equipped: prof.equipped, sel: meSel, openGame, supportUnread: prof.supportUnread, cups: prof.cups, staff: !!window.IS_STAFF })}</div>${nav(T[lang], 1)}`; };
   const openTg = (u) => { const url = 'https://t.me/' + u; if (tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank'); };
   window.addEventListener('staffready', () => { if (loaded && tab === 'me') renderMe(); });
   const renderClub = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.gameTabHtml(lang, { clubs: prof.clubs, cups: prof.cups, unread: unread.clubs })}</div>${nav(T[lang], 2)}`; };
   const renderShop = () => { el.innerHTML = `<div class="page l-page">${window.ShopView.html(lang, { ...shop, lots })}</div>${nav(T[lang], 3)}`; };
-  const renderAdmin = () => { el.innerHTML = `<div class="page l-page" id="adminHost"></div>${nav(T[lang], 'admin')}`; window.AdminView.show(el.querySelector('#adminHost'), toast); };
-  // вЂ”вЂ”вЂ” Qizil belgilar: raqib/ishtirokchidan o'qilmagan xabarlar soni вЂ”вЂ”вЂ”
+  const renderAdmin = () => { el.innerHTML = `<div class="page l-page" id="adminHost"></div>${nav(T[lang], 'admin')}`; window.AdminView.show(el.querySelector('#adminHost'), toast, 'league'); };
+  // ——— Qizil belgilar: raqib/ishtirokchidan o'qilmagan xabarlar soni ———
   const syncUnreadFromProfile = () => {
     const clubs = {}; let total = 0;
     (prof.clubs || []).forEach((c) => { const n = (c.games || []).reduce((a, g) => a + (g.unread || 0), 0); clubs[c.league + '|' + c.club] = n; total += n; });
@@ -323,7 +323,7 @@
   async function loadProfile() { const [r, cs] = await Promise.all([api('/api/profile'), api('/api/cup/state')]); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {}, supportUnread: r.supportUnread || 0, cups: cs.ok ? cs : null }; window.AppBg.setOwn(prof.equipped.pbg); syncUnreadFromProfile(); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me' || tab === 'club') render(); if (autoSupport) { autoSupport = false; window.MatchView.openSupport(); } if (autoChat) { const cid = autoChat; autoChat = null; window.MatchView.openMatchChat(cid); } } }
   async function loadLots() { const r = await api('/api/auctions'); if (r.ok) { lots = r.lots || []; if (tab === 'shop' && !modalOpen()) render(); } }
 
-  // вЂ”вЂ”вЂ” Do'kon: Coins sotib olish, kosmetika, Sell (kubokni adminga sotish) вЂ”вЂ”вЂ”
+  // ——— Do'kon: Coins sotib olish, kosmetika, Sell (kubokni adminga sotish) ———
   const syncBg = () => { const B = window.AppBg; if (pview) B.preview(pview.equipped?.pbg); else if (tab === 'me') B.show(); else B.hide(); };   // futbolchi foni faqat Me bo'limida
   const modalOpen = () => !!el.querySelector('#shopModal');
   const closeShop = () => { el.querySelector('#shopModal')?.remove(); syncBg(); };
@@ -431,6 +431,7 @@
     const u = 'https://t.me/' + a.replace(/^@/, '');
     if (tg?.openTelegramLink) tg.openTelegramLink(u); else window.open(u, '_blank');
   }
+
   async function contactLeagueAdmin() {
     const lg = supportLeague();
     try {
@@ -464,7 +465,7 @@
     pview = r; window.scrollTo(0, 0); render();
   }
   // Live: liga/kubok tanlanadi, shu bo'limning hozir ochiq o'yinlari ko'rinadi
-  // Live: reytingdagi kabi tanlanadi вЂ” 1-liga / 2-liga / Kuboklar, ichida barcha ligalar (logotip bilan)
+  // Live: reytingdagi kabi tanlanadi — 1-liga / 2-liga / Kuboklar, ichida barcha ligalar (logotip bilan)
   const LIVE_CUP_IDS = ['fa-cup', 'community-shield', 'copa-del-rey', 'supercopa'];
   const liveCupInfo = (id) => EFL.COUNTRIES.flatMap((c) => c.cups || []).find((k) => k.id === id);
   const liveGroupOf = (id) => (LIVE_CUP_IDS.includes(id) ? 'cup' : String(EFL.byId[id]?.group || 1));
@@ -529,7 +530,7 @@
     if (data.mine) loadProfile();
   }
 
-  // вЂ”вЂ”вЂ” Ro'yxatdan o'tish: liga karuseli, klublar вЂ”вЂ”вЂ”
+  // ——— Ro'yxatdan o'tish: liga karuseli, klublar ———
   function heroHtml() {
     const t = T[lang], l = EFL.byId[cur], s = stat(cur), full = isShut(l), canReg = !full && selected;
     return `${badge(t, l)}
@@ -582,21 +583,21 @@
     }, 90);
   }
 
-  // вЂ”вЂ”вЂ” Qit'a -> davlat (6 qator x 2 ustun) вЂ”вЂ”вЂ”
+  // ——— Qit'a -> davlat (6 qator x 2 ustun) ———
   function geoHtml() {
     const t = T[lang];
-    const tabs = EFL.CONTINENTS.map((c) => `<button class="ct${c.id === cont ? ' on' : ''}${c.open ? '' : ' lock'}" data-cont="${c.id}">${c.open ? '' : 'рџ”’ '}${esc(t.continents[c.id])}</button>`).join('');
-    const flags = EFL.COUNTRIES.filter((c) => c.continent === cont).map((c) => `<button class="flag${c.open ? '' : ' lock'}" data-country="${c.id}"><span class="fl">${c.flag}</span><b>${esc(c.name[lang])}</b>${c.open ? '' : '<i>рџ”’</i>'}</button>`).join('');
+    const tabs = EFL.CONTINENTS.map((c) => `<button class="ct${c.id === cont ? ' on' : ''}${c.open ? '' : ' lock'}" data-cont="${c.id}">${c.open ? '' : '🔒 '}${esc(t.continents[c.id])}</button>`).join('');
+    const flags = EFL.COUNTRIES.filter((c) => c.continent === cont).map((c) => `<button class="flag${c.open ? '' : ' lock'}" data-country="${c.id}"><span class="fl">${c.flag}</span><b>${esc(c.name[lang])}</b>${c.open ? '' : '<i>🔒</i>'}</button>`).join('');
     return `<div class="page l-page">${backBtn()}
       <div class="ct-tabs">${tabs}</div>
       <div class="g-label"><span>${t.pickCountry}</span></div>
       <div class="flags">${flags}</div></div>`;
   }
-  // вЂ”вЂ”вЂ” Davlat sahifasi: kuboklar -> turnir tanlash -> ro'yxatdan o'tish -> klublar -> format вЂ”вЂ”вЂ”
+  // ——— Davlat sahifasi: kuboklar -> turnir tanlash -> ro'yxatdan o'tish -> klublar -> format ———
   function countryHtml() {
     const t = T[lang], c = EFL.countryById[country], ls = EFL.leaguesOf(country);
     const head = `${backBtn()}<div class="ct-head"><span class="ct-flag">${c.flag}</span><h2>${esc(c.name[lang])}</h2></div>${cupsHtml(c)}`;
-    if (!ls.length) return `<div class="page l-page">${head}<div class="note n-info"><small>рџЏ† ${t.cupsLabel.toUpperCase()}</small><p>${esc(t.noLeagues)}</p></div></div>`;
+    if (!ls.length) return `<div class="page l-page">${head}<div class="note n-info"><small>🏆 ${t.cupsLabel.toUpperCase()}</small><p>${esc(t.noLeagues)}</p></div></div>`;
     return `<div class="page l-page">${head}
       <div class="g-label"><span>${t.cups}</span></div>
       <div class="lc-track" id="lTrack">${ls.map(cardHtml).join('')}</div>
@@ -645,7 +646,7 @@
     if (tab === 'info') loadRank(); else if (tab === 'me' || tab === 'club') loadProfile();
   }
 
-  // O'yin hisobini tasdiqlash (natija kiritish, В«Yolg'onВ» + isbot va chat вЂ” match.js dagi alohida oynalarda)
+  // O'yin hisobini tasdiqlash (natija kiritish, «Yolg'on» + isbot va chat — match.js dagi alohida oynalarda)
   async function gameAct(id) {
     const p = window.ProfileView.T[lang], r = await post(`/api/matches/${id}/confirm`, {});
     if (r.ok) { tg?.HapticFeedback?.notificationOccurred('success'); toast(p.confirmed); }
@@ -667,7 +668,7 @@
           id: cm.id, round: cm.round, status: cm.status, byMe: !!cm.byMe,
           score: (cm.hg != null && cm.ag != null) ? `${cm.mine ? cm.hg : cm.ag}:${cm.mine ? cm.ag : cm.hg}` : null,
           unread: 0, proofs: 0, claimScore: null, isHome: !!cm.mine,
-          opponent: cm.oppClub ? EFL.clubName(cm.oppLeague || '', cm.oppClub) : 'вЂ”',
+          opponent: cm.oppClub ? EFL.clubName(cm.oppLeague || '', cm.oppClub) : '—',
           oppClub: cm.oppClub || '', oppLeague: cm.oppLeague || me?.league || '', user: cm.oppUser || '', oppTg: cm.oppTg || '',
           league: me?.league || 'premier-league', club: me?.club || '',
           myName: me ? EFL.clubName(me.league, me.club) : '',
@@ -721,7 +722,7 @@
         else if (c && !c.disabled) { selected = c.dataset.club; tg?.HapticFeedback?.selectionChanged(); updHero(); updBelow(); }
         else if (a === 'g-ok') gameAct(btn.dataset.gid);
         else if (a === 'm-support') contactLeagueAdmin();
-        else if (a === 'm-notg') toast(({ uz: "Raqibning Telegram nomi yo'q", en: 'Opponent has no Telegram username', ru: 'РЈ СЃРѕРїРµСЂРЅРёРєР° РЅРµС‚ РёРјРµРЅРё РІ Telegram' })[lang]);
+        else if (a === 'm-notg') toast(({ uz: "Raqibning Telegram nomi yo'q", en: 'Opponent has no Telegram username', ru: 'У соперника нет имени в Telegram' })[lang]);
         else if (a && a.startsWith('m-')) window.MatchView.act(a, btn.dataset.gid);
         else if (a === 'register') register();
         else if (a === 'back') { if (!back()) location.hash = '#official'; }
@@ -755,12 +756,10 @@
       });
     }
   }
-  // ?open=games (o'yin hisobi xabaridagi tugma): Me в†’ klub в†’ Mening o'yinlarim
+  // ?open=games (o'yin hisobi xabaridagi tugma): Me → klub → Mening o'yinlarim
   // Muammoli holatlar: tanlangan klubning ligasi (yordamchi admin shu ligada bo'lsa unga boradi)
   const supportLeague = () => { const c = prof.clubs.find((x) => x.league + '|' + x.club === meSel) || prof.clubs[0]; return c?.league || null; };
   const preset = (name, arg) => { pendingTab = name === 'profile' ? 'club' : name === 'support' || name === 'chat' ? 'me' : name; autoClub = name === 'profile'; autoSupport = name === 'support'; autoChat = name === 'chat' ? arg : null; };
   const leave = () => { window.MatchView.close(); window.AppBg.hide(); pview = null; if (el) el.dataset.loaded = ''; tab = 'home'; view = 'geo'; country = null; meSel = null; openGame = null; loaded = false; };
   return { show, leave, back, preset };
 })();
-
-
