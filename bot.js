@@ -261,9 +261,10 @@ const alert = createAlerter(notifyAdmins);   // xatolar adminlarga Telegramda (b
 
 // "Klub (@username)" ko'rinishidagi nom
 async function whoIs(leagueId, id) {
-  const [reg, usr] = await Promise.all([Registration.findOne({ season, league: leagueId, telegramId: id }).lean(), User.findOne({ telegramId: id }).lean()]);
+  let [reg, usr] = await Promise.all([Registration.findOne({ season, league: leagueId, telegramId: id }).lean(), User.findOne({ telegramId: id }).lean()]);
+  if (!reg) reg = await Registration.findOne({ season, telegramId: id }).lean();
   const nm = usr?.username ? '@' + usr.username : usr?.firstName || String(id);
-  return reg ? `${EFL.clubName(leagueId, reg.club)} (${nm})` : nm;
+  return reg ? `${EFL.clubName(reg.league, reg.club)} (${nm})` : nm;
 }
 // O'yinlarga klub va ism qo'shib admin panelga tayyorlaydi
 async function decorate(ms) {
@@ -936,18 +937,24 @@ app.post('/api/matches/:id/confirm', ah(async (req, res) => {
   if (!validId(req.params.id)) return res.status(400).json({ error: 'fail' });
   const pre = await Match.findOne({ _id: req.params.id, season }).select('league round').lean();
   if (pre && await roundGate(res, pre.league, pre.round)) return;
-  // Faqat raqib (hisobni kiritmagan tomon) tasdiqlay oladi — skrinshot bilan
+  // Faqat raqib (hisobni kiritmagan tomon) tasdiqlay oladi — skrinshot ixtiyoriy
   const shot = decodeImage(req.body?.image);
   if (shot === false) return res.status(400).json({ error: 'badImage' });
-  if (!shot) return res.status(400).json({ error: 'needShot' });
   const cur = await Match.findOne({ _id: req.params.id, season, status: 'pending', reportedBy: { $ne: u.id }, $or: [{ home: u.id }, { away: u.id }] }).lean();
   if (!cur) return res.status(409).json({ error: 'gone' });
-  const [ca, cb] = await Promise.all([whoIs(cur.league, cur.home), whoIs(cur.league, cur.away)]);
-  const sentShot = await sendResultShot(`📸 Tasdiqlash skrinshoti — ${EFL.trophyName(cur.league)}, ${cur.round}-tur\n${ca} — ${cb}\nHisob: ${cur.hg}:${cur.ag} (tasdiqladi: ${await whoIs(cur.league, u.id)})`, shot);
-  if (!sentShot.ok) return res.status(502).json({ error: 'fail' });
+  let fileId = '';
+  if (shot) {
+    const [ca, cb] = await Promise.all([whoIs(cur.league, cur.home), whoIs(cur.league, cur.away)]);
+    const sentShot = await sendResultShot(`📸 Tasdiqlash skrinshoti — ${EFL.trophyName(cur.league)}, ${cur.round}-tur\n${ca} — ${cb}\nHisob: ${cur.hg}:${cur.ag} (tasdiqladi: ${await whoIs(cur.league, u.id)})`, shot);
+    if (sentShot.ok) fileId = sentShot.fileId;
+  }
+  const setQuery = { status: 'confirmed', confirmedBy: 'player', updatedAt: new Date() };
+  const updateDoc = fileId
+    ? { $set: setQuery, $push: { proofs: { by: u.id, text: '', fileId, hg: cur.hg, ag: cur.ag, at: new Date() } } }
+    : { $set: setQuery };
   const m = await Match.findOneAndUpdate(
     { _id: req.params.id, season, status: 'pending', reportedBy: { $ne: u.id }, $or: [{ home: u.id }, { away: u.id }] },
-    { $set: { status: 'confirmed', confirmedBy: 'player', updatedAt: new Date() }, $push: { proofs: { by: u.id, text: '', fileId: sentShot.fileId, hg: cur.hg, ag: cur.ag, at: new Date() } } },
+    updateDoc,
     { new: true }
   ).lean();
   if (!m) return res.status(409).json({ error: 'gone' });

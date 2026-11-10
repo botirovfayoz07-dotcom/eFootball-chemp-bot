@@ -93,7 +93,7 @@ window.MatchView = (() => {
     root?.remove(); root = null; S = {};
     if (was === 'chat' || was === 'support') C?.reload();      // o'qilmagan belgisi yangilansin
   }
-  const vs = (g) => `<div class="m-vs"><div>${crest(g.league, g.club, g.myName)}<b>${esc(g.myName)}</b><small>${t().you}</small></div><span>VS</span><div>${crest(g.league, g.oppClub, g.opponent)}<b>${esc(g.opponent || '—')}</b><small>${esc(g.user || '')}</small></div></div>`;
+  const vs = (g) => `<div class="m-vs"><div>${crest(g.league, g.club, g.myName)}<b>${esc(g.myName)}</b><small>${t().you}</small></div><span>VS</span><div>${crest(g.oppLeague || g.league, g.oppClub, g.opponent)}<b>${esc(g.opponent || '—')}</b><small>${esc(g.user || '')}</small></div></div>`;
 
   // ——— 1. Natija kiritish ———
   const stepper = (side, v) => `<div class="m-step"><button data-m="step" data-d="-1">−</button><input type="number" inputmode="numeric" min="0" max="99" value="${v}" data-in="${side}"><button data-m="step" data-d="1">+</button></div>`;

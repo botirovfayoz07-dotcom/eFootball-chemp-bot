@@ -644,7 +644,7 @@
           score: (cm.hg != null && cm.ag != null) ? `${cm.mine ? cm.hg : cm.ag}:${cm.mine ? cm.ag : cm.hg}` : null,
           unread: 0, proofs: 0, claimScore: null, isHome: !!cm.mine,
           opponent: cm.oppClub ? EFL.clubName(cm.oppLeague || '', cm.oppClub) : 'вЂ”',
-          oppClub: cm.oppClub || '', user: cm.oppUser || '', oppTg: cm.oppTg || '',
+          oppClub: cm.oppClub || '', oppLeague: cm.oppLeague || me?.league || '', user: cm.oppUser || '', oppTg: cm.oppTg || '',
           league: me?.league || 'premier-league', club: me?.club || '',
           myName: me ? EFL.clubName(me.league, me.club) : '',
         };
