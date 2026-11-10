@@ -112,15 +112,15 @@ window.MatchView = (() => {
     if (r.ok) { tg?.HapticFeedback?.notificationOccurred('success'); C.toast(p.sent); close(); C.reload(); } else C.toast(t()[r.error] || p[r.error] || t().fail);
   }
 
-  // ——— Tasdiqlash (skrinshot bilan) ———
+  // ——— Tasdiqlash (skrinshot ixtiyoriy) ———
   function openConfirm(g) {
     S = { mode: 'confirm', g, image: null };
-    show(`<h3>${t().confirmTitle}</h3>${vs(g)}<p class="m-claim">${t().claimed2}: <b>${esc(g.score || '')}</b></p><div id="mPrev" class="m-prev"></div><button class="m-ghost" data-m="shot">📎 ${t().shot} *</button><input type="file" id="mFile" accept="image/*" hidden><p class="m-note"><b>${t().shotReq}</b></p><button class="m-primary" data-m="confirm-send">${t().confirmBtn}</button>`);
+    show(`<h3>${t().confirmTitle}</h3>${vs(g)}<p class="m-claim">${t().claimed2}: <b>${esc(g.score || '')}</b></p><div id="mPrev" class="m-prev"></div><button class="m-ghost" data-m="shot">📎 ${t().shot} (ixtiyoriy)</button><input type="file" id="mFile" accept="image/*" hidden><p class="m-note">${t().resultHint}</p><button class="m-primary" data-m="confirm-send">${t().confirmBtn}</button>`);
   }
   async function confirmSend() {
-    if (!S.image) return C.toast(t().needShot);
+    // raqib tasdig'ida skrinshot ixtiyoriy — majburiy emas
     const p = window.ProfileView.T[C.lang()], sb = root.querySelector('[data-m="confirm-send"]'); sb.disabled = true;
-    const r = await C.post(`/api/matches/${S.g.id}/confirm`, { image: S.image });
+    const r = await C.post(`/api/matches/${S.g.id}/confirm`, { image: S.image || '' });
     sb.disabled = false;
     if (r.ok) { tg?.HapticFeedback?.notificationOccurred('success'); C.toast(p.confirmed); close(); C.reload(); } else C.toast(t()[r.error] || p[r.error] || p.fail);
   }
