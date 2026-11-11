@@ -1328,6 +1328,20 @@ app.get('/api/admin/overview', staffOnly, ah(async (req, res) => {
 }));
 
 // Yordamchi adminlar (faqat katta admin boshqaradi)
+// Username yoki ID bo'yicha foydalanuvchi qidirish (helper qo'shish uchun)
+app.get('/api/admin/helpers/lookup', adminOnly, ah(async (req, res) => {
+  const q = String(req.query.q || '').trim().replace(/^@/, '');
+  if (!q) return res.status(400).json({ error: 'fail' });
+  let usr;
+  if (/^\d+$/.test(q)) {
+    usr = await User.findOne({ telegramId: Number(q) }).lean();
+  } else {
+    usr = await User.findOne({ username: new RegExp('^' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }).lean();
+  }
+  if (!usr) return res.status(404).json({ error: 'nouser' });
+  res.json({ ok: true, telegramId: usr.telegramId, name: tgName(usr) });
+}));
+
 app.get('/api/admin/helpers', adminOnly, ah(async (req, res) => {
   const rows = await LeagueHelper.find({}).sort({ league: 1, addedAt: 1 }).lean();
   const users = await User.find({ telegramId: { $in: rows.map((r) => r.telegramId) } }).lean();

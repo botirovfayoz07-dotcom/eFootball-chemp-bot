@@ -1035,11 +1035,8 @@ window.AdminView = (() => {
     }
     if (act === 'lg-cup-close') {
       const stage = btn.dataset.stage, cup = btn.dataset.cup || curCup;
-      if (!(await confirmBox("Bosqich yopilsinmi?"))) return;
-      // yopish = startedAt ni null qilib deadline ni o'tib ketgan vaqtga qo'yamiz
-      const r = await post('/api/admin/cup/start', { cup, stage, hours: 0 });
-      toast(r.ok ? "Bosqich yopildi 🔒" : (ERR[r.error] || ERR.fail));
-      return loadCup();
+      if (!(await confirmBox("Bosqich yopilsinmi? O'yinchilar hisob kirita olmaydi."))) return;
+      return done(await post('/api/admin/cup/close', { cup, stage }), "Bosqich yopildi 🔒", loadCup);
     }
     if (act === 'lg-cup-advance') {
       const stage = btn.dataset.stage, cup = btn.dataset.cup || curCup;
