@@ -764,3 +764,104 @@ body.has-bg .pf-info h2 { text-shadow: 0 2px 10px rgba(0,0,0,.95); }
 .ad-pending-sc { color: #22d3ee; font-size: 16px; font-weight: 700; margin: 0 4px; }
 .ad-shot-box { margin: 10px 0; }
 .ad-shot-box img { max-width: 100%; max-height: 240px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.2); }
+
+
+/* ===== LEAGUE ADMIN v2 — screenshots tartibida ===== */
+.ad-hero-card {
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(135deg, #0f2027 0%, #1a3a4a 60%, #0d3353 100%);
+  border-radius: 16px; padding: 18px 20px; margin-bottom: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.ad-hero-left { display: flex; flex-direction: column; gap: 6px; }
+.ad-hero-name { font-size: 1.3rem; font-weight: 800; color: #fff; margin: 0; letter-spacing: 1px; }
+.ad-hero-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+.ad-hero-badge.open { background: rgba(34,197,94,0.25); color: #4ade80; border: 1px solid rgba(34,197,94,0.4); }
+.ad-hero-badge.closed { background: rgba(239,68,68,0.25); color: #f87171; border: 1px solid rgba(239,68,68,0.4); }
+.ad-hero-right { text-align: right; font-size: 1.3rem; font-weight: 800; color: #fff; }
+.ad-hero-right small { font-size: 0.7rem; font-weight: 400; opacity: 0.6; display: block; }
+
+.ad-panel-header {
+  background: #111827; border-radius: 14px; padding: 14px 16px;
+  margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.08);
+}
+.ad-panel-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.ad-panel-title { font-weight: 700; font-size: 0.95rem; color: #e2e8f0; letter-spacing: 0.5px; }
+.ad-role-badge {
+  background: rgba(74,222,128,0.15); color: #4ade80;
+  border: 1px solid rgba(74,222,128,0.4); border-radius: 20px;
+  padding: 3px 12px; font-size: 0.72rem; font-weight: 600;
+}
+.ad-kpi-grid { display: flex; gap: 0; border-radius: 10px; overflow: hidden; background: #1e293b; }
+.ad-kpi-col {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 12px 8px; gap: 2px;
+}
+.ad-kpi-col b { font-size: 1rem; font-weight: 800; color: #f8fafc; }
+.ad-kpi-col small { font-size: 0.7rem; color: #94a3b8; font-weight: 400; }
+.ad-kpi-mid { border-left: 1px solid rgba(255,255,255,0.08); border-right: 1px solid rgba(255,255,255,0.08); }
+
+.ad-sec-header {
+  display: flex; align-items: center; gap: 10px; margin: 20px 0 10px;
+  color: #94a3b8; font-size: 0.72rem; font-weight: 700; letter-spacing: 1px;
+}
+.ad-sec-line { flex: 1; height: 1px; background: rgba(255,255,255,0.1); }
+
+.ad-msg-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.ad-msg-item {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; text-align: left; cursor: pointer;
+  background: #111827; border-radius: 12px; padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,0.06); gap: 10px;
+  transition: background 0.15s;
+}
+.ad-msg-item:active { background: #1e293b; }
+.ad-msg-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.ad-msg-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, #22d3ee, #6366f1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.95rem; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.ad-msg-info { display: flex; flex-direction: column; min-width: 0; }
+.ad-msg-name { font-size: 0.85rem; font-weight: 600; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ad-msg-info small { font-size: 0.72rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.ad-msg-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.ad-msg-right small { font-size: 0.65rem; color: #64748b; white-space: nowrap; }
+
+.ad-dl-card { padding: 14px 16px; display: flex; flex-direction: column; gap: 0; margin-bottom: 4px; }
+.ad-dl-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.ad-dl-muddat { font-size: 0.85rem; color: #94a3b8; margin-bottom: 6px; }
+.ad-dl-muddat b { color: #f1f5f9; }
+.ad-dl-label { font-size: 0.72rem; color: #64748b; letter-spacing: 0.5px; margin-bottom: 6px; }
+
+.ad-quick-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.ad-quick-btn {
+  flex: 1; min-width: 60px; padding: 8px 4px; background: #1e293b;
+  border-radius: 8px; color: #e2e8f0; font-size: 0.8rem; font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.1); cursor: pointer; text-align: center;
+  transition: background 0.15s;
+}
+.ad-quick-btn:active { background: #334155; }
+
+.ad-dt-input {
+  width: 100%; background: #1e293b; border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; padding: 10px 12px; color: #f1f5f9; font-size: 0.85rem;
+  margin-bottom: 10px; box-sizing: border-box;
+}
+
+.ad-btn-green {
+  display: block; width: 100%; padding: 13px; border-radius: 10px;
+  background: #22c55e; color: #fff; font-size: 0.95rem; font-weight: 700;
+  text-align: center; cursor: pointer; border: none; margin-bottom: 2px;
+  transition: background 0.15s;
+}
+.ad-btn-green:active { background: #16a34a; }
+
+.ad-search-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.ad-search-row input { flex: 1; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 12px; color: #f1f5f9; font-size: 0.85rem; }
+
+.ad-fa-status { display: flex; align-items: center; gap: 10px; margin: 8px 0; flex-wrap: wrap; }
+.ad-fa-status small { color: #64748b; font-size: 0.72rem; }
+.ad-fa-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+/* ===== END LEAGUE ADMIN v2 ===== */
