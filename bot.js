@@ -320,7 +320,7 @@ async function performDraw(leagueId, rounds, roundDays) {
 }
 
 // Barcha ligalar: o'yinchilar soni, band klublar va foydalanuvchining o'z ro'yxati (bitta so'rovda)
-app.get('/api/leagues', async (req, res) => {
+app.get('/api/leagues', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   touchUser(u);
@@ -337,7 +337,7 @@ app.get('/api/leagues', async (req, res) => {
       return { id: l.id, max: l.max, players: live.length, taken: live.map((r) => r.club), closed: closedSet.has(l.id) };
     }),
   });
-});
+}));
 
 // Klub o'yinlari (bekor qilinganlardan tashqari), tur bo'yicha — hisob kiritish/tasdiqlash uchun
 async function gamesOf(uid, league, regs) {
@@ -450,7 +450,7 @@ app.get('/api/live/:id', ah(async (req, res) => {
   const side = (tid) => { const u = usr.get(tid), r = reg.get(tid); return { user: u?.username ? '@' + u.username : u?.firstName || (tid < 0 ? '' : String(tid)), club: r ? EFL.clubName(r.league, r.club) : '', clubId: r?.club || '', league: r?.league || cfgL.db }; };
   res.json({ ok: true, round: cur ?? null, rounds: [...new Set(targetMatches.map((m) => m.round))].sort((a, b) => a - b), rows: targetMatches.map((m) => ({ id: String(m._id), round: m.round, status: m.status, deadline: m.deadline, score: m.hg != null && m.ag != null ? `${m.hg} : ${m.ag}` : null, home: side(m.home), away: side(m.away) })) });
 }));
-app.get('/api/rankings/:league', async (req, res) => {
+app.get('/api/rankings/:league', ah(async (req, res) => {
   if (!tgUser(req)) return res.status(401).json({ error: 'auth' });
   const league = req.params.league;
   if (!EFL.byId[league]) return res.status(404).json({ error: 'fail' });
@@ -469,9 +469,9 @@ app.get('/api/rankings/:league', async (req, res) => {
     .sort(rankSort)
     .map((r, i) => ({ pos: i + 1, ...r }));
   res.json({ league, rows });
-});
+}));
 
-app.post('/api/leagues/:league/register', async (req, res) => {
+app.post('/api/leagues/:league/register', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   {
@@ -498,6 +498,10 @@ app.post('/api/leagues/:league/register', async (req, res) => {
   if ((await Registration.countDocuments({ season, league: league.id })) >= league.max) return res.status(409).json({ error: 'full' });
   try {
     await Registration.create({ league: league.id, season, telegramId: u.id, club });
+    if ((await Registration.countDocuments({ season, league: league.id })) > league.max) {   // parallel so'rovlar sig'imdan oshib ketdi
+      await Registration.deleteOne({ season, league: league.id, telegramId: u.id, club });
+      return res.status(409).json({ error: 'full' });
+    }
     await payReferral(u.id).then(notifyReferrer).catch((e) => alert('referal', e));
     res.json({ ok: true });
   } catch (e) {
@@ -505,12 +509,13 @@ app.post('/api/leagues/:league/register', async (req, res) => {
     const dup = e.code === 11000;
     res.status(dup ? 409 : 500).json({ error: dup ? (/telegramId/.test(e.message) ? 'already' : 'taken') : 'fail' });
   }
-});
+}));
 
 // Bo'sh qolgan klubni (egasi voz kechgan) yangi egasiga o'tkazish: jadvaldagi ochkolar, o'yinlar, natijalar va chat o'z holicha qoladi
 async function takeOverVacant(leagueId, club, newId) {
   const v = await Registration.findOneAndUpdate({ season, league: leagueId, club, vacant: true }, { $set: { telegramId: newId }, $unset: { vacant: 1, auction: 1 } }, { new: false }).lean();
   if (!v) return null;
+  await refundActiveBid(v, "klub yangi egasiga o'tdi");
   const old = v.telegramId, base = { season, league: leagueId };
   await Promise.all([
     Match.updateMany({ ...base, home: old }, { $set: { home: newId } }),
@@ -530,8 +535,10 @@ async function takeOverVacant(leagueId, club, newId) {
 async function vacateClub(leagueId, tid, club) {
   const vid = -(Date.now() * 1000 + Math.floor(Math.random() * 1000));
   const q = { season, league: leagueId, telegramId: tid, ...(club ? { club } : {}) };
-  const r = await Registration.findOneAndUpdate(q, { $set: { telegramId: vid, vacant: true }, $unset: { auction: 1 } }, { new: true }).lean();
-  if (!r) return null;
+  const old = await Registration.findOneAndUpdate(q, { $set: { telegramId: vid, vacant: true }, $unset: { auction: 1 } }, { new: false }).lean();
+  if (!old) return null;
+  await refundActiveBid(old, 'klub voz kechildi');
+  const r = { ...old, telegramId: vid, vacant: true };
   const base = { season, league: leagueId };
   await Promise.all([
     Match.updateMany({ ...base, home: tid }, { $set: { home: vid } }),
@@ -544,75 +551,94 @@ async function vacateClub(leagueId, tid, club) {
 }
 
 // "Klubdan hoziroq voz kechaman": klub egasidan olinadi va yana ro'yxatdan o'tish ro'yxatiga qaytadi
-app.post('/api/leave', async (req, res) => {
+app.post('/api/leave', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const { league, club } = req.body || {};
   if (!(await vacateClub(league, u.id, club))) return res.status(404).json({ error: 'fail' });
   res.json({ ok: true });
-});
+}));
 
 // Klubni auksionga qo'yish (narx bilan) va auksiondan olish
-app.post('/api/auction', async (req, res) => {
+// ——— Auksion (coin qoidalari) ———
+// Bid: yangi bidder'ning coinlari shartli ayriladi, so'ng lot optimistik qulf bilan yangilanadi (eski currentBid o'zgarmagan bo'lishi shart),
+// faqat shundan keyin oldingi bidder'ga qaytariladi. Lot bekor/qayta qo'yilganda yoki klub egasi o'zgarganda faol bidder'ga qaytariladi.
+// Har bir coin o'zgarishi CoinLog ga yoziladi.
+async function refundBid(telegramId, amount, ref, note = '') {
+  if (!telegramId || !(amount > 0)) return;
+  await User.updateOne({ telegramId }, { $inc: { coins: amount } });
+  await logCoins(telegramId, amount, 'auction_refund', String(ref || ''), null, note);
+}
+// `lot` — yangilanishdan OLDINGI hujjat (findOneAndUpdate new:false)
+const refundActiveBid = (lot, note) => (lot?.auction?.bidder ? refundBid(lot.auction.bidder, lot.auction.currentBid || 0, lot._id, note) : null);
+
+// Klubni auksionga qo'yish (narx bilan) yoki narxini o'zgartirish
+app.post('/api/auction', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const { league, club } = req.body || {};
   const price = Math.floor(Number(req.body?.price));
   if (!(price >= 1 && price <= 1e9)) return res.status(400).json({ error: 'badPrice' });
-  const r = await Registration.findOneAndUpdate({ season, telegramId: u.id, league, club }, { auction: { price, at: new Date() } }, { new: true }).lean();
-  if (!r) return res.status(404).json({ error: 'fail' });
+  const old = await Registration.findOneAndUpdate({ season, telegramId: u.id, league, club }, { auction: { price, at: new Date() } }, { new: false }).lean();
+  if (!old) return res.status(404).json({ error: 'fail' });
+  await refundActiveBid(old, "lot qayta qo'yildi");   // narx o'zgarganda faol taklif bekor bo'ladi
   res.json({ ok: true });
-});
-app.post('/api/auction/cancel', async (req, res) => {
+}));
+
+// Auksiondan olish
+app.post('/api/auction/cancel', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const { league, club } = req.body || {};
-  const r = await Registration.findOneAndUpdate({ season, telegramId: u.id, league, club }, { $unset: { auction: 1 } }, { new: true }).lean();
-  if (!r) return res.status(404).json({ error: 'fail' });
+  const old = await Registration.findOneAndUpdate({ season, telegramId: u.id, league, club }, { $unset: { auction: 1 } }, { new: false }).lean();
+  if (!old) return res.status(404).json({ error: 'fail' });
+  await refundActiveBid(old, 'auksion bekor qilindi');
   res.json({ ok: true });
-});
+}));
+
 // Auksion bid qilish (taklif berish)
-app.post('/api/auction/bid', async (req, res) => {
+app.post('/api/auction/bid', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const { league, club, bid } = req.body || {};
   const amount = Math.floor(Number(bid));
   if (!(amount >= 1 && amount <= 1e9)) return res.status(400).json({ error: 'badPrice' });
-  
-  // Auksion lotini topamiz
+
   const lot = await Registration.findOne({ season, league, club, 'auction.price': { $gt: 0 } }).lean();
   if (!lot) return res.status(404).json({ error: 'gone' });
   if (lot.telegramId === u.id) return res.status(400).json({ error: 'ownClub' });
-  if (amount <= (lot.auction.currentBid || lot.auction.price)) return res.status(400).json({ error: 'lowBid' });
-  
-  // Auksion vaqti tekshiruv
+  const curBid = lot.auction.currentBid || 0;
+  const prevBidder = lot.auction.bidder || null;
+  if (amount <= (curBid || lot.auction.price)) return res.status(400).json({ error: 'lowBid' });
+
   const cfg = await LeagueConfig.findOne({ season, league: 'auction' }).lean();
   const aEnd = cfg?.auctionEnd ? new Date(cfg.auctionEnd) : null;
   if (aEnd && aEnd < new Date()) return res.status(409).json({ error: 'aucClosed' });
-  
-  // Eski bid qilganning coinlarini qaytaramiz
-  const prevBidder = lot.auction.bidder;
-  const prevBid = lot.auction.currentBid || 0;
-  if (prevBidder && prevBidder !== u.id && prevBid > 0) {
-    await User.updateOne({ telegramId: prevBidder }, { $inc: { coins: prevBid } });
-  }
-  
-  // Yangi bidder coinlarini ayiramiz
-  const me = await User.findOne({ telegramId: u.id }).lean();
-  if (!me || me.coins < amount) return res.status(400).json({ error: 'noCoins' });
-  await User.updateOne({ telegramId: u.id }, { $inc: { coins: -amount } });
-  
-  // Bidni yangilaymiz
-  await Registration.updateOne(
-    { season, league, club },
-    { $set: { 'auction.currentBid': amount, 'auction.bidder': u.id, 'auction.bidAt': new Date() } }
-  );
-  
-  res.json({ ok: true, coins: me.coins - amount });
-});
 
-// Auksion holatini tekshirish va yakunlash (admin yoki cron tomonidan)
-app.post('/api/admin/auction/config', staffOnly, ah(async (req, res) => {
+  // O'zi yetakchi bo'lsa, faqat farqini to'laydi (aks holda o'z taklifini ikki marta to'lagan bo'lardi)
+  const charge = prevBidder === u.id ? amount - curBid : amount;
+  // 1) Coinlarni shartli ayiramiz (balans yetmasa hech narsa o'zgarmaydi)
+  const dec = await User.findOneAndUpdate({ telegramId: u.id, coins: { $gte: charge } }, { $inc: { coins: -charge } }, { new: true }).lean();
+  if (!dec) return res.status(400).json({ error: 'noCoins' });
+  // 2) Lotni optimistik qulf bilan yangilaymiz: hozirgi taklif o'zgarmagan va lot hali auksionda bo'lishi kerak
+  const upd = await Registration.findOneAndUpdate(
+    { season, league, club, 'auction.price': { $gt: 0 }, 'auction.currentBid': curBid || null, 'auction.bidder': prevBidder },
+    { $set: { 'auction.currentBid': amount, 'auction.bidder': u.id, 'auction.bidAt': new Date() } },
+    { new: true }
+  ).lean();
+  if (!upd) {
+    // Parallel taklif bizdan oldin o'tdi: pulni qaytaramiz
+    await refundBid(u.id, charge, lot._id, 'taklif qabul qilinmadi');
+    return res.status(409).json({ error: 'lowBid' });
+  }
+  // 3) Muvaffaqiyatli bo'lgandan keyingina oldingi bidder'ga qaytaramiz
+  await logCoins(u.id, -charge, 'auction_bid', String(lot._id), null, String(amount));
+  if (prevBidder && prevBidder !== u.id) await refundBid(prevBidder, curBid, lot._id, "yuqori taklif qo'yildi");
+  res.json({ ok: true, coins: dec.coins });
+}));
+
+// Auksion holatini tekshirish va yakunlash — faqat katta admin
+app.post('/api/admin/auction/config', adminOnly, ah(async (req, res) => {
   const { auctionEnd } = req.body || {};
   await LeagueConfig.findOneAndUpdate(
     { season, league: 'auction' },
@@ -622,40 +648,39 @@ app.post('/api/admin/auction/config', staffOnly, ah(async (req, res) => {
   res.json({ ok: true });
 }));
 
-app.get('/api/admin/auction/config', staffOnly, ah(async (req, res) => {
+app.get('/api/admin/auction/config', adminOnly, ah(async (req, res) => {
   const cfg = await LeagueConfig.findOne({ season, league: 'auction' }).lean();
   res.json({ ok: true, auctionEnd: cfg?.auctionEnd || null });
 }));
 
-// Auksionni yakunlash: oxirgi bidder ga klub o'tkazish
-app.post('/api/admin/auction/finalize', staffOnly, ah(async (req, res) => {
+// Auksionni yakunlash: oxirgi bidder ga klub o'tkazish (faqat katta admin, barcha ligalar)
+app.post('/api/admin/auction/finalize', adminOnly, ah(async (req, res) => {
   const lots = await Registration.find({ season, 'auction.bidder': { $exists: true }, 'auction.currentBid': { $gt: 0 } }).lean();
   let done = 0;
   for (const lot of lots) {
-    const bidder = lot.auction.bidder;
-    const bid = lot.auction.currentBid;
+    const bidder = lot.auction.bidder, bid = lot.auction.currentBid;
     if (!bidder || !bid) continue;
-    // Klubi bo'sh qilish (eski egadan)
-    await Registration.findOneAndUpdate(
-      { season, telegramId: lot.telegramId, league: lot.league, club: lot.club },
+    // Shartli o'tkazish: lot shu paytgacha o'zgarmagan bo'lsa
+    const ok = await Registration.findOneAndUpdate(
+      { season, telegramId: lot.telegramId, league: lot.league, club: lot.club, 'auction.bidder': bidder, 'auction.currentBid': bid },
       { $set: { telegramId: bidder, vacant: false }, $unset: { auction: 1 } },
       { new: true }
     );
-    // Eski egaga coinlar ketmaydi (u auksionga qo'ydi = klub sotdi)
-    done++;
+    if (ok) done++;
   }
   res.json({ ok: true, done });
 }));
 
 // Do'kon -> Auksion: hamma lotlar (yangilari birinchi)
-app.get('/api/auctions', async (req, res) => {
+app.get('/api/auctions', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const regs = await Registration.find({ season, 'auction.price': { $gt: 0 } }).sort({ 'auction.at': -1 }).lean();
   const users = await User.find({ telegramId: { $in: regs.map((r) => r.telegramId) } }).lean();
   const names = new Map(users.map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
   res.json({ lots: regs.map((r) => ({ league: r.league, club: r.club, price: r.auction.price, games: r.w + r.d + r.l, mine: r.telegramId === u.id, user: names.get(r.telegramId) || '' })) });
-});
+}));
+
 // ——— Do'kon: Coins, kosmetika, kubok sotish (Sell) ———
 // To'lov karta raqami FAQAT .env dan olinadi (kodda saqlanmaydi). PAY_CARD bo'lmasa Coins to'lovi o'chiriladi.
 const PAY_CARD = (process.env.PAY_CARD || '').replace(/\D/g, ''), PAY_HOLDER = process.env.PAY_HOLDER || '';
@@ -1728,13 +1753,37 @@ app.use((err, req, res, _next) => { alert('express ' + req.method + ' ' + req.pa
 process.on('unhandledRejection', (e) => alert('unhandledRejection', e));
 process.on('uncaughtException', (e) => { alert('uncaughtException', e); setTimeout(() => process.exit(1), 1500).unref(); });
 
-app.listen(process.env.PORT || 3000, () => console.log('Mini app serveri ishga tushdi'));
+// Eski o'yinlarga tartib raqami (#N) berish: matchNo yo'q o'yinlar har bir liga ichida round va yaratilish tartibi bo'yicha
+// davom ettiriladi (eng katta raqamdan keyin). Qayta ishga tushsa, faqat raqamsizlariga tegadi.
+async function backfillMatchNo() {
+  const groups = await Match.aggregate([
+    { $group: { _id: { season: '$season', league: '$league' }, missing: { $sum: { $cond: [{ $eq: ['$matchNo', null] }, 1, 0] } }, maxNo: { $max: '$matchNo' } } },
+    { $match: { missing: { $gt: 0 } } },
+  ]);
+  for (const g of groups) {
+    const { season: s, league: l } = g._id;
+    const rows = await Match.find({ season: s, league: l, matchNo: null }).sort({ round: 1, _id: 1 }).select('_id').lean();
+    let next = g.maxNo || 0;
+    const ops = rows.map((r) => ({ updateOne: { filter: { _id: r._id }, update: { $set: { matchNo: ++next } } } }));
+    if (ops.length) await Match.bulkWrite(ops);
+  }
+}
 
 (async () => {
-  await mongoose.connect(process.env.MONGO_URI);
-  startSeasonWatcher();                 // ← qo'shildi
+  try {
+    await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 15000 });
+  } catch (e) {
+    console.error('MongoDB ulanmadi:', e.message);
+    process.exit(1);                    // hosting jarayonni qayta ishga tushiradi
+  }
+  app.listen(process.env.PORT || 3000, () => console.log('Mini app serveri ishga tushdi'));
+  await backfillMatchNo().catch((e) => alert('matchNo backfill', e));
+  startSeasonWatcher();
   // Har daqiqada: vaqti kelgan quralarni avtomatik o'tkazadi
+  let schedulerBusy = false;   // oldingi tsikl tugamaguncha yangisi boshlanmaydi
   setInterval(async () => {
+    if (schedulerBusy) return;
+    schedulerBusy = true;
     try {
       const due = await LeagueConfig.find({ season, drawnAt: null, drawAt: { $ne: null, $lte: new Date() } }).lean();
       for (const c of due) {
@@ -1748,6 +1797,7 @@ app.listen(process.env.PORT || 3000, () => console.log('Mini app serveri ishga t
       await deadlines.tick(); // tur boshlandi / dedlayn eslatmalari / avto-yutuq
       await ut.remind().catch((e) => console.error('Turnir eslatmalari:', e)); // norasmiy turnirlar: dedlayn eslatmasi
     } catch (e) { console.error('Qura rejalashtiruvchisi:', e); }
+    finally { schedulerBusy = false; }
   }, 60 * 1000);
   bot.catch((err, ctx) => alert('bot ' + (ctx?.updateType || ''), err));
   await bot.launch();

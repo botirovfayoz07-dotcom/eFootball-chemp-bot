@@ -1,3 +1,5 @@
+> **Eslatma:** klub va liga logotiplari hozir `webapp/cards/Yevropa/...` da turadi va `webapp/img-map.js` orqali ulanadi. Quyidagi `cards/clubs/` yo'li zaxira.
+
 # Rasmlar ro'yxati
 
 Hamma rasm `webapp/cards/` ichida. Fayl nomi aynan shunday bo'lsin, kodni o'zgartirish shart emas.

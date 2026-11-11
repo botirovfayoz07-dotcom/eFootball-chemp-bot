@@ -1,7 +1,7 @@
 # eFootball Telegram Mini App
 
 ## Ishga tushirish
-1. `cp .env.example .env` va to'ldiring:
+1. `cp .env.example .env` va to'ldiring (`.env.example` ichida barcha o'zgaruvchilar bor, qiymatlarsiz):
    - `BOT_TOKEN` — @BotFather tokeni
    - `MONGO_URI` — MongoDB Atlas ulanish manzili
    - `MINI_APP_URL` — botni qo'yadigan HTTPS domen (masalan `https://sizning-domen.uz`)
@@ -152,3 +152,10 @@ Do'kon → Coins → paket → **Payme orqali to'lash** yoki **Click orqali to'l
 - Payme login `Paycom` deb olingan (`PAYME_LOGIN`). Merchant kabinetda boshqacha bo'lsa, shuni yozing.
 - Click'da xato kodlari va so'rov formati hujjatlar bo'yicha tekshirilgan, lekin **haqiqiy to'lov sinovdan o'tkazilishi kerak**: avval sinov kassasida 1 ta kichik to'lov qiling va `CoinLog` da yozuv borligini tekshiring.
 
+
+
+## Ichki eslatmalar
+- Sirlar (`BOT_TOKEN`, `MONGO_URI`, to'lov kalitlari) faqat `.env` da. `.env` ni zip yoki repoga qo'shmang.
+- `scripts/` — yordamchi/test skriptlar (ishlab chiqarishda kerak emas).
+- Ko'p instansli deploy polling bilan ishlamaydi (Telegram 409). Bitta instans ishlating yoki webhook'ga o'ting.
+- Auksion pullari: bid, qaytarish va bekor qilish `CoinLog` ga yoziladi. Auksion yakunida sotuvchiga coin berilmaydi (qaror kerak).

@@ -165,3 +165,8 @@ main.page .carousel > .card { flex: none; width: 100%; min-height: 168px; }
 /* Norasmiy turnirlar: vaqtincha qulflangan */
 .card-private.locked { position: relative; filter: grayscale(.75) brightness(.8); opacity: .75; }
 .card-private .lock-badge { position: absolute; top: 14px; right: 16px; font-size: 26px; z-index: 3; filter: none; }
+
+/* O'yin kartasi: tartib raqami (#N) har doim o'ng yuqori burchakda */
+.gh-card { position: relative; }
+.gh-cap { padding-right: 56px; }
+.gh-mno { position: absolute; top: 14px; right: 14px; margin: 0; line-height: 1.2; }
