@@ -162,7 +162,7 @@ window.ProfileView = (() => {
     else if (g.status === 'disputed') { res = `<span class="gm-chip bad">${M.cDisputed}</span>`; acts = `<button class="gh-main ghost" data-act="m-proof" data-gid="${esc(g.id)}">📎 ${M.addProof}</button>`; note = `⚠️ ${t.disputed}${g.claimScore ? ' (' + esc(g.claimScore) + ')' : ''}`; }
     const tgBtn = g.oppTg ? `<button class="gh-sub" data-tgu="${esc(g.oppTg)}">✈️ ${X.tg}</button>` : `<button class="gh-sub off" data-act="m-notg">✈️ ${X.tg}</button>`;
     const locked = g.status === 'scheduled' && g.locked;
-    return `<div class="gh-card"><div class="gh-cap">${esc(label)}</div>
+    return `<div class="gh-card"><div class="gh-cap"><span>${esc(label)}</span>${g.matchNo ? `<b class="gh-mno">#${g.matchNo}</b>` : ''}</div>
       <div class="gh-teams">${side(L, X.home)}<span class="gh-vs">VS</span>${side(R, X.away)}</div>
       <div class="gh-res">${res}</div>${note ? `<p class="gh-note">${note}</p>` : ''}
       ${acts ? `<div class="gh-row">${acts}</div>` : ''}

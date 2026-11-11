@@ -75,6 +75,72 @@ window.AdminView = (() => {
     document.body.appendChild(d);
   }
 
+  function matchCardHtml(m) {
+    const noLabel = m.matchNo ? ('<b style="color:#22c55e;margin-right:6px;">#' + m.matchNo + '</b>') : '';
+    return '<div class="g-card ad-match" data-mid="' + m.id + '" style="margin-bottom:8px;">' +
+      '<div class="ad-meta">' +
+        '<small>' + noLabel + esc(m.leagueName || '') + ' · ' + (m.round ? m.round + '-tur' : (m.stage || '')) + (m.deadline ? ' · ⏰ ' + fmtShow(m.deadline) : '') + '</small>' +
+        '<span class="ad-st ' + m.status + '">' + (ST[m.status] || m.status) + '</span>' +
+      '</div>' +
+      '<div class="ad-vs">' +
+        '<div><b>' + esc(m.home?.club || '—') + '</b><small>' + esc(m.home?.user || '') + '</small></div>' +
+        '<div class="ad-in">' +
+          '<input type="number" inputmode="numeric" min="0" max="99" value="' + (m.hg ?? '') + '" data-hg>' +
+          '<b>:</b>' +
+          '<input type="number" inputmode="numeric" min="0" max="99" value="' + (m.ag ?? '') + '" data-ag>' +
+        '</div>' +
+        '<div><b>' + esc(m.away?.club || '—') + '</b><small>' + esc(m.away?.user || '') + '</small></div>' +
+      '</div>' +
+      (m.chat ? '<button class="ad-btn ghost sm" data-act="viewchat">💬 O\'yin chati (' + m.chat + ')</button><div class="ad-chatbox" data-chatbox></div>' : '') +
+      '<div class="ad-row" style="margin-top:8px;">' +
+        (m.status !== 'scheduled' ? '<button class="ad-btn bad sm" data-act="reset">🗑 O\'chirish</button>' : '') +
+        '<button class="ad-btn ok sm" data-act="save-score">💾 ' + (m.status === 'confirmed' ? "O'zgartirish" : "Tasdiqlash") + '</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function approvalModalHtml(m) {
+    if (!m) return '';
+    const noLabel = m.matchNo ? (' (#' + m.matchNo + ')') : '';
+    const proofs = (m.proofs || []).map(function(p) {
+      return '<div class="ad-modal-proof">' +
+        '<p><b>📎 ' + esc(p.by) + '</b>: ' + esc(p.text || '') + '</p>' +
+        (p.fileId ? '<div class="ad-modal-img-wrap"><img src="" data-fid="' + esc(p.fileId) + '" data-act="zoom" class="ad-proof-img" alt="Screenshot"></div>' : '') +
+      '</div>';
+    }).join('');
+
+    return '<div class="ad-modal-overlay" id="approvalModal">' +
+      '<div class="ad-modal-box">' +
+        '<div class="ad-modal-header">' +
+          '<h3>Natijani tekshirish' + noLabel + '</h3>' +
+          '<button class="ad-modal-close" data-act="close-approval">✕</button>' +
+        '</div>' +
+        '<div class="ad-modal-body">' +
+          '<div class="ad-modal-match-info">' +
+            '<div class="ad-modal-team">' +
+              '<b>' + esc(m.home?.club || '—') + '</b>' +
+              '<span>' + esc(m.home?.user || '') + '</span>' +
+            '</div>' +
+            '<div class="ad-modal-score">' +
+              '<input type="number" id="appHomeScore" value="' + (m.hg ?? 0) + '" min="0" max="99">' +
+              '<span>:</span>' +
+              '<input type="number" id="appAwayScore" value="' + (m.ag ?? 0) + '" min="0" max="99">' +
+            '</div>' +
+            '<div class="ad-modal-team">' +
+              '<b>' + esc(m.away?.club || '—') + '</b>' +
+              '<span>' + esc(m.away?.user || '') + '</span>' +
+            '</div>' +
+          '</div>' +
+          (proofs ? '<div class="ad-modal-proofs">' + proofs + '</div>' : '<p class="ad-hint">Isbot skrinshoti yuklanmagan</p>') +
+        '</div>' +
+        '<div class="ad-modal-actions">' +
+          '<button class="ad-btn bad" data-act="reject-approval" data-mid="' + m.id + '">❌ Rad etish</button>' +
+          '<button class="ad-btn ok" data-act="confirm-approval" data-mid="' + m.id + '">✅ Tasdiqlash</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
   // --- LIGA ADMIN SAHIFASI (screenshots tartibida, v2) ---
   let matchSearch = { q: '', result: null, loading: false };
   let swapSel = '';
@@ -197,7 +263,7 @@ window.AdminView = (() => {
       return '<div class="g-card ad-pending-card" data-act="open-approval" data-mid="' + m.id + '" style="cursor:pointer;margin-bottom:8px;">' +
         '<div class="ad-pending-left">' +
           '<span>⚽ <b>' + esc(m.home.club) + '</b> <b class="ad-pending-sc">' + (m.hg != null ? m.hg : '–') + ':' + (m.ag != null ? m.ag : '–') + '</b> <b>' + esc(m.away.club) + '</b></span>' +
-          '<small>' + m.round + '-tur · ' + (m.status === 'disputed' ? '⚠️ Yolg\'on hisob' : 'Tasdiqlash kutilmoqda') + '</small>' +
+          '<small>' + (m.matchNo ? ('#' + m.matchNo + ' · ') : '') + m.round + '-tur · ' + (m.status === 'disputed' ? '⚠️ Yolg\'on hisob' : 'Tasdiqlash kutilmoqda') + '</small>' +
         '</div>' +
         '<button class="ad-btn ghost sm" data-act="open-approval" data-mid="' + m.id + '">Batafsil ›</button>' +
       '</div>';
@@ -975,9 +1041,10 @@ window.AdminView = (() => {
       const r = await api('/api/admin/matches?status=all&league=' + curLeague + '&q=' + encodeURIComponent(q));
       matchSearch.loading = false;
       if (r.ok) {
-        const found = (r.matches || []).filter(function(m){ return m.id === q || (m.home && m.home.club && m.home.club.toLowerCase().includes(q.toLowerCase())) || (m.away && m.away.club && m.away.club.toLowerCase().includes(q.toLowerCase())); });
-        matchSearch.result = { found };
-      } else { matchSearch.result = { found: [] }; }
+        matchSearch.result = { found: r.matches || [] };
+      } else {
+        matchSearch.result = { found: [] };
+      }
       render();
       return;
     }

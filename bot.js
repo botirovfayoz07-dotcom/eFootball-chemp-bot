@@ -280,7 +280,7 @@ async function decorate(ms) {
     proofs: (m.proofs || []).map((p) => ({ by: nm.get(p.by) || String(p.by), text: p.text || '', fileId: p.fileId || '', hg: p.hg ?? null, ag: p.ag ?? null, at: p.at })),
     chat: chatN.get(String(m._id)) || 0,
     deadline: m.deadline || null, auto: m.auto?.kind || null,
-    id: String(m._id), league: m.league, leagueName: EFL.byId[m.league]?.name || m.league, round: m.round, status: m.status,
+    id: String(m._id), matchNo: m.matchNo || null, league: m.league, leagueName: EFL.byId[m.league]?.name || m.league, round: m.round, status: m.status,
         home: side(m.home), away: side(m.away), hg: m.hg, ag: m.ag,
     claim: m.claim?.hg != null ? { hg: m.claim.hg, ag: m.claim.ag, by: m.claim.by } : null,
   }));
@@ -305,7 +305,7 @@ async function performDraw(leagueId, rounds, roundDays) {
   if (regs.length < 2) { await unlock(); return { error: 'few' }; }
   try {
     const fx = FX.roundRobin(FX.shuffle(regs.map((r) => r.telegramId)), lock.rounds === 2);
-    await Match.insertMany(DL.stamp(fx, new Date(), lock.roundDays || 7).map((m) => ({ ...m, league: leagueId, season })));
+    await Match.insertMany(DL.stamp(fx, new Date(), lock.roundDays || 7).map((m, idx) => ({ ...m, league: leagueId, season, matchNo: idx + 1 })));
     await LeagueConfig.updateOne({ _id: lock._id }, { $set: { drawAt: null } });
     regs.forEach((r) => notify(r.telegramId, 'drawn', EFL.byId[leagueId].name));
     return { ok: true, matches: fx.length };
@@ -346,7 +346,7 @@ async function gamesOf(uid, league, regs) {
   return ms.map((m) => {
     const mine = m.home === uid, hasScore = m.hg != null && m.ag != null;
     return {
-      id: String(m._id), round: m.round, status: m.status, byMe: m.reportedBy === uid, locked: !roundOpen(cfg, m.round), isHome: mine, deadline: m.deadline || null,
+      id: String(m._id), matchNo: m.matchNo || null, round: m.round, status: m.status, byMe: m.reportedBy === uid, locked: !roundOpen(cfg, m.round), isHome: mine, deadline: m.deadline || null,
       oppClub: clubOf.get(oppId(m)) || '', oppTg: utg.get(oppId(m)) || '', unread: unread.get(String(m._id)) || 0,
       proofs: (m.proofs || []).length, iProved: (m.proofs || []).some((p) => p.by === uid),
       claimScore: m.claim?.hg != null ? `${mine ? m.claim.hg : m.claim.ag}:${mine ? m.claim.ag : m.claim.hg}` : null,
@@ -1393,14 +1393,29 @@ app.get('/api/admin/clubs', staffOnly, ah(async (req, res) => {
 
 // O'yinlar ro'yxati. status: action (tasdiq kutayotgan/bahsli) | scheduled | confirmed | all
 app.get('/api/admin/matches', staffOnly, ah(async (req, res) => {
-  const { league, status = 'action' } = req.query;
+  const { league, status = 'action', q: searchQ } = req.query;
   const q = { season, status: { $ne: 'cancelled' } };
   if (league) { if (!EFL.byId[league]) return res.status(400).json({ error: 'fail' }); if (!canLeague(req, league)) return res.status(403).json({ error: 'forbidden' }); q.league = league; }
   else if (!req.superAdmin) q.league = { $in: req.helperLeagues };
   if (status === 'action') q.status = { $in: ['disputed', 'pending'] };
   else if (['scheduled', 'confirmed', 'pending', 'disputed'].includes(status)) q.status = status;
-  const [ms, total] = await Promise.all([Match.find(q).sort(status === 'action' ? { status: 1, updatedAt: 1 } : { round: 1, _id: 1 }).limit(100).lean(), Match.countDocuments(q)]);
-  res.json({ total, matches: await decorate(ms) });
+  let [ms, total] = await Promise.all([Match.find(q).sort(status === 'action' ? { status: 1, updatedAt: 1 } : { round: 1, matchNo: 1, _id: 1 }).limit(searchQ ? 500 : 100).lean(), Match.countDocuments(q)]);
+  let decorated = await decorate(ms);
+  if (searchQ) {
+    const raw = String(searchQ).trim();
+    const cleanNo = raw.replace(/^#/, '');
+    const isNum = /^\d+$/.test(cleanNo);
+    decorated = decorated.filter((m) => {
+      if (isNum && (String(m.matchNo) === cleanNo || String(m.round) === cleanNo)) return true;
+      if (m.id === raw) return true;
+      const lower = raw.toLowerCase();
+      return (m.home?.club && m.home.club.toLowerCase().includes(lower)) ||
+             (m.away?.club && m.away.club.toLowerCase().includes(lower)) ||
+             (m.home?.user && m.home.user.toLowerCase().includes(lower)) ||
+             (m.away?.user && m.away.user.toLowerCase().includes(lower));
+    });
+  }
+  res.json({ total: decorated.length, matches: decorated });
 }));
 
 // Natijani tasdiqlash / kiritish / o'zgartirish (hg — uy egasi goli, ag — mehmon goli)
@@ -1636,7 +1651,11 @@ app.post('/api/admin/league/:id/add', staffOnly, ah(async (req, res) => {
     const others = (await Registration.find({ season, league: league.id, telegramId: { $ne: usr.telegramId } }).lean()).map((r) => r.telegramId);
     const last = (await Match.findOne({ season, league: league.id }).sort({ round: -1 }).lean())?.round || 0;
     const fx = FX.fixturesForNewcomer(usr.telegramId, others, last, cfg.rounds === 2);
-    if (fx.length) await Match.insertMany(DL.stampSeq(fx, new Date(), cfg.roundDays || 7).map((m) => ({ ...m, league: league.id, season })));
+    if (fx.length) {
+      const lastM = await Match.findOne({ season, league: league.id }).sort({ matchNo: -1 }).select('matchNo').lean();
+      let curNo = (lastM && lastM.matchNo) ? lastM.matchNo : 0;
+      await Match.insertMany(DL.stampSeq(fx, new Date(), cfg.roundDays || 7).map((m) => ({ ...m, league: league.id, season, matchNo: ++curNo })));
+    }
   }
   notify(usr.telegramId, 'added', league.name, EFL.clubName(league.id, club));
   const cupWarning = await cupLogic.onLeagueAdd(season, league.id, usr.telegramId);
