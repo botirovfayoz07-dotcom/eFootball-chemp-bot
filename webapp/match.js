@@ -100,7 +100,7 @@ window.MatchView = (() => {
   function openResult(g) {
     S = { mode: 'result', g, image: null };
     const pre = g.status === 'pending' && g.byMe && g.score ? g.score.split(':') : ['0', '0'];
-    show(`<h3>${t().resultTitle}</h3>${vs(g)}<div class="m-score">${stepper('my', pre[0])}<b>:</b>${stepper('opp', pre[1])}</div><div id="mPrev" class="m-prev"></div><button class="m-ghost" data-m="shot">📎 ${t().shot} *</button><input type="file" id="mFile" accept="image/*" hidden><p class="m-note">${t().resultHint}<br><b>${t().shotReq}</b></p><button class="m-primary" data-m="result-send">${t().send}</button>`);
+    show(`<h3>${t().resultTitle} ${g.matchNo ? `<span style="color:#22c55e;font-size:0.85em;">(#${g.matchNo})</span>` : ''}</h3>${vs(g)}<div class="m-score">${stepper('my', pre[0])}<b>:</b>${stepper('opp', pre[1])}</div><div id="mPrev" class="m-prev"></div><button class="m-ghost" data-m="shot">📎 ${t().shot} *</button><input type="file" id="mFile" accept="image/*" hidden><p class="m-note">${t().resultHint}<br><b>${t().shotReq}</b></p><button class="m-primary" data-m="result-send">${t().send}</button>`);
   }
   async function resultSend() {
     const q = (k) => parseInt(root.querySelector(`[data-in="${k}"]`).value, 10), my = q('my'), opp = q('opp'), p = window.ProfileView.T[C.lang()];
@@ -129,7 +129,7 @@ window.MatchView = (() => {
   function openDispute(g, mode) {
     S = { mode, g, image: null };
     const x = t();
-    show(`<h3>${mode === 'dispute' ? x.disputeTitle : x.proofTitle}</h3>${vs(g)}
+    show(`<h3>${mode === 'dispute' ? x.disputeTitle : x.proofTitle} ${g.matchNo ? `<span style="color:#22c55e;font-size:0.85em;">(#${g.matchNo})</span>` : ''}</h3>${vs(g)}
       ${mode === 'dispute' ? `<p class="m-claim">${x.claimed}: <b>${esc(g.score || '')}</b></p><label class="m-lb">${x.real}</label><div class="m-real"><input type="number" inputmode="numeric" min="0" max="99" data-in="my" placeholder="${x.you}"><b>:</b><input type="number" inputmode="numeric" min="0" max="99" data-in="opp" placeholder="—"></div>` : ''}
       <label class="m-lb">${x.comment}</label><textarea class="m-ta" id="mText" maxlength="600" rows="3" placeholder="${esc(x.commentPh)}"></textarea>
       <div id="mPrev" class="m-prev"></div>
@@ -220,7 +220,7 @@ window.MatchView = (() => {
     const x = t();
     const head = support
       ? `<div class="m-head"><span class="m-av">🛟</span><div><b id="mPeer">${x.supportName}</b><small>${x.supportSub}</small></div></div>`
-      : `<div class="m-head"><span class="m-av">${esc((g.user || g.opponent || '?').replace('@', '')[0] || '?')}</span><div><b>${esc(g.opponent || '—')}</b><small>${esc(g.user || '')}</small><small class="m-st">${esc(statusText(S.opp))}</small></div></div>`;
+      : `<div class="m-head"><span class="m-av">${esc((g.user || g.opponent || '?').replace('@', '')[0] || '?')}</span><div><b>${esc(g.opponent || '—')}</b>${g.matchNo ? ` <span style="background:rgba(34,197,94,0.2);color:#4ade80;font-size:11px;padding:1px 6px;border-radius:4px;font-weight:700;">#${g.matchNo}</span>` : ''}<small>${esc(g.user || '')}</small><small class="m-st">${esc(statusText(S.opp))}</small></div></div>`;
     // Chat oynasi tuzilmasi: sarlavha + xabarlar + kiritish (yozish maydoni, skrinshot, yuborish)
     show(`${head}<div class="m-msgs" id="mMsgs"></div><div id="mPrev" class="m-prev"></div><div class="m-send"><button class="m-ic" data-m="shot" aria-label="📎">📎</button><input id="mChatText" maxlength="800" placeholder="${esc(x.chatPh)}" autocomplete="off"><button class="m-ic go" data-m="chat-send" aria-label="send">➤</button></div><input type="file" id="mFile" accept="image/*" hidden>`);
     root.querySelector('.msheet').classList.add('chat');
