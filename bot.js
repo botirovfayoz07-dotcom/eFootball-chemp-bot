@@ -150,7 +150,14 @@ const staffOnly = async (req, res, next) => {
     next();
   } catch (e) { next(e); }
 };
-const canLeague = (req, league) => req.superAdmin || (req.helperLeagues || []).includes(league);
+const canLeague = (req, league) => {
+  if (req.superAdmin) return true;
+  const hl = req.helperLeagues || [];
+  if (hl.includes(league)) return true;
+  const f = cupLogic.FAMILIES[league] || cupLogic.familyOfKey(league);
+  if (f && (hl.includes(f.l1) || hl.includes(f.l2))) return true;
+  return false;
+};
 const leagueOf = (id) => (typeof id === 'string' && Object.prototype.hasOwnProperty.call(EFL.byId, id) ? EFL.byId[id] : null);
 const goal = (v) => Number.isInteger(v) && v >= 0 && v <= 99;
 const validId = (id) => mongoose.isValidObjectId(id);
@@ -941,7 +948,9 @@ app.post('/api/matches/:id/report', limits.chat, ah(async (req, res) => {
   // ⬇️⬇️ FA Cup: tur ochilmaguncha / dedlayn o'tgach hisob kiritib bo'lmaydi
   if (cupLogic.FAMILIES[m0.league]) {
     const fm = cupLogic.fam(m0.league);
-    const d = await Cup.findOne({ season, round: m0.round, cup: { $in: [fm.id, fm.shieldKey] } }).lean();
+    const meta = cupLogic.stagesOf(fm.id).find((s) => s.round === m0.round);
+    const stageKey = m0.round === 8 ? 'shield' : (meta?.stage || '');
+    const d = await Cup.findOne({ season, cup: { $in: [fm.id, fm.shieldKey] }, $or: [{ round: m0.round }, { stage: stageKey }] }).lean();
     if (!d || !d.startedAt) return res.status(409).json({ error: 'notstarted' });
     if (d.deadline && new Date(d.deadline) < new Date()) return res.status(409).json({ error: 'deadline' });
   }
@@ -1395,7 +1404,12 @@ app.get('/api/admin/clubs', staffOnly, ah(async (req, res) => {
 app.get('/api/admin/matches', staffOnly, ah(async (req, res) => {
   const { league, status = 'action', q: searchQ } = req.query;
   const q = { season, status: { $ne: 'cancelled' } };
-  if (league) { if (!EFL.byId[league]) return res.status(400).json({ error: 'fail' }); if (!canLeague(req, league)) return res.status(403).json({ error: 'forbidden' }); q.league = league; }
+  if (league) {
+    const isCup = cupLogic.FAMILIES[league] || cupLogic.familyOfKey(league);
+    if (!EFL.byId[league] && !isCup) return res.status(400).json({ error: 'fail' });
+    if (!canLeague(req, league)) return res.status(403).json({ error: 'forbidden' });
+    q.league = league;
+  }
   else if (!req.superAdmin) q.league = { $in: req.helperLeagues };
   if (status === 'action') q.status = { $in: ['disputed', 'pending'] };
   else if (['scheduled', 'confirmed', 'pending', 'disputed'].includes(status)) q.status = status;

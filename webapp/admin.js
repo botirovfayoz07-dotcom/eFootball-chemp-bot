@@ -237,10 +237,10 @@ window.AdminView = (() => {
         if (!stageInfo.drawnAt) {
           stageActions += '<button class="ad-btn ok sm" data-act="lg-cup-draw" data-stage="' + curStage + '" data-cup="' + curCup + '">🎲 Qura tashlash</button> ';
         }
-        if (stageInfo.drawnAt && !stageInfo.startedAt) {
+        if (stageInfo.drawnAt && !isStageOpen) {
           stageActions += '<button class="ad-btn ok sm" data-act="lg-cup-open" data-stage="' + curStage + '" data-cup="' + curCup + '">🔓 Ochish</button> ';
         }
-        if (stageInfo.startedAt) {
+        if (isStageOpen) {
           stageActions += '<button class="ad-btn bad sm" data-act="lg-cup-close" data-stage="' + curStage + '" data-cup="' + curCup + '">🔒 Yopish</button> ';
         }
         if (stageInfo.drawnAt && stageInfo.stage !== 'final') {
@@ -685,7 +685,8 @@ window.AdminView = (() => {
   }
 
   async function loadMatches() {
-    const r = await api('/api/admin/matches?status=all&league=' + (curLeague || ''));
+    const target = (mainTab === 'cup') ? curCup : (curLeague || '');
+    const r = await api('/api/admin/matches?status=all&league=' + target);
     if (r.ok) {
       mt.list = r.matches || [];
       mt.total = r.total || 0;
@@ -909,7 +910,7 @@ window.AdminView = (() => {
     }
     if (act === 'open-approval') {
       const mid = btn.dataset.mid;
-      selApprovalMatch = (mt.list || []).find((m) => m.id === mid);
+      selApprovalMatch = (mt.list || []).find((m) => m.id === mid) || (matchSearch.result || []).find((m) => m.id === mid);
       render();
       return;
     }

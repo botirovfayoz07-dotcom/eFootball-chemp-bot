@@ -15,7 +15,7 @@ window.MatchView = (() => {
       chatPh: 'Xabar yozing…', chatEmpty: "Hozircha xabar yo'q. Birinchi bo'lib yozing 👋", room: 'Xona ID', copied: 'Nusxalandi ✅', fast: 'Sekinroq yozing 🙂', tooMany: 'Isbotlar soni limitga yetdi',
       supportName: 'Admin', supportSub: 'Muammoli holatlar', supportEmpty: "Muammoingizni yozing — admin javob beradi. Skrinshotni 📎 tugmasi bilan yuborishingiz mumkin.",
       supportCard: 'Muammoli holatlar', supportDesc: "Chempionatdagi muammo, bahsli natija yoki boshqa savol — adminga yozing", supportOpen: 'Adminga yozish',
-      fail: "Xatolik, qayta urinib ko'ring", gone: "O'yin holati o'zgargan",
+      fail: "Xatolik, qayta urinib ko'ring", gone: "O'yin holati o'zgargan", notstarted: "Bu bosqich hali ochilmagan", deadline: "Bu bosqich dedlayni o'tib ketgan", roundLocked: "Tur hali ochilmagan", badScore: "Hisob noto'g'ri (0–99)",
     },
     en: {
       cConfirmed: 'CONFIRMED', cPending: 'PENDING', cDisputed: 'DISPUTED', result: 'Result', addProof: 'Proof',
@@ -30,7 +30,7 @@ window.MatchView = (() => {
       chatPh: 'Type a message…', chatEmpty: 'No messages yet. Say hi first 👋', room: 'Room ID', copied: 'Copied ✅', fast: 'Slow down 🙂', tooMany: 'Proof limit reached',
       supportName: 'Admin', supportSub: 'Problem reports', supportEmpty: 'Describe your problem — the admin will reply. You can attach a screenshot with the 📎 button.',
       supportCard: 'Problem reports', supportDesc: 'League issue, disputed result or any other question — write to the admin', supportOpen: 'Write to admin',
-      fail: 'Error, please try again', gone: 'The match status has changed',
+      fail: 'Error, please try again', gone: 'The match status has changed', notstarted: 'This stage is not open yet', deadline: 'Stage deadline has passed', roundLocked: 'Round is locked', badScore: 'Invalid score (0–99)',
     },
     ru: {
       cConfirmed: 'ПОДТВЕРЖДЁН', cPending: 'ОЖИДАЕТ', cDisputed: 'СПОР', result: 'Счёт', addProof: 'Доказ.',
@@ -45,7 +45,7 @@ window.MatchView = (() => {
       chatPh: 'Напишите сообщение…', chatEmpty: 'Сообщений пока нет. Напишите первым 👋', room: 'ID комнаты', copied: 'Скопировано ✅', fast: 'Не так быстро 🙂', tooMany: 'Лимит доказательств исчерпан',
       supportName: 'Админ', supportSub: 'Проблемные ситуации', supportEmpty: 'Опишите проблему — админ ответит. Скриншот можно отправить кнопкой 📎.',
       supportCard: 'Проблемные ситуации', supportDesc: 'Проблема в чемпионате, спорный результат или другой вопрос — напишите админу', supportOpen: 'Написать админу',
-      fail: 'Ошибка, попробуйте ещё раз', gone: 'Статус матча изменился',
+      fail: 'Ошибка, попробуйте ещё раз', gone: 'Статус матча изменился', notstarted: 'Этот этап ещё не открыт', deadline: 'Дедлайн этапа истёк', roundLocked: 'Тур ещё не открыт', badScore: 'Неверный счёт (0–99)',
     },
   };
   const X2 = {
@@ -154,7 +154,20 @@ window.MatchView = (() => {
   // ——— 3. Chat tugmasi varag'i: Xona ID · Chat · Raqibga yozish ———
   function openActions(g) {
     S = { mode: 'actions', g };
-    show(`${vs(g)}<button class="m-opt" data-m="room-open">${t().roomBtn}</button><button class="m-opt main" data-m="chat-open">${t().chatBtn}${g.unread ? ` <i class="m-badge in">${g.unread}</i>` : ''}</button><button class="m-opt" data-m="tg">${t().tgBtn}</button>`);
+    let scoreActs = '';
+    const M = t(), P = window.ProfileView?.T?.[C?.lang?.() || 'uz'] || {};
+    if (g.status === 'scheduled') {
+      scoreActs = `<button class="m-opt ok" data-m="result-open" style="background:linear-gradient(90deg,#16a34a,#22c55e);color:#fff;font-weight:700;">⚽ ${M.result || 'Natija'}</button>`;
+    } else if (g.status === 'pending') {
+      if (g.byMe) {
+        scoreActs = `<button class="m-opt ghost" data-m="result-open">✎ ${M.result || 'Natija'}</button>`;
+      } else {
+        scoreActs = `<button class="m-opt ok" data-m="confirm-open" style="background:linear-gradient(90deg,#16a34a,#22c55e);color:#fff;font-weight:700;">✅ ${P.ok || M.confirmBtn || 'Tasdiqlash'}</button><button class="m-opt bad" data-m="dispute-open" style="background:linear-gradient(90deg,#dc2626,#ef4444);color:#fff;font-weight:700;">❌ ${P.fake || "Yolg'on"}</button>`;
+      }
+    } else if (g.status === 'disputed') {
+      scoreActs = `<button class="m-opt ghost" data-m="proof-open">📎 ${M.addProof || 'Isbot'}</button>`;
+    }
+    show(`${vs(g)}${scoreActs}<button class="m-opt" data-m="room-open">${t().roomBtn}</button><button class="m-opt main" data-m="chat-open">${t().chatBtn}${g.unread ? ` <i class="m-badge in">${g.unread}</i>` : ''}</button><button class="m-opt" data-m="tg">${t().tgBtn}</button>`);
   }
   function openRoom() {
     clearInterval(timer); timer = null;
@@ -272,6 +285,10 @@ window.MatchView = (() => {
     const m = b.dataset.m;
     if (m === 'close') close();
     else if (m === 'step') { const inp = b.parentElement.querySelector('input'); inp.value = Math.max(0, Math.min(99, (parseInt(inp.value, 10) || 0) + Number(b.dataset.d))); tg?.HapticFeedback?.selectionChanged(); }
+    else if (m === 'result-open') openResult(S.g);
+    else if (m === 'confirm-open') openConfirm(S.g);
+    else if (m === 'dispute-open') openDispute(S.g, 'dispute');
+    else if (m === 'proof-open') openDispute(S.g, 'proof');
     else if (m === 'result-send') resultSend();
     else if (m === 'confirm-send') confirmSend();
     else if (m === 'dispute-send') disputeSend();

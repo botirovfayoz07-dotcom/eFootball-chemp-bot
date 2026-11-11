@@ -661,11 +661,11 @@ window.LeagueView = (() => {
         if (g) return { ...g, league: c.league, club: c.club, myName: EFL.clubName(c.league, c.club) };
       }
       // FA Cup / Community Shield o'yinlari
-      const cm = (prof.cups?.myMatches || []).find((x) => x.id === gid);
+      const cm = (prof.cups?.myMatches || []).find((x) => x.id === gid) || (cupState?.myMatches || []).find((x) => x.id === gid);
       if (cm) {
         const me = prof.clubs[0];
         return {
-          id: cm.id, round: cm.round, status: cm.status, byMe: !!cm.byMe,
+          id: cm.id, matchNo: cm.matchNo || null, round: cm.round, status: cm.status, byMe: !!cm.byMe,
           score: (cm.hg != null && cm.ag != null) ? `${cm.mine ? cm.hg : cm.ag}:${cm.mine ? cm.ag : cm.hg}` : null,
           unread: 0, proofs: 0, claimScore: null, isHome: !!cm.mine,
           opponent: cm.oppClub ? EFL.clubName(cm.oppLeague || '', cm.oppClub) : '—',

@@ -188,11 +188,11 @@ window.ProfileView = (() => {
     // Kubok o'yinlari pastda
     const c = st.cups;
     if (c && c.stages) {
-      const open = (c.myMatches || []).filter((m) => m.status !== 'confirmed' && (m.round === 8 ? !!c.shield?.startedAt : !!(c.stages.find((s) => s.round === m.round) || {}).startedAt));
+      const open = (c.myMatches || []).filter((m) => m.status !== 'confirmed' && (m.status === 'pending' || m.status === 'disputed' || (m.round === 8 ? !!c.shield?.startedAt : !!(c.stages.find((s) => s.round === m.round) || {}).startedAt)));
       open.forEach((m) => {
         const lbl = m.round === 8 ? (c.shieldName || 'Supercup') : (c.stages.find((s) => s.round === m.round)?.label || `${c.cupName || X.cup} ${m.round}`);
         const cg = {
-          id: m.id, status: m.status, byMe: !!m.byMe, isHome: !!m.mine, locked: false, unread: 0, deadline: null,
+          id: m.id, matchNo: m.matchNo || null, status: m.status, byMe: !!m.byMe, isHome: !!m.mine, locked: false, unread: 0, deadline: null,
           score: (m.hg != null && m.ag != null) ? `${m.mine ? m.hg : m.ag}:${m.mine ? m.ag : m.hg}` : null,
           opponent: m.oppClub ? EFL.clubName(m.oppLeague || '', m.oppClub) : '—', oppClub: m.oppClub || '', oppLeague: m.oppLeague || me.league,
           user: m.oppUser || '', oppTg: m.oppTg || '', claimScore: null,
