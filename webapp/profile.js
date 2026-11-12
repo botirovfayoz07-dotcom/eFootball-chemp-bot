@@ -116,16 +116,13 @@ window.ProfileView = (() => {
   // Klub ichi: voz kechish/auksion · klub kartasi · statistika (o'rin, g'alaba, durang, mag'lubiyat) · barcha o'yinlar
   function clubDetail(t, sel, lang) {
     const EFL = window.EFL, name = EFL.clubName(sel.league, sel.club), lg = EFL.byId[sel.league]?.name || '';
-    const games = (sel.games || []).map((g) => gameHtml(t, g, sel, lang)).join('');
     return `<div class="cl-top">
         <button class="cl-btn leave" data-act="leave">🚪 ${t.leave}</button>
         <button class="cl-btn auc${sel.auction ? ' on' : ''}" data-act="${sel.auction ? 'unauction' : 'auction'}">${sel.auction ? '↩ ' + t.unauction : '🔨 ' + t.auction}</button>
       </div>
       <div class="pf-card"><div class="pf-ava">${EFL.crest(sel.league, sel.club, name, 'crest')}</div>
         <div class="pf-info"><h2>${esc(name)}</h2><p>${esc(lg)}</p>${sel.auction ? `<a>🔨 ${t.onAuction}: ${esc(sel.auction.price)} ${window.ShopView.coin('sm')}</a>` : ''}</div></div>
-      <div class="pf-stats"><div><b>${sel.pos ? '#' + sel.pos : '—'}</b><small>${t.place}</small></div><div><b>${sel.w}</b><small>${t.w}</small></div><div><b>${sel.d}</b><small>${t.d}</small></div><div><b>${sel.l}</b><small>${t.l}</small></div></div>
-      <div class="g-label"><span>${t.games}</span></div>
-      ${games || `<div class="pf-empty"><span>⚽</span><p>${t.none}</p></div>`}`;
+      <div class="pf-stats"><div><b>${sel.pos ? '#' + sel.pos : '—'}</b><small>${t.place}</small></div><div><b>${sel.w}</b><small>${t.w}</small></div><div><b>${sel.d}</b><small>${t.d}</small></div><div><b>${sel.l}</b><small>${t.l}</small></div></div>`;
   }
 
   // ——— Game bo'limi: hozirgi raqib (Live kartasi kabi): tepada HOME / AWAY, ikki yonda katta logotip, o'rtada VS; pastda natija, xabar, Telegram ———
