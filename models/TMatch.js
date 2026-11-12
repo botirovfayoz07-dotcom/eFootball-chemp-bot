@@ -6,6 +6,7 @@ const schema = new mongoose.Schema({
   tournament: { type: mongoose.Schema.Types.ObjectId, ref: 'Tournament', required: true },
   stage: { type: String, enum: ['league', 'playoff'], default: 'league' },
   round: { type: Number, required: true },
+  group: { type: String, default: '' },      // JCH: guruh harfi (A, B, ...); lig/pley-off uchun bo'sh
   slot: { type: Number, default: null }, // play-off: setkadagi o'rin
   home: { type: Number, required: true },
   away: { type: Number, required: true },

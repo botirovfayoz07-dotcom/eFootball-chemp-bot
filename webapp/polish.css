@@ -256,3 +256,14 @@ main.page .carousel > .card { flex: none; width: 100%; min-height: 168px; }
 .uc-ko-team span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; opacity: .85; }
 .uc-ko-team b { font: 700 16px 'Rajdhani', sans-serif; min-width: 18px; text-align: right; opacity: .6; }
 .uc-ko-team.w span, .uc-ko-team.w b { opacity: 1; color: #4ade80; }
+
+/* Norasmiy turnir: format tugmalari (Liga / UCL) */
+.ut-presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.ut-preset { flex: 1 1 140px; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); color: inherit; font: 600 13px 'Rajdhani', sans-serif; letter-spacing: .04em; cursor: pointer; }
+.ut-preset.on { border-color: transparent; background: linear-gradient(90deg, #8b5cf6, #3fd8ff); color: #071420; }
+
+/* JCH: guruh jadvallari */
+.r-groups { display: grid; gap: 12px; }
+.r-gh { margin: 4px 2px 6px; font: 700 14px 'Rajdhani', sans-serif; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+.ut-wc { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.ut-wc[hidden] { display: none; }

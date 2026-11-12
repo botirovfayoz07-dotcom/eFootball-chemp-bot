@@ -4,7 +4,7 @@ window.UnofficialView = (() => {
     uz: { noCoins: "Coin yetarli emas. Do'kondan coin xarid qiling.", costHint: "Turnir yaratish narxi: 550 coin (≈ 20 000 so'm). Adminlar uchun bepul.", heroTitle: "O'z turniringizni o'tkazing", heroSub: "Do'stlaringizni taklif qiling — jadval, play-off va chempion avtomatik aniqlanadi.", create: '+ Turnir tuzish', myTitle: 'Mening turnirlarim', none: "Hali turnir yo'q", codeTitle: 'Kod bo\'yicha qo\'shilish', codePh: 'Taklif kodi', go: 'Ochish', notFound: 'Turnir topilmadi', back: 'Ortga', owner: 'Tashkilotchi',
       st: { open: "Qabul ochiq", league: 'Davom etmoqda', playoff: 'Play-off', finished: 'Yakunlangan' }, pl: "O'yinchilar", place: "O'rin", rounds: 'Turlar', round: 'Tur', deadline: 'Tur muddati', yourMatch: "Sizning o'yiningiz", allMatches: "Barcha o'yinlarim", noMatch: "Hozircha o'yin yo'q",
       nav: ['Asosiy', 'Reyting', 'Profil', 'Sovrinlar', 'Boshqaruv'], tabs: ['Jadval', 'Setka', 'Joriy tur', "To'p urarlar"], player: "O'yinchi", goals: 'Gol', bracketEmpty: "Juftliklar jadval bosqichidan keyin chiqadi", champion: "G'olib", final: 'Final', semi: 'Yarim final', quarter: 'Chorak final', empty: "Hozircha o'yinchi yo'q",
-      fName: 'Turnir nomi', fMax: "O'yinchilar soni", fRounds: 'Liga turlari soni', fPlayoff: 'Play-off', fNone: "Yo'q (faqat liga)", fTop: (n) => `Eng yaxshi ${n} ta`, fDays: 'Bir tur davomiyligi', days: (n) => `${n} kun`, submit: 'Tuzish', limit: "Bir vaqtda 3 tadan ortiq faol turnir tuza olmaysiz",
+      presetLeague: 'Liga', presetUcl: 'UCL formati (lig + top 8)', presetWc: 'JCH formati (guruh + pley-off)', fGroups: 'Guruhlar soni', fAdv: 'Har guruhdan chiqadi', groupTitle: 'Guruh', fName: 'Turnir nomi', fMax: "O'yinchilar soni", fRounds: 'Liga turlari soni', fPlayoff: 'Play-off', fNone: "Yo'q (faqat liga)", fTop: (n) => `Eng yaxshi ${n} ta`, fDays: 'Bir tur davomiyligi', days: (n) => `${n} kun`, submit: 'Tuzish', limit: "Bir vaqtda 3 tadan ortiq faol turnir tuza olmaysiz",
       join: "Qo'shilish", teamPh: 'Jamoa nomi (ixtiyoriy)', leave: 'Chiqish', joined: "Siz ishtirokchisiz", waitDraw: 'Qura kutilmoqda', drawAt: 'Qura vaqti', full: "Turnir to'lgan", started: 'Turnir allaqachon boshlangan', already: "Siz allaqachon ro'yxatdasiz", joinedOk: "Qo'shildingiz ✅",
       invite: 'Taklif', share: 'Ulashish', copy: 'Havolani nusxalash', copied: 'Nusxalandi ✅', code: 'Kod',
       report: 'Natija', edit: "Hisobni o'zgartirish", me: 'Men', opp: 'Raqib', send: 'Yuborish', waiting: 'Raqib tasdiqlashini kutmoqda', theirs: 'Raqib kiritgan hisob', ok: 'Tasdiqlash', fake: "Yolg'on", disputed: 'Hisob bekor qilindi — natijani tashkilotchi/admin kiritadi', big: "Katta hisob — tashkilotchi/admin tasdig'ini kutmoqda", chat: 'Chat',
@@ -21,7 +21,7 @@ window.UnofficialView = (() => {
     en: { noCoins: 'Not enough coins. Buy coins in the shop.', costHint: 'Creating a tournament costs 550 coins (≈ 20,000 UZS). Free for admins.', heroTitle: 'Run your own tournament', heroSub: 'Invite your friends — table, play-off and champion are handled automatically.', create: '+ Create a tournament', myTitle: 'My tournaments', none: 'No tournaments yet', codeTitle: 'Join by code', codePh: 'Invite code', go: 'Open', notFound: 'Tournament not found', back: 'Back', owner: 'Organizer',
       st: { open: 'Open for sign-up', league: 'In progress', playoff: 'Play-off', finished: 'Finished' }, pl: 'Players', place: 'Place', rounds: 'Rounds', round: 'Round', deadline: 'Round deadline', yourMatch: 'Your match', allMatches: 'All my matches', noMatch: 'No matches yet',
       nav: ['Home', 'Rating', 'Profile', 'Prizes', 'Manage'], tabs: ['Table', 'Bracket', 'Current round', 'Scorers'], player: 'Player', goals: 'Goals', bracketEmpty: 'Pairs will appear after the table stage', champion: 'Champion', final: 'Final', semi: 'Semi-finals', quarter: 'Quarter-finals', empty: 'No players yet',
-      fName: 'Tournament name', fMax: 'Number of players', fRounds: 'League rounds', fPlayoff: 'Play-off', fNone: 'None (league only)', fTop: (n) => `Top ${n}`, fDays: 'Days per round', days: (n) => `${n} day${n > 1 ? 's' : ''}`, submit: 'Create', limit: 'You cannot run more than 3 active tournaments at once',
+      presetLeague: 'League', presetUcl: 'UCL format (league + top 8)', presetWc: 'World Cup format (groups + knockout)', fGroups: 'Number of groups', fAdv: 'Advancing per group', groupTitle: 'Group', fName: 'Tournament name', fMax: 'Number of players', fRounds: 'League rounds', fPlayoff: 'Play-off', fNone: 'None (league only)', fTop: (n) => `Top ${n}`, fDays: 'Days per round', days: (n) => `${n} day${n > 1 ? 's' : ''}`, submit: 'Create', limit: 'You cannot run more than 3 active tournaments at once',
       join: 'Join', teamPh: 'Team name (optional)', leave: 'Leave', joined: 'You are in', waitDraw: 'Waiting for the draw', drawAt: 'Draw time', full: 'Tournament is full', started: 'The tournament has already started', already: 'You are already in', joinedOk: 'You joined ✅',
       invite: 'Invite', share: 'Share', copy: 'Copy link', copied: 'Copied ✅', code: 'Code',
       report: 'Result', edit: 'Change score', me: 'Me', opp: 'Opponent', send: 'Send', waiting: 'Waiting for the opponent to confirm', theirs: 'Score entered by opponent', ok: 'Confirm', fake: 'Fake', disputed: 'Score cancelled — the organizer/admin will enter the result', big: 'Big score — waiting for the organizer/admin', chat: 'Chat',
@@ -38,7 +38,7 @@ window.UnofficialView = (() => {
     ru: { noCoins: 'Недостаточно монет. Купите монеты в магазине.', costHint: 'Создание турнира стоит 550 монет (≈ 20 000 сум). Для админов бесплатно.', heroTitle: 'Проведите свой турнир', heroSub: 'Пригласите друзей — таблица, плей-офф и чемпион определяются автоматически.', create: '+ Создать турнир', myTitle: 'Мои турниры', none: 'Турниров пока нет', codeTitle: 'Вход по коду', codePh: 'Код приглашения', go: 'Открыть', notFound: 'Турнир не найден', back: 'Назад', owner: 'Организатор',
       st: { open: 'Набор открыт', league: 'Идёт', playoff: 'Плей-офф', finished: 'Завершён' }, pl: 'Игроки', place: 'Место', rounds: 'Туры', round: 'Тур', deadline: 'Срок тура', yourMatch: 'Ваш матч', allMatches: 'Все мои матчи', noMatch: 'Матчей пока нет',
       nav: ['Главная', 'Рейтинг', 'Профиль', 'Призы', 'Управление'], tabs: ['Таблица', 'Сетка', 'Текущий тур', 'Бомбардиры'], player: 'Игрок', goals: 'Голы', bracketEmpty: 'Пары появятся после этапа таблицы', champion: 'Победитель', final: 'Финал', semi: 'Полуфинал', quarter: 'Четвертьфинал', empty: 'Пока нет игроков',
-      fName: 'Название турнира', fMax: 'Число игроков', fRounds: 'Туров в лиге', fPlayoff: 'Плей-офф', fNone: 'Нет (только лига)', fTop: (n) => `Лучшие ${n}`, fDays: 'Дней на тур', days: (n) => `${n} дн.`, submit: 'Создать', limit: 'Нельзя вести больше 3 активных турниров одновременно',
+      presetLeague: 'Лига', presetUcl: 'Формат ЛЧ (лига + топ-8)', presetWc: 'Формат ЧМ (группы + плей-офф)', fGroups: 'Количество групп', fAdv: 'Выходят из группы', groupTitle: 'Группа', fName: 'Название турнира', fMax: 'Число игроков', fRounds: 'Туров в лиге', fPlayoff: 'Плей-офф', fNone: 'Нет (только лига)', fTop: (n) => `Лучшие ${n}`, fDays: 'Дней на тур', days: (n) => `${n} дн.`, submit: 'Создать', limit: 'Нельзя вести больше 3 активных турниров одновременно',
       join: 'Вступить', teamPh: 'Название команды (необязательно)', leave: 'Выйти', joined: 'Вы участвуете', waitDraw: 'Ждём жеребьёвку', drawAt: 'Время жеребьёвки', full: 'Турнир заполнен', started: 'Турнир уже начался', already: 'Вы уже участвуете', joinedOk: 'Вы вступили ✅',
       invite: 'Приглашение', share: 'Поделиться', copy: 'Копировать ссылку', copied: 'Скопировано ✅', code: 'Код',
       report: 'Результат', edit: 'Изменить счёт', me: 'Я', opp: 'Соперник', send: 'Отправить', waiting: 'Ждём подтверждения соперника', theirs: 'Счёт, введённый соперником', ok: 'Подтвердить', fake: 'Ложь', disputed: 'Счёт отменён — результат внесёт организатор/админ', big: 'Большой счёт — ждём организатора/админа', chat: 'Чат',
@@ -81,7 +81,7 @@ window.UnofficialView = (() => {
   function createHtml() {
     const x = t(), sel = (id, opts, def) => `<select id="${id}">${opts.map(([v, l]) => `<option value="${v}" ${v === def ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
     return `<div class="page l-page"><button class="back" data-act="back"><span>‹</span> ${x.back}</button>
-      <div class="g-card ut-form"><label>${x.fName}<input type="text" id="cfName" maxlength="40"></label><p class="ut-hint">${x.costHint}</p>
+      <div class="g-card ut-form"><div class="ut-presets"><button type="button" class="ut-preset" data-act="ut-preset" data-p="league">📋 ${x.presetLeague}</button><button type="button" class="ut-preset" data-act="ut-preset" data-p="ucl">🏆 ${x.presetUcl}</button><button type="button" class="ut-preset" data-act="ut-preset" data-p="wc">🌍 ${x.presetWc}</button></div><div class="ut-wc" id="cfWcBox" hidden><label>${x.fGroups}${sel('cfGroups', [[2, 2], [4, 4], [8, 8]], 4)}</label><label>${x.fAdv}${sel('cfAdv', [[1, 1], [2, 2]], 2)}</label></div><label>${x.fName}<input type="text" id="cfName" maxlength="40"></label><p class="ut-hint">${x.costHint}</p>
       <label>${x.fMax}${sel('cfMax', [4, 6, 8, 10, 12, 16, 20, 24, 28, 32, 48, 64].map((n) => [n, n]), 16)}</label>
       <label>${x.fRounds}${sel('cfRounds', Array.from({ length: 14 }, (_, i) => [i + 3, i + 3]), 8)}</label>
       <label>${x.fPlayoff}${sel('cfPlayoff', [[0, x.fNone], ...[4, 8, 16].map((n) => [n, x.fTop(n)])], 0)}</label>
@@ -135,6 +135,11 @@ window.UnofficialView = (() => {
   }
   function tableHtml() {
     const x = t(), q = S.t.playoff, rows = S.rows;
+    if (S.groups && S.groups.length) {
+      const adv = S.t.advance || 0;
+      const gt = (g) => `<div class="r-group"><h4 class="r-gh">${esc(x.groupTitle)} ${esc(g.name)}</h4><div class="r-wrap"><table class="r-table"><thead><tr><th>#</th><th class="pl">${x.player}</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead><tbody>${g.rows.map((r) => `<tr><td class="ps"><span class="pos ${r.pos <= adv ? 'cl' : ''}">${r.pos}</span></td><td class="pl"><b>${nm(r)}</b>${sub(r)}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gd > 0 ? '+' : ''}${r.gd}</td><td class="hl">${r.pts}</td></tr>`).join('')}</tbody></table></div></div>`;
+      return `<div class="r-groups">${S.groups.map(gt).join('')}</div>`;
+    }
     const body = rows.map((r) => `<tr class="${r.pos <= 3 ? ['gold', 'silver', 'bronze'][r.pos - 1] : ''}"><td class="ps"><span class="pos ${q && r.pos <= q ? 'cl' : ''}">${r.pos}</span></td><td class="pl"><b>${nm(r)}</b>${sub(r)}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gd > 0 ? '+' : ''}${r.gd}</td><td class="hl">${r.pts}</td></tr>`).join('');
     return `<div class="r-wrap"><table class="r-table"><thead><tr><th>#</th><th class="pl">${x.player}</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead><tbody>${body || `<tr><td colspan="8" class="empty">${x.empty}</td></tr>`}</tbody></table></div>`;
   }
@@ -226,11 +231,24 @@ window.UnofficialView = (() => {
     if (k === 'back') { if (!back()) location.hash = ''; return; }
     if (k === 'new') { view = 'create'; render(); window.scrollTo(0, 0); return; }
     if (k === 'open') { location.hash = '#unofficial/' + a.dataset.tid; return; }
-    if (k === 'code') { const c = el.querySelector('#utCode').value.trim(); if (c) openCode(c); return; }
+    if (k === 'code') { const c = el.querySelector('#utCode').value.trim(); if (c) openCode(c); return; }
+    if (k === 'ut-preset') {
+      const p = a.dataset.p, $ = (id) => el.querySelector('#' + id);
+      el.dataset.fmt = p === 'wc' ? 'wc' : 'league';
+      $('cfWcBox').hidden = p !== 'wc';
+      if (p === 'ucl') { $('cfPlayoff').value = '8'; if (+$('cfMax').value < 8) $('cfMax').value = '16'; }
+      else if (p === 'league') $('cfPlayoff').value = '0';
+      if (p === 'wc' && +$('cfMax').value < 16) $('cfMax').value = '16';
+      $('cfRounds').value = '16';
+      el.querySelectorAll('.ut-preset').forEach((b) => b.classList.toggle('on', b.dataset.p === p));
+      return;
+    }
+
     if (k === 'mk') {
       const g = (id) => el.querySelector('#' + id).value, name = g('cfName').trim();
       if (name.length < 2) return toast(x.fName);
-      const r = await post('/api/ut/create', { name, maxPlayers: +g('cfMax'), rounds: +g('cfRounds'), playoff: +g('cfPlayoff'), roundDays: +g('cfDays') });
+      const fmt = el.dataset.fmt === 'wc' ? 'wc' : 'league';
+      const r = await post('/api/ut/create', { name, format: fmt, groups: +g('cfGroups') || 0, advance: +g('cfAdv') || 0, maxPlayers: +g('cfMax'), rounds: +g('cfRounds'), playoff: +g('cfPlayoff'), roundDays: +g('cfDays') });
       if (r.ok) { tg?.HapticFeedback?.notificationOccurred('success'); view = 'list'; location.hash = '#unofficial/' + r.id; } else toast(r.error === 'limit' ? x.limit : r.error === 'noCoins' ? x.noCoins : x.fail);
       return;
     }

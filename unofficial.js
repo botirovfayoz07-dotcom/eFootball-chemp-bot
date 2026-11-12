@@ -63,6 +63,25 @@ module.exports = function mount(app, d) {
       .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.id - b.id)
       .map((r, i) => ({ pos: i + 1, ...r }));
   }
+  // JCH: har bir guruh alohida jadval (guruh harfi TMatch.group da)
+  const GROUP_LETTERS = 'ABCDEFGH';
+  function groupTables(t, ms, names) {
+    if (t.format !== 'wc') return [];
+    const out = [];
+    for (let g = 0; g < (t.groups || 0); g++) {
+      const L = GROUP_LETTERS[g];
+      const gms = ms.filter((m) => m.group === L);
+      const ids = [...new Set(gms.flatMap((m) => [m.home, m.away]))];
+      const st = FX.computeStats(gms.filter((m) => m.status === 'confirmed'));
+      const zero = { pts: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0 };
+      const rows = ids.map((id) => ({ id, user: names.get(id)?.user || String(id), team: (t.players || []).find((p) => p.telegramId === id)?.team || '', ...(st.get(id) || zero) }))
+        .map((r) => ({ ...r, p: r.w + r.d + r.l, gd: r.gf - r.ga }))
+        .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.id - b.id)
+        .map((r, i) => ({ pos: i + 1, ...r }));
+      out.push({ name: L, rows, done: gms.length > 0 && gms.every((m) => m.status === 'confirmed' || m.status === 'cancelled') });
+    }
+    return out;
+  }
   function current(t, ms) {
     if (t.status === 'open') return null;
     const po = ms.filter((m) => m.stage === 'playoff');
@@ -78,7 +97,7 @@ module.exports = function mount(app, d) {
     const side = (id) => ({ id, team: (t.players || []).find((p) => p.telegramId === id)?.team || '', user: names.get(id)?.user || String(id), username: names.get(id)?.username || '' });
     return ms.map((m) => ({ id: String(m._id), stage: m.stage, round: m.round, slot: m.slot, status: m.status, hg: m.hg, ag: m.ag, reportedBy: m.reportedBy, home: side(m.home), away: side(m.away), claim: mgr && m.claim?.hg != null ? m.claim : null }));
   }
-  const sortMs = (a, b) => (a.stage === b.stage ? a.round - b.round || (a.slot ?? 0) - (b.slot ?? 0) : a.stage === 'league' ? -1 : 1);
+  const sortMs = (a, b) => (a.stage === b.stage ? (a.round - b.round) || (a.slot ?? 0) - (b.slot ?? 0) || (a.group || '').localeCompare(b.group || '') : (a.stage === 'playoff') - (b.stage === 'playoff'));
 
   async function full(t, u) {
     const ms = (await TMatch.find({ tournament: t._id, status: { $ne: 'cancelled' } }).lean()).sort(sortMs);
@@ -89,10 +108,10 @@ module.exports = function mount(app, d) {
     const rows = standings(t, ms, names);
     const bn = await botName();
     return {
-      t: { id: String(t._id), name: t.name, code: t.code, status: t.status, max: t.maxPlayers, rounds: t.effRounds || t.rounds, playoff: t.playoff, roundDays: t.roundDays, drawAt: t.drawAt, startedAt: t.startedAt, champion: t.champion, owner: names.get(t.ownerId)?.user || '', ownerUsername: names.get(t.ownerId)?.username || '', players: (t.players || []).length },
+      t: { id: String(t._id), format: t.format || 'league', groups: t.groups || 0, advance: t.advance || 0, name: t.name, code: t.code, status: t.status, max: t.maxPlayers, rounds: t.effRounds || t.rounds, playoff: t.playoff, roundDays: t.roundDays, drawAt: t.drawAt, startedAt: t.startedAt, champion: t.champion, owner: names.get(t.ownerId)?.user || '', ownerUsername: names.get(t.ownerId)?.username || '', players: (t.players || []).length },
       me: { id: u.id, joined: (t.players || []).some((p) => p.telegramId === u.id), owner: t.ownerId === u.id, mgr },
       link: bn ? `https://t.me/${bn}?start=t_${t.code}` : null,
-      cur, rows, players: rows.map((r) => ({ id: r.id, team: r.team, user: r.user })),
+      cur, rows, groups: groupTables(t, ms, names), players: rows.map((r) => ({ id: r.id, team: r.team, user: r.user })),
       round: cur ? dm.filter((m) => m.stage === cur.stage && m.round === cur.n) : [],
       mine: dm.filter((m) => m.home.id === u.id || m.away.id === u.id),
       bracket: dm.filter((m) => m.stage === 'playoff'),
@@ -116,7 +135,27 @@ module.exports = function mount(app, d) {
     if (!lock) return { error: 'started' };
     const revert = () => Tournament.updateOne({ _id: tid }, { $set: { status: 'open', startedAt: null, effRounds: 0 } });
     try {
-      const n = (lock.players || []).length, R = Math.min(lock.rounds, n + (n % 2) - 1);
+      const n = (lock.players || []).length;
+      if (lock.format === 'wc') {
+        const G = lock.groups, adv = lock.advance;
+        if (n < G * adv) { await revert(); return { error: 'few' }; }
+        const ids = FX.shuffle((lock.players || []).map((p) => p.telegramId));
+        // Ilon tartibi: 1-qator A→B→..., 2-qator teskari — guruhlar kuchi teng bo'ladi
+        const buckets = Array.from({ length: G }, () => []);
+        ids.forEach((id, i) => { const row = Math.floor(i / G), col = i % G; buckets[row % 2 ? G - 1 - col : col].push(id); });
+        const all = [];
+        let R = 0;
+        buckets.forEach((mem, gi) => {
+          const fx = FX.roundRobin(mem, false);
+          R = Math.max(R, ...fx.map((m) => m.round), 0);
+          fx.forEach((m) => all.push({ ...m, tournament: tid, stage: 'league', group: GROUP_LETTERS[gi] }));
+        });
+        await TMatch.insertMany(all);
+        await Tournament.updateOne({ _id: tid }, { $set: { effRounds: R } });
+        (lock.players || []).forEach((p) => notify(p.telegramId, tid, 'drawn', lock.name));
+        return { ok: true, matches: all.length, groups: G };
+      }
+      const R = Math.min(lock.rounds, n + (n % 2) - 1);
       const fx = FX.roundRobin(FX.shuffle((lock.players || []).map((p) => p.telegramId)), false).filter((m) => m.round <= R);
       await TMatch.insertMany(fx.map((m) => ({ ...m, tournament: tid, stage: 'league' })));
       await Tournament.updateOne({ _id: tid }, { $set: { effRounds: R } });
@@ -133,7 +172,23 @@ module.exports = function mount(app, d) {
     const lock = await Tournament.findOneAndUpdate({ _id: tid, status: 'league' }, { $set: { status: 'playoff' } }, { new: true }).lean();
     if (!lock) return { error: 'started' };
     if (unplayed.length) await TMatch.updateMany({ _id: { $in: unplayed.map((m) => m._id) } }, { $set: { status: 'cancelled', updatedAt: new Date() } });
-    const rows = standings(lock, lgAll.filter((m) => m.status === 'confirmed'), new Map());
+    let rows = standings(lock, lgAll.filter((m) => m.status === 'confirmed'), new Map());
+    if (lock.format === 'wc') {
+      const tabs = groupTables(lock, lgAll.filter((m) => m.status !== 'cancelled'), new Map());
+      const P = lock.playoff;
+      if (lock.advance === 2) {
+        // Har guruhdan 1-o'rin va 2-o'rin: A1–B2, B1–C2, ... (aylana bo'yicha) — birinchi bosqich
+        const docs = tabs.map((g, i) => ({ tournament: tid, stage: 'playoff', round: 1, slot: i, home: g.rows[0]?.id, away: tabs[(i + 1) % tabs.length].rows[1]?.id }));
+        if (docs.some((d) => !d.home || !d.away)) { await Tournament.updateOne({ _id: tid }, { $set: { status: 'league' } }); return { error: 'few' }; }
+        await Tournament.updateOne({ _id: tid }, { $set: { playoff: P } });
+        await TMatch.insertMany(docs);
+        notifyAll(lock, 'playoff');
+        return { ok: true, size: P };
+      }
+      // advance = 1: faqat g'oliblar; ular umumiy ko'rsatkich bo'yicha tartiblanadi
+      const winners = tabs.map((g) => g.rows[0]).filter(Boolean);
+      rows = winners.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.id - b.id);
+    }
     let P = 1; while (P * 2 <= Math.min(lock.playoff, rows.length)) P *= 2;
     if (lock.playoff < 2 || P < 2) { await Tournament.updateOne({ _id: tid }, { $set: { status: 'finished', champion: rows[0]?.id ?? null, playoff: 0 } }); rows[0] && notifyAll(lock, 'champion', await whoName(lock, rows[0].id)); return { ok: true, finished: true }; }
     const seeds = FX.seedOrder(P), ids = rows.map((r) => r.id), docs = [];
@@ -172,7 +227,16 @@ module.exports = function mount(app, d) {
 
   app.post('/api/ut/create', auth, ah(async (req, res) => {
     const b = req.body || {}, name = clean(b.name, 40);
-    const maxPlayers = Number(b.maxPlayers), rounds = Number(b.rounds), playoff = Number(b.playoff), roundDays = Number(b.roundDays);
+    const isWc = b.format === 'wc';
+    const groups = isWc ? Number(b.groups) : 0, advance = isWc ? Number(b.advance) : 0;
+    const maxPlayers = Number(b.maxPlayers), rounds = Number(b.rounds), roundDays = Number(b.roundDays);
+    let playoff = Number(b.playoff);
+    if (isWc) {
+      // JCH: guruhlar (2/4/8) × chiqish (1/2) = pley-off hajmi (2/4/8/16)
+      if (![2, 4, 8].includes(groups) || ![1, 2].includes(advance)) return res.status(400).json({ error: 'fail' });
+      playoff = groups * advance;
+      if (maxPlayers < playoff * 1 || maxPlayers < groups * 2) return res.status(400).json({ error: 'fail' });
+    }
     if (name.length < 2 || !Number.isInteger(maxPlayers) || maxPlayers < 2 || maxPlayers > 64 || !Number.isInteger(rounds) || rounds < 1 || rounds > 30 || ![0, 2, 4, 8, 16].includes(playoff) || playoff > maxPlayers || ![1, 2, 3, 5, 7].includes(roundDays)) return res.status(400).json({ error: 'fail' });
     if (!ADMINS.includes(req.u.id) && (await Tournament.countDocuments({ ownerId: req.u.id, status: { $ne: 'finished' } })) >= 3) return res.status(409).json({ error: 'limit' });
     // Narx: adminlardan tashqari hamma uchun coin yechiladi (shartli: balans yetmasa hech narsa o'zgarmaydi)
@@ -188,7 +252,7 @@ module.exports = function mount(app, d) {
     try {
       for (let i = 0; i < 5 && !t; i++) {
         try {
-          t = await Tournament.create({ name, maxPlayers, rounds, playoff, roundDays, ownerId: req.u.id, paid: charged, code: crypto.randomBytes(3).toString('hex').toUpperCase(), drawAt: new Date(Date.now() + UT_AUTO_DRAW_MIN * 60 * 1000) });
+          t = await Tournament.create({ name, format: isWc ? 'wc' : 'league', groups, advance, maxPlayers, rounds: isWc ? 16 : rounds, playoff, roundDays, ownerId: req.u.id, paid: charged, code: crypto.randomBytes(3).toString('hex').toUpperCase(), drawAt: new Date(Date.now() + UT_AUTO_DRAW_MIN * 60 * 1000) });
         } catch (e) { if (e.code !== 11000) throw e; }
       }
     } catch (e) { await refund('create-error'); throw e; }
@@ -336,6 +400,7 @@ module.exports = function mount(app, d) {
     const q = clean(req.body?.user, 40).replace(/^@/, ''), team = clean(req.body?.team, 20);
     if (!q) return res.status(400).json({ error: 'fail' });
     if (t.status === 'playoff' || t.status === 'finished') return res.status(409).json({ error: 'locked' });
+    if (t.format === 'wc' && t.status === 'league') return res.status(409).json({ error: 'locked' });   // JCH: guruhlar qura bilan belgilangan
     const usr = /^\d+$/.test(q) ? await User.findOne({ telegramId: Number(q) }).lean() : await User.findOne({ username: new RegExp('^' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }).lean();
     if (!usr) return res.status(404).json({ error: 'nouser' });
     const nt = await Tournament.findOneAndUpdate({ _id: t._id, status: { $in: ['open', 'league'] }, 'players.telegramId': { $ne: usr.telegramId }, $expr: { $lt: [{ $size: '$players' }, '$maxPlayers'] } }, { $push: { players: { telegramId: usr.telegramId, team } } }, { new: true }).lean();

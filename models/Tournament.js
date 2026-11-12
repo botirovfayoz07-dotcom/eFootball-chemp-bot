@@ -12,6 +12,9 @@ const schema = new mongoose.Schema({
   roundDays: { type: Number, default: 1 },         // bir tur necha kun (muddat har kuni 23:59 Toshkent)
   status: { type: String, enum: ['open', 'league', 'playoff', 'finished'], default: 'open' },
   drawAt: { type: Date, default: null },
+  format: { type: String, enum: ['league', 'wc'], default: 'league' }, // league: lig+pley-off; wc: JCH — guruhlar+pley-off
+  groups: { type: Number, default: 0 },           // wc: guruhlar soni (2/4/8)
+  advance: { type: Number, default: 0 },          // wc: har guruhdan chiqadiganlar (1/2)
   paid: { type: Number, default: 0 },          // yaratish uchun to'langan coin (adminlarda 0)
   startedAt: { type: Date, default: null },
   champion: { type: Number, default: null },
