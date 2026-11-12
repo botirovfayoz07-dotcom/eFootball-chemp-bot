@@ -170,3 +170,18 @@ main.page .carousel > .card { flex: none; width: 100%; min-height: 168px; }
 .gh-card { position: relative; }
 .gh-cap { padding-right: 56px; }
 .gh-mno { position: absolute; top: 14px; right: 14px; margin: 0; line-height: 1.2; }
+
+/* Chempionlar ligasi: o'yinchi ko'rinishi */
+#ucl { padding: 16px; }
+.ucl-wrap { max-width: 720px; margin: 0 auto; }
+.ucl-wrap h2 { margin: 4px 0 8px; }
+.ucl-wrap h3 { margin: 18px 0 8px; }
+.ucl-meta { opacity: .85; margin-bottom: 10px; }
+.ucl-note { opacity: .7; }
+.ucl-tag { display: inline-block; font-size: 12px; opacity: .8; margin: 6px 8px 6px 0; }
+.ucl-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.06); margin-bottom: 6px; }
+.ucl-scroll { overflow-x: auto; }
+.ucl-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ucl-table th, .ucl-table td { padding: 6px 4px; text-align: center; }
+.ucl-table td.l { text-align: left; }
+.ucl-table tr.q { background: rgba(80,200,120,.14); }
