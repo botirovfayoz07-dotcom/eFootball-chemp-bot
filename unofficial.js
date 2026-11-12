@@ -2,6 +2,9 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 const Tournament = require('./models/Tournament');
+
+// Norasmiy turnir yaratilgandan keyin ishtirokchilar qo'shilishi uchun vaqt; shu vaqtda qura avtomatik o'tadi
+const UT_AUTO_DRAW_MIN = 15;
 const TMatch = require('./models/TMatch');
 const FX = require('./fixtures');
 
@@ -168,7 +171,7 @@ module.exports = function mount(app, d) {
     if (!ADMINS.includes(req.u.id) && (await Tournament.countDocuments({ ownerId: req.u.id, status: { $ne: 'finished' } })) >= 3) return res.status(409).json({ error: 'limit' });
     for (let i = 0; i < 5; i++) {
       try {
-        const t = await Tournament.create({ name, maxPlayers, rounds, playoff, roundDays, ownerId: req.u.id, code: crypto.randomBytes(3).toString('hex').toUpperCase() });
+        const t = await Tournament.create({ name, maxPlayers, rounds, playoff, roundDays, ownerId: req.u.id, code: crypto.randomBytes(3).toString('hex').toUpperCase(), drawAt: new Date(Date.now() + UT_AUTO_DRAW_MIN * 60 * 1000) });
         return res.json({ ok: true, id: String(t._id) });
       } catch (e) { if (e.code !== 11000) throw e; }
     }

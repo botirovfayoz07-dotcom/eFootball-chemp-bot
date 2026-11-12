@@ -613,6 +613,7 @@ app.post('/api/auction/bid', ah(async (req, res) => {
 
   const cfg = await LeagueConfig.findOne({ season, league: 'auction' }).lean();
   const aEnd = cfg?.auctionEnd ? new Date(cfg.auctionEnd) : null;
+  if (cfg?.enabled === false) return res.status(409).json({ error: 'aucClosed' });
   if (aEnd && aEnd < new Date()) return res.status(409).json({ error: 'aucClosed' });
 
   // O'zi yetakchi bo'lsa, faqat farqini to'laydi (aks holda o'z taklifini ikki marta to'lagan bo'lardi)
@@ -639,18 +640,17 @@ app.post('/api/auction/bid', ah(async (req, res) => {
 
 // Auksion holatini tekshirish va yakunlash — faqat katta admin
 app.post('/api/admin/auction/config', adminOnly, ah(async (req, res) => {
-  const { auctionEnd } = req.body || {};
-  await LeagueConfig.findOneAndUpdate(
-    { season, league: 'auction' },
-    { $set: { auctionEnd: auctionEnd ? new Date(auctionEnd) : null } },
-    { upsert: true }
-  );
+  const { auctionEnd, enabled } = req.body || {};
+  const $set = {};
+  if ('auctionEnd' in (req.body || {})) $set.auctionEnd = auctionEnd ? new Date(auctionEnd) : null;
+  if (typeof enabled === 'boolean') $set.enabled = enabled;
+  if (Object.keys($set).length) await LeagueConfig.findOneAndUpdate({ season, league: 'auction' }, { $set }, { upsert: true });
   res.json({ ok: true });
 }));
 
 app.get('/api/admin/auction/config', adminOnly, ah(async (req, res) => {
   const cfg = await LeagueConfig.findOne({ season, league: 'auction' }).lean();
-  res.json({ ok: true, auctionEnd: cfg?.auctionEnd || null });
+  res.json({ ok: true, auctionEnd: cfg?.auctionEnd || null, enabled: cfg?.enabled !== false });
 }));
 
 // Auksionni yakunlash: oxirgi bidder ga klub o'tkazish (faqat katta admin, barcha ligalar)
@@ -668,7 +668,7 @@ app.post('/api/admin/auction/finalize', adminOnly, ah(async (req, res) => {
     );
     if (ok) done++;
   }
-  res.json({ ok: true, done });
+  res.json({ ok: true, done, finalized: done });
 }));
 
 // Do'kon -> Auksion: hamma lotlar (yangilari birinchi)
@@ -1716,6 +1716,7 @@ const ut = require('./unofficial')(app, { tgUser, ah, bot, User, ADMINS, Markup,
 registerSeasonRoutes(app, { tgUser, adminIds: ADMINS });
 registerAdminExtra(app, { adminOnly, ah, bot, season, EFL, Markup, MINI_APP_URL });
 const cupApi = require('./lib/cup-api')(app, { tgUser, ah, adminOnly, season, notifyAdmins });
+require('./lib/ucl').mount(app, { tgUser, ah, adminOnly, season, alert });   // Chempionlar ligasi (UCL)
 const deadlines = mountDeadlines({ Match, Cup, ChatMessage, LeagueConfig, season, EFL, notify, whoIs, recalc, notifyAdmins });
 
 // ——— Mavsum starti: PL + Championship + FA Cup + Community Shield birga ———

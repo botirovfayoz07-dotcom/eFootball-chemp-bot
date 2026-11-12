@@ -33,6 +33,7 @@ window.AdminView = (() => {
   let bc = { list: null, count: null, text: '', league: '', lang: '' };
   let bcTimer = null;
   let aucCfg = null;
+  let uclData = null, uclSel = null;   // Chempionlar ligasi: holat va tanlangan ishtirokchilar
 
   const fmtLocal = (d) => { const x = new Date(d), p = (n) => String(n).padStart(2, '0'); return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}T${p(x.getHours())}:${p(x.getMinutes())}`; };
   const fmtShow = (d) => new Date(d).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -590,6 +591,7 @@ window.AdminView = (() => {
         ['cups', '💰 Kubok narxi'],
         ['open', '🔓 Ligalar holati'],
         ['auction', '🏷️ Auksion'],
+        ['ucl', '🏆 Chempionlar ligasi'],
         ['clubs', '🏟 Klublar']
       ];
       tabs = superAdmin ? globalTabs : globalTabs.filter(([k]) => k === 'tour' || k === 'clubs');
@@ -660,6 +662,8 @@ window.AdminView = (() => {
       content = toursHtml();
     } else if (mainTab === 'auction') {
       content = auctionHtml();
+    } else if (mainTab === 'ucl') {
+      content = uclHtml();
     }
 
     el.innerHTML = `<div class="page ad-page">
@@ -785,6 +789,77 @@ window.AdminView = (() => {
     }
   }
 
+  // ——— Chempionlar ligasi (UCL) admin paneli ———
+  function uclHtml() {
+    if (!uclData) return '<p class="ad-hint">Yuklanmoqda…</p>';
+    const d = uclData, sel = uclSel || new Set();
+    const phaseName = { setup: 'Sozlash', league: 'Lig bosqichi', knockout: 'Pley-off', finished: 'Tugagan' }[d.phase] || d.phase;
+    const stageName = { league: 'Lig bosqichi', qf: 'Chorak final', sf: 'Yarim final', final: 'Final' };
+    let h = `<div class="g-card ad-lg">
+      <div class="ad-meta"><b>🏆 Chempionlar ligasi</b> · Bosqich: <b>${phaseName}</b>${d.stage ? ` · Hozir: <b>${stageName[d.stage] || d.stage}</b>` : ''}${d.champion ? ` · 🥇 Chempion: <b>${esc(d.champion.name)}</b>` : ''}</div>`;
+
+    if (d.phase === 'setup') {
+      const ok = sel.size >= 4 && sel.size % 2 === 0;
+      h += `<p class="ad-hint">Ishtirokchilarni tanlang (juft son, 4–32). Tanlangan: <b>${sel.size}</b>${ok ? '' : ' — soni noto\'g\'ri'}</p>
+        <div class="ad-row" style="gap:6px;flex-wrap:wrap;">
+          <button class="ad-btn ok sm" data-act="ucl-save-participants">💾 Ishtirokchilarni saqlash</button>
+          <button class="ad-btn sm" data-act="ucl-start" ${d.participants.length >= 4 ? '' : 'disabled'}>🎲 Lig bosqichini boshlash (qura)</button>
+        </div>
+        <div style="margin-top:10px;max-height:340px;overflow:auto;">
+          ${d.candidates.map((c) => `<div class="ad-row" style="gap:8px;padding:4px 0;">
+            <button class="ad-btn sm ${sel.has(c.id) ? 'ok' : ''}" data-act="ucl-toggle" data-id="${c.id}">${sel.has(c.id) ? '✅' : '➕'}</button>
+            <span>${esc(c.club)} <span class="ad-hint">— ${esc(c.league)} · ${esc(c.user)}</span></span></div>`).join('') || '<p class="ad-hint">Bu mavsumda ro\'yxatdan o\'tgan klub yo\'q</p>'}
+        </div>`;
+    } else {
+      h += `<div class="ad-row" style="gap:6px;flex-wrap:wrap;margin-top:8px;">
+        ${d.phase === 'league' && d.leagueDone ? '<button class="ad-btn ok sm" data-act="ucl-advance">➡️ Pley-offni boshlash (top ' + d.knockoutSize + ')</button>' : ''}
+        ${d.phase === 'knockout' ? '<button class="ad-btn ok sm" data-act="ucl-advance">➡️ Keyingi bosqichni ochish</button>' : ''}
+        <button class="ad-btn bad sm" data-act="ucl-reset">♻️ Hammasini qaytadan boshlash</button>
+      </div>`;
+    }
+    h += '</div>';
+
+    if (d.standings.length) {
+      h += `<div class="g-card ad-lg" style="margin-top:12px;"><b>Lig jadvali</b>
+        <div style="overflow-x:auto;margin-top:8px;"><table class="ad-table" style="width:100%;font-size:13px;">
+          <tr><th>#</th><th style="text-align:left;">Klub</th><th>O</th><th>G</th><th>D</th><th>M</th><th>Ball</th></tr>
+          ${d.standings.map((r, i) => `<tr style="${d.phase !== 'setup' && i < d.knockoutSize ? 'background:rgba(80,200,120,.12);' : ''}">
+            <td>${i + 1}</td><td style="text-align:left;">${esc(r.name)}</td><td>${r.w + r.d + r.l}</td><td>${r.w}</td><td>${r.gf - r.ga}</td><td>${r.gf}:${r.ga}</td><td><b>${r.pts}</b></td></tr>`).join('')}
+        </table></div></div>`;
+    }
+
+    if (d.matches.length) {
+      const league = d.matches.filter((m) => m.stage === 'league');
+      const byRound = {};
+      league.forEach((m) => (byRound[m.round] = byRound[m.round] || []).push(m));
+      const row = (m) => `<div class="ad-row" style="gap:6px;align-items:center;flex-wrap:wrap;padding:4px 0;">
+        <span class="ad-hint">#${m.matchNo || '—'}</span>
+        <span style="flex:1;min-width:120px;text-align:right;">${esc(m.homeName)}</span>
+        <input id="uh-${m.id}" type="number" min="0" max="99" value="${m.hg ?? ''}" style="width:52px;text-align:center;">
+        <span>:</span>
+        <input id="ua-${m.id}" type="number" min="0" max="99" value="${m.ag ?? ''}" style="width:52px;text-align:center;">
+        <span style="flex:1;min-width:120px;">${esc(m.awayName)}</span>
+        <button class="ad-btn ok sm" data-act="ucl-save" data-id="${m.id}">💾</button></div>`;
+      h += `<div class="g-card ad-lg" style="margin-top:12px;"><b>O'yinlar va natijalar</b>`;
+      Object.keys(byRound).sort((a, b) => a - b).forEach((r) => { h += `<div class="ad-hint" style="margin-top:8px;">Tur ${r}</div>` + byRound[r].map(row).join(''); });
+      ['qf', 'sf', 'final'].forEach((st) => {
+        const ms = d.matches.filter((m) => m.stage === st);
+        if (ms.length) h += `<div class="ad-hint" style="margin-top:8px;">${stageName[st]}</div>` + ms.map(row).join('');
+      });
+      h += '</div>';
+    }
+    return `<div>${h}</div>`;
+  }
+
+  async function loadUcl() {
+    const r = await api('/api/admin/ucl');
+    if (r.ok) {
+      uclData = r;
+      if (!uclSel || r.phase !== 'setup') uclSel = new Set(r.participants.map((p) => p.id));
+      if (mainTab === 'ucl') render();
+    }
+  }
+
   async function loadAuction() {
     const r = await api('/api/admin/auction/config');
     if (r.ok) {
@@ -829,6 +904,7 @@ window.AdminView = (() => {
       if (mainTab === 'tour') loadTours();
       if (mainTab === 'cups') loadCups();
       if (mainTab === 'auction') loadAuction();
+      if (mainTab === 'ucl') loadUcl();
       return;
     }
     if (act === 'pick-league') {
@@ -1195,6 +1271,40 @@ window.AdminView = (() => {
       if (!(await confirmBox("Auksionni yakunlab, barcha auksiondagi klublarni eng yuqori taklif egalariga o'tkazasizmi?"))) return;
       const r = await post('/api/admin/auction/finalize', {});
       return done(r, `Auksion yakunlandi: ${r.finalized || 0} ta klub o'tkazildi 🏁`, loadAuction);
+    }
+
+    // --- Chempionlar ligasi ---
+    if (act === 'ucl-toggle') {
+      const id = Number(btn.dataset.id);
+      uclSel = uclSel || new Set();
+      uclSel.has(id) ? uclSel.delete(id) : uclSel.add(id);
+      return render();
+    }
+    if (act === 'ucl-save-participants') {
+      const r = await post('/api/admin/ucl/participants', { ids: [...(uclSel || [])] });
+      return done(r, 'Ishtirokchilar saqlandi ✅', loadUcl);
+    }
+    if (act === 'ucl-start') {
+      if (!(await confirmBox("Lig bosqichini boshlaysizmi? Ishtirokchilar qura orqali juftlanadi."))) return;
+      const r = await post('/api/admin/ucl/start', {});
+      return done(r, `Lig bosqichi boshlandi: ${r.matches || 0} ta o'yin 🎲`, loadUcl);
+    }
+    if (act === 'ucl-save') {
+      const id = btn.dataset.id;
+      const hg = Number(el.querySelector('#uh-' + id)?.value), ag = Number(el.querySelector('#ua-' + id)?.value);
+      if (!Number.isInteger(hg) || !Number.isInteger(ag) || hg < 0 || ag < 0) return toast('Hisobni to\'g\'ri kiriting');
+      const r = await post('/api/admin/ucl/result', { id, hg, ag });
+      return done(r, 'Natija saqlandi ✅', loadUcl);
+    }
+    if (act === 'ucl-advance') {
+      if (!(await confirmBox("Keyingi bosqichni ochasizmi? Juftliklar hozirgi natijalar bo'yicha tuziladi."))) return;
+      const r = await post('/api/admin/ucl/advance', {});
+      return done(r, 'Keyingi bosqich ochildi ✅', loadUcl);
+    }
+    if (act === 'ucl-reset') {
+      if (!(await confirmBox("Chempionlar ligasi to'liq o'chiriladi va qaytadan sozlanadi. Davom etasizmi?"))) return;
+      const r = await post('/api/admin/ucl/reset', { confirm: 'RESET' });
+      return done(r, 'Chempionlar ligasi qaytadan sozlandi ♻️', loadUcl);
     }
   }
 
