@@ -17,7 +17,7 @@ window.UnofficialView = (() => {
       mDraw: 'Qura', mDrawTime: 'Qura vaqti', mSave: 'Vaqtni saqlash', mClear: "Vaqtni o'chirish", mDrawNow: '🎲 Hozir qura qilish', mDrawConfirm: "Qurani hozir o'tkazamizmi? Ishtirokchilar aralashtirilib, o'yinlar tuziladi.", mAuto: 'Avtomatik qura', mStartPlayoff: '🏆 Play-offni boshlash', mPlayoffConfirm: "Liga bosqichi yakunlanib, play-off boshlansinmi?", mForce: (n) => `${n} ta o'yin hali tugamagan. Ular bekor qilinib, play-off boshlansinmi?`,
       mPlayers: 'Ishtirokchilar', mRemove: 'Chiqarish', mRemoveConfirm: (n) => `${n} turnirdan chiqarilsinmi? Uning o'yinlari bekor qilinadi.`, mAdd: "Ishtirokchi qo'shish", userPh: '@username yoki Telegram ID', add: "Qo'shish", mAddHint: "Foydalanuvchi botga kamida bir marta /start bosgan bo'lishi kerak.", mDelete: "Turnirni o'chirish", mDeleteConfirm: "Turnir va barcha o'yinlari butunlay o'chiriladi. Davom etasizmi?",
       saved: 'Saqlandi ✅', drawnOk: "Qura o'tkazildi 🎲", playoffOk: 'Play-off boshlandi 🏆', removedOk: 'Chiqarildi', addedOk: "Qo'shildi ✅", deletedOk: "Turnir o'chirildi",
-      errs: { few: 'Kamida 2 ishtirokchi kerak', unfinished: "Liga o'yinlari hali tugamagan", locked: "Play-off boshlangan — o'zgartirib bo'lmaydi", nouser: "Foydalanuvchi topilmadi (botga /start bosgan bo'lishi kerak)", forbidden: "Ruxsat yo'q" } },
+      errs: { country: "Davlatni tanlang", taken: "Bu davlat allaqachon band", few: 'Kamida 2 ishtirokchi kerak', unfinished: "Liga o'yinlari hali tugamagan", locked: "Play-off boshlangan — o'zgartirib bo'lmaydi", nouser: "Foydalanuvchi topilmadi (botga /start bosgan bo'lishi kerak)", forbidden: "Ruxsat yo'q" } },
     en: { noCoins: 'Not enough coins. Buy coins in the shop.', costHint: 'Creating a tournament costs 550 coins (≈ 20,000 UZS). Free for admins.', heroTitle: 'Run your own tournament', heroSub: 'Invite your friends — table, play-off and champion are handled automatically.', create: '+ Create a tournament', myTitle: 'My tournaments', none: 'No tournaments yet', codeTitle: 'Join by code', codePh: 'Invite code', go: 'Open', notFound: 'Tournament not found', back: 'Back', owner: 'Organizer',
       st: { open: 'Open for sign-up', league: 'In progress', playoff: 'Play-off', finished: 'Finished' }, pl: 'Players', place: 'Place', rounds: 'Rounds', round: 'Round', deadline: 'Round deadline', yourMatch: 'Your match', allMatches: 'All my matches', noMatch: 'No matches yet',
       nav: ['Home', 'Rating', 'Profile', 'Prizes', 'Manage'], tabs: ['Table', 'Bracket', 'Current round', 'Scorers'], player: 'Player', goals: 'Goals', bracketEmpty: 'Pairs will appear after the table stage', champion: 'Champion', final: 'Final', semi: 'Semi-finals', quarter: 'Quarter-finals', empty: 'No players yet',
@@ -34,7 +34,7 @@ window.UnofficialView = (() => {
       mDraw: 'Draw', mDrawTime: 'Draw time', mSave: 'Save time', mClear: 'Clear time', mDrawNow: '🎲 Draw now', mDrawConfirm: 'Run the draw now? Players are shuffled and matches are created.', mAuto: 'Automatic draw', mStartPlayoff: '🏆 Start play-off', mPlayoffConfirm: 'Finish the league stage and start the play-off?', mForce: (n) => `${n} matches are not finished. Cancel them and start the play-off?`,
       mPlayers: 'Participants', mRemove: 'Remove', mRemoveConfirm: (n) => `Remove ${n} from the tournament? Their matches will be cancelled.`, mAdd: 'Add a participant', userPh: '@username or Telegram ID', add: 'Add', mAddHint: 'The user must have pressed /start in the bot at least once.', mDelete: 'Delete tournament', mDeleteConfirm: 'The tournament and all its matches will be deleted for good. Continue?',
       saved: 'Saved ✅', drawnOk: 'Draw done 🎲', playoffOk: 'Play-off started 🏆', removedOk: 'Removed', addedOk: 'Added ✅', deletedOk: 'Tournament deleted',
-      errs: { few: 'At least 2 participants are needed', unfinished: 'League matches are not finished yet', locked: 'The play-off has started — no changes', nouser: 'User not found (they must press /start in the bot)', forbidden: 'No access' } },
+      errs: { country: 'Choose a country', taken: 'This country is already taken', few: 'At least 2 participants are needed', unfinished: 'League matches are not finished yet', locked: 'The play-off has started — no changes', nouser: 'User not found (they must press /start in the bot)', forbidden: 'No access' } },
     ru: { noCoins: 'Недостаточно монет. Купите монеты в магазине.', costHint: 'Создание турнира стоит 550 монет (≈ 20 000 сум). Для админов бесплатно.', heroTitle: 'Проведите свой турнир', heroSub: 'Пригласите друзей — таблица, плей-офф и чемпион определяются автоматически.', create: '+ Создать турнир', myTitle: 'Мои турниры', none: 'Турниров пока нет', codeTitle: 'Вход по коду', codePh: 'Код приглашения', go: 'Открыть', notFound: 'Турнир не найден', back: 'Назад', owner: 'Организатор',
       st: { open: 'Набор открыт', league: 'Идёт', playoff: 'Плей-офф', finished: 'Завершён' }, pl: 'Игроки', place: 'Место', rounds: 'Туры', round: 'Тур', deadline: 'Срок тура', yourMatch: 'Ваш матч', allMatches: 'Все мои матчи', noMatch: 'Матчей пока нет',
       nav: ['Главная', 'Рейтинг', 'Профиль', 'Призы', 'Управление'], tabs: ['Таблица', 'Сетка', 'Текущий тур', 'Бомбардиры'], player: 'Игрок', goals: 'Голы', bracketEmpty: 'Пары появятся после этапа таблицы', champion: 'Победитель', final: 'Финал', semi: 'Полуфинал', quarter: 'Четвертьфинал', empty: 'Пока нет игроков',
@@ -51,7 +51,7 @@ window.UnofficialView = (() => {
       mDraw: 'Жеребьёвка', mDrawTime: 'Время жеребьёвки', mSave: 'Сохранить время', mClear: 'Убрать время', mDrawNow: '🎲 Провести сейчас', mDrawConfirm: 'Провести жеребьёвку сейчас? Игроки будут перемешаны, матчи созданы.', mAuto: 'Автожеребьёвка', mStartPlayoff: '🏆 Начать плей-офф', mPlayoffConfirm: 'Завершить лигу и начать плей-офф?', mForce: (n) => `${n} матчей не завершены. Отменить их и начать плей-офф?`,
       mPlayers: 'Участники', mRemove: 'Исключить', mRemoveConfirm: (n) => `Исключить ${n} из турнира? Его матчи будут отменены.`, mAdd: 'Добавить участника', userPh: '@username или Telegram ID', add: 'Добавить', mAddHint: 'Пользователь должен хотя бы раз нажать /start в боте.', mDelete: 'Удалить турнир', mDeleteConfirm: 'Турнир и все его матчи будут удалены навсегда. Продолжить?',
       saved: 'Сохранено ✅', drawnOk: 'Жеребьёвка проведена 🎲', playoffOk: 'Плей-офф начался 🏆', removedOk: 'Исключён', addedOk: 'Добавлен ✅', deletedOk: 'Турнир удалён',
-      errs: { few: 'Нужно минимум 2 участника', unfinished: 'Матчи лиги ещё не завершены', locked: 'Плей-офф начался — менять нельзя', nouser: 'Пользователь не найден (ему нужно нажать /start в боте)', forbidden: 'Нет доступа' } },
+      errs: { country: 'Выберите страну', taken: 'Эта страна уже занята', few: 'Нужно минимум 2 участника', unfinished: 'Матчи лиги ещё не завершены', locked: 'Плей-офф начался — менять нельзя', nouser: 'Пользователь не найден (ему нужно нажать /start в боте)', forbidden: 'Нет доступа' } },
   };
   const tg = window.Telegram?.WebApp;
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -62,7 +62,17 @@ window.UnofficialView = (() => {
 
   let el, lang = 'uz', toast, view = 'list', tid = null, S = null, list = null, tab = 'home', rtab = 'table', panel = null, mfilter = 'action', mlist = null;
   const t = () => T[lang];
-  const nm = (p) => esc(p.team || p.user), sub = (p) => (p.team ? `<small>${esc(p.user)}</small>` : '');
+  // JCH: davlat nomi bayrog'i bilan; oddiy turnirda jamoa nomi
+  const teamName = (id) => { const c = window.NATIONS_BY_ID?.[id]; return c ? `${c.flag} ${c.name[lang] || c.name.uz}` : (id || ''); };
+  const isWc = () => S?.t?.format === 'wc';
+  const nm = (p) => esc(isWc() ? teamName(p.team) : (p.team || p.user)), sub = (p) => (p.team ? `<small>${esc(p.user)}</small>` : '');
+  // JCH: davlat tanlash ro'yxati (band davlatlar chiqarib tashlanadi); oddiy turnirda matn maydoni
+  const teamField = (id) => {
+    if (!isWc()) return `<input type="text" id="${id}" maxlength="20">`;
+    const taken = new Set((S.rows || []).map((r) => r.team));
+    const opts = (window.NATIONS || []).filter((c) => !taken.has(c.id)).map((c) => `<option value="${c.id}">${c.flag} ${esc(c.name[lang] || c.name.uz)}</option>`).join('');
+    return `<select id="${id}">${opts || '<option value="">—</option>'}</select>`;
+  };
 
   const stBadge = (s) => `<span class="ut-st ${s}">${esc(t().st[s])}</span>`;
   const errMsg = (r, extra) => t()[r.error] || t().errs[r.error] || extra || t().fail;
@@ -123,7 +133,7 @@ window.UnofficialView = (() => {
     if (T0.status === 'open') {
       join = me.joined
         ? `<div class="note n-info"><small>✅ ${x.joined}</small><p>${x.waitDraw}${T0.drawAt ? ` · ${x.drawAt}: ${fmt(T0.drawAt)}` : ''}</p><button class="gm-btn ghost" data-act="leave">${x.leave}</button></div>`
-        : `<div class="g-card ut-form"><label>${x.teamPh}<input type="text" id="jnTeam" maxlength="20"></label><button class="l-reg" data-act="join">${x.join}</button></div>`;
+        : `<div class="g-card ut-form"><label>${x.teamPh}${teamField('jnTeam')}</label><button class="l-reg" data-act="join">${x.join}</button></div>`;
     }
     const next = S.mine.find((m) => m.status !== 'confirmed');
     const yours = me.joined && T0.status !== 'open' ? `<div class="g-label"><span>${x.yourMatch}</span></div>${next ? matchHtml(next) : `<div class="note n-info"><p>${x.noMatch}</p></div>`}${S.mine.length ? `<button class="ut-link" data-act="n-profile">${x.allMatches} →</button>` : ''}` : '';
@@ -190,7 +200,7 @@ window.UnofficialView = (() => {
       ${ms.map(mMatch).join('') || `<div class="pf-empty"><span>✅</span><p>${x.mNothing}</p></div>`}
       <div class="g-label"><span>${x.mDraw}</span></div><div class="g-card ad-lg">${drawBlock}</div>
       <div class="g-label"><span>${x.mPlayers} (${S.players.length}/${T0.max})</span></div>${pls}
-      ${T0.status === 'playoff' || T0.status === 'finished' ? '' : `<div class="g-card ad-add"><b>${x.mAdd}</b><input type="text" id="mUser" placeholder="${esc(x.userPh)}"><input type="text" id="mTeam" maxlength="20" placeholder="${esc(x.teamPh)}"><button class="ad-btn ok" data-act="m-add">➕ ${x.add}</button><p class="ad-hint">${x.mAddHint}</p></div>`}
+      ${T0.status === 'playoff' || T0.status === 'finished' ? '' : `<div class="g-card ad-add"><b>${x.mAdd}</b><input type="text" id="mUser" placeholder="${esc(x.userPh)}">${teamField('mTeam')}<button class="ad-btn ok" data-act="m-add">➕ ${x.add}</button><p class="ad-hint">${x.mAddHint}</p></div>`}
       <button class="ad-btn bad" data-act="m-delete">🗑 ${x.mDelete}</button>`;
   }
 
@@ -231,18 +241,18 @@ window.UnofficialView = (() => {
     if (k === 'back') { if (!back()) location.hash = ''; return; }
     if (k === 'new') { view = 'create'; render(); window.scrollTo(0, 0); return; }
     if (k === 'open') { location.hash = '#unofficial/' + a.dataset.tid; return; }
-    if (k === 'code') { const c = el.querySelector('#utCode').value.trim(); if (c) openCode(c); return; }
-    if (k === 'ut-preset') {
-      const p = a.dataset.p, $ = (id) => el.querySelector('#' + id);
-      el.dataset.fmt = p === 'wc' ? 'wc' : 'league';
-      $('cfWcBox').hidden = p !== 'wc';
-      if (p === 'ucl') { $('cfPlayoff').value = '8'; if (+$('cfMax').value < 8) $('cfMax').value = '16'; }
-      else if (p === 'league') $('cfPlayoff').value = '0';
-      if (p === 'wc' && +$('cfMax').value < 16) $('cfMax').value = '16';
-      $('cfRounds').value = '16';
-      el.querySelectorAll('.ut-preset').forEach((b) => b.classList.toggle('on', b.dataset.p === p));
-      return;
-    }
+    if (k === 'code') { const c = el.querySelector('#utCode').value.trim(); if (c) openCode(c); return; }
+    if (k === 'ut-preset') {
+      const p = a.dataset.p, $ = (id) => el.querySelector('#' + id);
+      el.dataset.fmt = p === 'wc' ? 'wc' : 'league';
+      $('cfWcBox').hidden = p !== 'wc';
+      if (p === 'ucl') { $('cfPlayoff').value = '8'; if (+$('cfMax').value < 8) $('cfMax').value = '16'; }
+      else if (p === 'league') $('cfPlayoff').value = '0';
+      if (p === 'wc' && +$('cfMax').value < 16) $('cfMax').value = '16';
+      $('cfRounds').value = '16';
+      el.querySelectorAll('.ut-preset').forEach((b) => b.classList.toggle('on', b.dataset.p === p));
+      return;
+    }
 
     if (k === 'mk') {
       const g = (id) => el.querySelector('#' + id).value, name = g('cfName').trim();

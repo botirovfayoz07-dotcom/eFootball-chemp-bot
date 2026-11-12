@@ -397,6 +397,9 @@ app.get('/api/unread', ah(async (req, res) => {
   const agg = ms.length ? await ChatMessage.aggregate([{ $match: { kind: 'match', key: { $in: [...leagueOf.keys()] }, readBy: { $ne: u.id } } }, { $group: { _id: '$key', n: { $sum: 1 } } }]) : [];
   const byLeague = {};
   agg.forEach((x) => { const lg = leagueOf.get(x._id); if (lg) byLeague[lg] = (byLeague[lg] || 0) + x.n; });
+  // Qizil belgi: raqib kiritgan, lekin hali tasdiqlanmagan natijalar (siz tasdiqlashingiz kerak)
+  const waiting = await Match.find({ season, league: { $in: regs.map((r) => r.league) }, status: 'pending', reportedBy: { $ne: u.id }, $or: [{ home: u.id }, { away: u.id }] }).select('league').lean();
+  waiting.forEach((m) => { byLeague[m.league] = (byLeague[m.league] || 0) + 1; });
   const clubs = {};
   let total = 0;
   regs.forEach((r) => { const n = byLeague[r.league] || 0; clubs[r.league + '|' + r.club] = n; total += n; });

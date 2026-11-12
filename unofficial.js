@@ -8,6 +8,7 @@ const UT_AUTO_DRAW_MIN = 15;
 const TMatch = require('./models/TMatch');
 const FX = require('./fixtures');
 const { logCoins } = require('./lib/economy');
+const { nationById } = require('./webapp/nations');   // JCH: milliy jamoalar ro'yxati
 
 // Norasmiy turnir yaratish narxi (coin). 550 coin = 20 000 so'm paketi (shop-data.js). Adminlar bepul yaratadi.
 const UT_CREATE_COST = 550;
@@ -273,6 +274,11 @@ module.exports = function mount(app, d) {
   app.post('/api/ut/:id/join', auth, ah(async (req, res) => {
     if (!validId(req.params.id)) return res.status(400).json({ error: 'fail' });
     const u = req.u, team = clean(req.body?.team, 20);
+    const pre = await Tournament.findById(req.params.id).select('format players').lean();
+    if (pre?.format === 'wc') {
+      if (!nationById[team]) return res.status(400).json({ error: 'country' });
+      if ((pre.players || []).some((p) => p.team === team)) return res.status(409).json({ error: 'taken' });
+    }
     const t = await Tournament.findOneAndUpdate({ _id: req.params.id, status: 'open', 'players.telegramId': { $ne: u.id }, $expr: { $lt: [{ $size: '$players' }, '$maxPlayers'] } }, { $push: { players: { telegramId: u.id, team } } }, { new: true }).lean();
     if (t) return res.json({ ok: true });
     const cur = await Tournament.findById(req.params.id).lean();
@@ -401,6 +407,10 @@ module.exports = function mount(app, d) {
     if (!q) return res.status(400).json({ error: 'fail' });
     if (t.status === 'playoff' || t.status === 'finished') return res.status(409).json({ error: 'locked' });
     if (t.format === 'wc' && t.status === 'league') return res.status(409).json({ error: 'locked' });   // JCH: guruhlar qura bilan belgilangan
+    if (t.format === 'wc') {
+      if (!nationById[team]) return res.status(400).json({ error: 'country' });
+      if ((t.players || []).some((p) => p.team === team)) return res.status(409).json({ error: 'taken' });
+    }
     const usr = /^\d+$/.test(q) ? await User.findOne({ telegramId: Number(q) }).lean() : await User.findOne({ username: new RegExp('^' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }).lean();
     if (!usr) return res.status(404).json({ error: 'nouser' });
     const nt = await Tournament.findOneAndUpdate({ _id: t._id, status: { $in: ['open', 'league'] }, 'players.telegramId': { $ne: usr.telegramId }, $expr: { $lt: [{ $size: '$players' }, '$maxPlayers'] } }, { $push: { players: { telegramId: usr.telegramId, team } } }, { new: true }).lean();

@@ -61,6 +61,7 @@
     const m = e.target.closest('[data-mode]');
     if (m?.dataset.mode === 'leagues') { location.hash = '#league'; return; }
     if (m?.dataset.mode === 'cl') { location.hash = '#ucl'; return; }
+    if (m?.dataset.mode === 'world') { location.hash = '#unofficial'; return; }   // JCH: norasmiy bo'lim (JCH formati bilan turnir yaratiladi)
     if (m) { tg?.HapticFeedback?.impactOccurred('light'); toast(window.I18N[lang].soon); } // bo'limlar keyingi qismlarda
   });
   $('#admin').addEventListener('click', (e) => { if (e.target.closest('[data-back]') || e.target.closest('[data-act="adm-back"]')) go(''); });

@@ -267,3 +267,75 @@ main.page .carousel > .card { flex: none; width: 100%; min-height: 168px; }
 .r-gh { margin: 4px 2px 6px; font: 700 14px 'Rajdhani', sans-serif; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
 .ut-wc { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
 .ut-wc[hidden] { display: none; }
+
+/* ===== Norasmiy turnirlar: yangi dizayn (#unofficial) ===== */
+#unofficial { padding-bottom: 96px; }
+#unofficial .page.l-page { max-width: 760px; margin: 0 auto; }
+#unofficial .back { border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); border-radius: 14px; padding: 9px 14px; color: #e8f1ff; font: 600 14px 'Rajdhani', sans-serif; letter-spacing: .04em; }
+
+/* Ro'yxat kartalari */
+#unofficial .ut-card { position: relative; overflow: hidden; border-radius: 20px; padding: 16px 16px; background: linear-gradient(135deg, rgba(20,34,68,.92), rgba(16,14,48,.92)); border: 1px solid rgba(255,255,255,.09); box-shadow: 0 16px 34px -22px rgba(63,216,255,.55); transition: transform .15s, border-color .15s; }
+#unofficial .ut-card:active { transform: scale(.985); }
+#unofficial .ut-card::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: linear-gradient(180deg, #3fd8ff, #8b5cf6); }
+#unofficial .ut-card b { font: 700 19px 'Rajdhani', sans-serif; letter-spacing: .02em; color: #f2f7ff; }
+#unofficial .ut-card small { color: rgba(214,228,255,.7); font-size: 12.5px; }
+#unofficial .ut-ico { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; background: linear-gradient(135deg, rgba(63,216,255,.2), rgba(139,92,246,.25)); border: 1px solid rgba(255,255,255,.1); }
+
+/* Sarlavha (hero) */
+#unofficial .ut-hero { position: relative; overflow: hidden; border-radius: 22px; padding: 18px; margin-bottom: 14px; background: radial-gradient(120% 140% at 0% 0%, rgba(63,216,255,.32), transparent 55%), radial-gradient(120% 140% at 100% 100%, rgba(139,92,246,.4), transparent 60%), linear-gradient(135deg, #0b1d3a, #14113a); border: 1px solid rgba(255,255,255,.1); box-shadow: 0 18px 40px -22px rgba(63,216,255,.5); }
+#unofficial .ut-hero b, #unofficial .ut-hero h2 { font: 700 26px/1.1 'Rajdhani', sans-serif; letter-spacing: .02em; color: #f5faff; }
+#unofficial .ut-hero small { color: rgba(214,228,255,.75); }
+
+/* Yorliqlar va holat */
+#unofficial .ut-tag, #unofficial .ut-st { display: inline-block; font: 600 11px/1 'Rajdhani', sans-serif; letter-spacing: .1em; text-transform: uppercase; padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); color: #d9ecff; }
+#unofficial .ut-st.live, #unofficial .ut-tag.hot { background: linear-gradient(90deg, #8b5cf6, #3fd8ff); color: #071420; border-color: transparent; font-weight: 700; }
+
+/* Forma */
+#unofficial .ut-form { gap: 14px; padding: 16px; border-radius: 22px; background: rgba(16,26,52,.85); border: 1px solid rgba(255,255,255,.08); }
+#unofficial .ut-form label { font: 600 13px 'Rajdhani', sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #9fdcff; gap: 6px; }
+#unofficial .ut-form input, #unofficial .ut-form select { border-radius: 14px; border: 1px solid rgba(255,255,255,.12); background: rgba(5,12,30,.7); color: #f2f7ff; padding: 12px 14px; font: 500 15px 'Inter', sans-serif; text-transform: none; letter-spacing: 0; }
+#unofficial .ut-form input:focus, #unofficial .ut-form select:focus { outline: none; border-color: #3fd8ff; box-shadow: 0 0 0 3px rgba(63,216,255,.18); }
+#unofficial .ut-form .l-reg { border: 0; border-radius: 16px; padding: 14px; font: 700 16px 'Rajdhani', sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #071420; background: linear-gradient(90deg, #3fd8ff, #8b5cf6); box-shadow: 0 12px 26px -12px rgba(63,216,255,.7); }
+#unofficial .ut-hint { font-size: 12px; color: rgba(214,228,255,.6); }
+#unofficial .ut-presets { gap: 10px; }
+#unofficial .ut-preset { flex: 1 1 150px; border-radius: 16px; padding: 12px 10px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); font: 700 14px 'Rajdhani', sans-serif; letter-spacing: .05em; color: #e4f1ff; }
+#unofficial .ut-preset.on { background: linear-gradient(90deg, #8b5cf6, #3fd8ff); color: #071420; border-color: transparent; box-shadow: 0 10px 22px -12px rgba(63,216,255,.8); }
+#unofficial .ut-wc { gap: 10px; }
+
+/* Jadvallar */
+#unofficial .r-wrap { border-radius: 20px; overflow-x: auto; background: rgba(12,22,46,.7); border: 1px solid rgba(255,255,255,.08); }
+#unofficial .r-table { min-width: 0; width: 100%; font-size: 14px; }
+#unofficial .r-table th { font: 600 12px 'Rajdhani', sans-serif; letter-spacing: .1em; text-transform: uppercase; color: rgba(214,228,255,.55); padding: 12px 6px; }
+#unofficial .r-table td { padding: 11px 6px; font: 500 14px 'Inter', sans-serif; color: #e7f0ff; }
+#unofficial .r-table td.pl b { font: 600 15px 'Rajdhani', sans-serif; letter-spacing: .02em; }
+#unofficial .r-table td.pl small { font-size: 11px; color: rgba(214,228,255,.55); }
+#unofficial .r-table td.hl { font: 700 17px 'Rajdhani', sans-serif; color: #7ee8ff; }
+#unofficial .r-table tr.gold td { background: linear-gradient(90deg, rgba(251,191,36,.16), transparent); }
+#unofficial .r-table tr.silver td { background: linear-gradient(90deg, rgba(180,195,230,.12), transparent); }
+#unofficial .r-table tr.bronze td { background: linear-gradient(90deg, rgba(205,127,50,.14), transparent); }
+#unofficial .r-table .pos { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 9px; font: 700 13px 'Rajdhani', sans-serif; background: rgba(255,255,255,.07); color: #cfe6ff; }
+#unofficial .r-table .pos.cl { background: linear-gradient(135deg, #22c55e, #4ade80); color: #052e16; }
+
+/* JCH guruhlari */
+#unofficial .r-groups { gap: 14px; }
+#unofficial .r-gh { font: 700 15px 'Rajdhani', sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #9fdcff; margin: 2px 4px 8px; }
+
+/* O'yin kartalari */
+#unofficial .gm-row, #unofficial .ut-m { border-radius: 18px; padding: 12px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09); }
+#unofficial .gm-btn { border-radius: 14px; font: 700 14px 'Rajdhani', sans-serif; letter-spacing: .06em; text-transform: uppercase; padding: 11px 14px; }
+#unofficial .gm-btn.ok { background: linear-gradient(90deg, #22c55e, #4ade80); color: #052e16; }
+#unofficial .gm-btn.bad { background: linear-gradient(90deg, #ef4444, #f87171); }
+#unofficial .gm-btn.ghost { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.14); color: #d9ecff; }
+#unofficial .gm-note, #unofficial .empty { color: rgba(214,228,255,.6); }
+
+/* Bo'limlar sarlavhasi */
+#unofficial .g-label span { font: 700 14px 'Rajdhani', sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #9fdcff; }
+#unofficial .g-card { border-radius: 22px; }
+
+/* Qizil belgilar: o'qilmagan xabar va tasdiq kutayotgan o'yinlar */
+.nav-badge, .mc-badge, .gm-badge {
+  background: linear-gradient(180deg, #ff4d5e, #e11d48) !important; color: #fff !important;
+  box-shadow: 0 0 0 2px rgba(7,20,32,.9), 0 4px 10px -2px rgba(225,29,72,.7) !important;
+  font: 700 11px/1 'Rajdhani', sans-serif !important; min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-style: normal;
+}
