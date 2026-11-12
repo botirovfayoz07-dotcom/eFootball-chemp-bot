@@ -7,6 +7,12 @@ const Tournament = require('./models/Tournament');
 const UT_AUTO_DRAW_MIN = 15;
 const TMatch = require('./models/TMatch');
 const FX = require('./fixtures');
+const { logCoins } = require('./lib/economy');
+
+// Norasmiy turnir yaratish narxi (coin). 550 coin = 20 000 so'm paketi (shop-data.js). Adminlar bepul yaratadi.
+const UT_CREATE_COST = 550;
+// Qura o'tmasa, shu vaqtdan keyin turnir bekor qilinadi (to'lov qaytariladi)
+const UT_MAX_WAIT_MIN = 60;
 
 const goal = (v) => Number.isInteger(v) && v >= 0 && v <= 99;
 const validId = (id) => mongoose.isValidObjectId(id);
@@ -169,14 +175,28 @@ module.exports = function mount(app, d) {
     const maxPlayers = Number(b.maxPlayers), rounds = Number(b.rounds), playoff = Number(b.playoff), roundDays = Number(b.roundDays);
     if (name.length < 2 || !Number.isInteger(maxPlayers) || maxPlayers < 2 || maxPlayers > 64 || !Number.isInteger(rounds) || rounds < 1 || rounds > 30 || ![0, 2, 4, 8, 16].includes(playoff) || playoff > maxPlayers || ![1, 2, 3, 5, 7].includes(roundDays)) return res.status(400).json({ error: 'fail' });
     if (!ADMINS.includes(req.u.id) && (await Tournament.countDocuments({ ownerId: req.u.id, status: { $ne: 'finished' } })) >= 3) return res.status(409).json({ error: 'limit' });
-    for (let i = 0; i < 5; i++) {
-      try {
-        const t = await Tournament.create({ name, maxPlayers, rounds, playoff, roundDays, ownerId: req.u.id, code: crypto.randomBytes(3).toString('hex').toUpperCase(), drawAt: new Date(Date.now() + UT_AUTO_DRAW_MIN * 60 * 1000) });
-        return res.json({ ok: true, id: String(t._id) });
-      } catch (e) { if (e.code !== 11000) throw e; }
+    // Narx: adminlardan tashqari hamma uchun coin yechiladi (shartli: balans yetmasa hech narsa o'zgarmaydi)
+    const staff = ADMINS.includes(req.u.id);
+    let charged = 0;
+    if (!staff) {
+      const dec = await User.findOneAndUpdate({ telegramId: req.u.id, coins: { $gte: UT_CREATE_COST } }, { $inc: { coins: -UT_CREATE_COST } }, { new: true }).lean();
+      if (!dec) return res.status(402).json({ error: 'noCoins', cost: UT_CREATE_COST });
+      charged = UT_CREATE_COST;
     }
-    res.status(500).json({ error: 'fail' });
+    const refund = async (why) => { if (!charged) return; await User.updateOne({ telegramId: req.u.id }, { $inc: { coins: charged } }); await logCoins(req.u.id, charged, 'ut_refund', why, null, 'turnir yaratilmadi'); };
+    let t = null;
+    try {
+      for (let i = 0; i < 5 && !t; i++) {
+        try {
+          t = await Tournament.create({ name, maxPlayers, rounds, playoff, roundDays, ownerId: req.u.id, paid: charged, code: crypto.randomBytes(3).toString('hex').toUpperCase(), drawAt: new Date(Date.now() + UT_AUTO_DRAW_MIN * 60 * 1000) });
+        } catch (e) { if (e.code !== 11000) throw e; }
+      }
+    } catch (e) { await refund('create-error'); throw e; }
+    if (!t) { await refund('code-collision'); return res.status(500).json({ error: 'fail' }); }
+    if (charged) await logCoins(req.u.id, -charged, 'ut_create', String(t._id));
+    res.json({ ok: true, id: String(t._id) });
   }));
+
 
   app.get('/api/ut/code/:code', auth, ah(async (req, res) => {
     const t = await Tournament.findOne({ code: clean(req.params.code, 12).toUpperCase() }).lean();
@@ -333,7 +353,9 @@ module.exports = function mount(app, d) {
   }));
   app.post('/api/ut/:id/delete', auth, ah(async (req, res) => {
     const t = await mgrT(req, res); if (!t) return;
+    const refundAmt = t.status === 'open' && t.paid > 0 ? t.paid : 0;
     await TMatch.deleteMany({ tournament: t._id }); await Tournament.deleteOne({ _id: t._id });
+    if (refundAmt) { await User.updateOne({ telegramId: t.ownerId }, { $inc: { coins: refundAmt } }); await logCoins(t.ownerId, refundAmt, 'ut_refund', String(t._id), null, 'turnir o\'chirildi'); }
     res.json({ ok: true });
   }));
 
@@ -351,6 +373,13 @@ module.exports = function mount(app, d) {
     for (const t of due) {
       const r = await performDraw(t._id);
       if (r.ok) { notify(t.ownerId, t._id, 'drawn', t.name); continue; }
+      if (r.error === 'few' && Date.now() - new Date(t.createdAt).getTime() > UT_MAX_WAIT_MIN * 60 * 1000) {
+        // Ishtirokchi yig'ilmadi: turnir bekor qilinadi, to'langan coin qaytariladi
+        await TMatch.deleteMany({ tournament: t._id }); await Tournament.deleteOne({ _id: t._id });
+        if (t.paid > 0) { await User.updateOne({ telegramId: t.ownerId }, { $inc: { coins: t.paid } }); await logCoins(t.ownerId, t.paid, 'ut_refund', String(t._id), null, 'ishtirokchi yig\'ilmadi'); }
+        bot.telegram.sendMessage(t.ownerId, `⚠️ «${t.name}»: ishtirokchilar yig'ilmadi, turnir bekor qilindi${t.paid > 0 ? ' va coin qaytarildi' : ''}.`).catch(() => {});
+        continue;
+      }
       if (r.error === 'few') {
         // Ishtirokchi yetmadi: qurani 15 daqiqaga ko'chiramiz, turnir ochiq qoladi
         await Tournament.updateOne({ _id: t._id }, { $set: { drawAt: new Date(Date.now() + UT_AUTO_DRAW_MIN * 60 * 1000) } });

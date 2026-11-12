@@ -12,6 +12,7 @@ const schema = new mongoose.Schema({
   roundDays: { type: Number, default: 1 },         // bir tur necha kun (muddat har kuni 23:59 Toshkent)
   status: { type: String, enum: ['open', 'league', 'playoff', 'finished'], default: 'open' },
   drawAt: { type: Date, default: null },
+  paid: { type: Number, default: 0 },          // yaratish uchun to'langan coin (adminlarda 0)
   startedAt: { type: Date, default: null },
   champion: { type: Number, default: null },
   notified: { type: [String], default: [] },       // yuborilgan eslatmalar (h3:<bosqich>:<tur>)

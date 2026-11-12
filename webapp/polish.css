@@ -185,3 +185,4 @@ main.page .carousel > .card { flex: none; width: 100%; min-height: 168px; }
 .ucl-table th, .ucl-table td { padding: 6px 4px; text-align: center; }
 .ucl-table td.l { text-align: left; }
 .ucl-table tr.q { background: rgba(80,200,120,.14); }
+.ut-hint { font-size: 12px; opacity: .75; margin: 6px 0 0; }

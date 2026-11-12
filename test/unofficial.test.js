@@ -15,3 +15,17 @@ test('ishtirokchi yetmasa qura o\'chirilmaydi, qayta rejalashtiriladi', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', 'unofficial.js'), 'utf8');
   assert.match(src, /if \(r\.error === 'few'\) \{/);
 });
+
+test('norasmiy turnir yaratish 550 coin, adminlar bepul', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'unofficial.js'), 'utf8');
+  assert.match(src, /const UT_CREATE_COST = 550;/);
+  assert.match(src, /if \(!staff\) \{/);
+  assert.match(src, /status\(402\)\.json\(\{ error: 'noCoins'/);
+});
+
+test('turnir o\'chirilganda yoki yaratilmaganda to\'lov qaytariladi', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'unofficial.js'), 'utf8');
+  assert.match(src, /const refund = async/);
+  assert.match(src, /refund\('create-error'\)/);
+  assert.match(src, /refundAmt = t\.status === 'open' && t\.paid > 0/);
+});

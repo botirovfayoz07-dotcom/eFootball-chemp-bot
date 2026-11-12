@@ -1,7 +1,7 @@
 // Do'kon ma'lumotlari: Coins paketlari va kosmetika. Brauzer (window.SHOP) va server (require) uchun umumiy.
 (function (root) {
   // Coins paketlari: [coins, narxi (UZS)] — narxlarni shu yerda o'zgartiring
-  const PACKS = [[100, 7000], [300, 12000], [500, 18000], [800, 25000], [1000, 33000], [1500, 40000], [1800, 45000], [2000, 50000], [2500, 63000], [3000, 72000]]
+  const PACKS = [[100, 7000], [300, 12000], [500, 18000], [550, 20000], [800, 25000], [1000, 33000], [1500, 40000], [1800, 45000], [2000, 50000], [2500, 63000], [3000, 72000]]
     .map(([coins, uzs]) => ({ id: 'p' + coins, coins, uzs }));
 
   // Kosmetika faqat ko'rinish uchun (profil ramkasi va foni). price — Coins.
