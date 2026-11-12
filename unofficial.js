@@ -350,9 +350,14 @@ module.exports = function mount(app, d) {
     const due = await Tournament.find({ status: 'open', drawAt: { $ne: null, $lte: new Date() } }).lean();
     for (const t of due) {
       const r = await performDraw(t._id);
-      if (!r.ok) await Tournament.updateOne({ _id: t._id }, { $set: { drawAt: null } });
-      if (r.ok) notify(t.ownerId, t._id, 'drawn', t.name);
-      else if (r.error === 'few') bot.telegram.sendMessage(t.ownerId, `⚠️ «${t.name}»: qura o'tkazilmadi — kamida 2 ishtirokchi kerak.`).catch(() => {});
+      if (r.ok) { notify(t.ownerId, t._id, 'drawn', t.name); continue; }
+      if (r.error === 'few') {
+        // Ishtirokchi yetmadi: qurani 15 daqiqaga ko'chiramiz, turnir ochiq qoladi
+        await Tournament.updateOne({ _id: t._id }, { $set: { drawAt: new Date(Date.now() + UT_AUTO_DRAW_MIN * 60 * 1000) } });
+        bot.telegram.sendMessage(t.ownerId, `⚠️ «${t.name}»: kamida 2 ishtirokchi kerak. Qura ${UT_AUTO_DRAW_MIN} daqiqadan keyin qayta uriniladi.`).catch(() => {});
+      } else {
+        await Tournament.updateOne({ _id: t._id }, { $set: { drawAt: null } });
+      }
     }
   }
   // Dedlaynga 3 soat qolganda: joriy turda hisobi tugamagan o'yinchilarga eslatma

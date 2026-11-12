@@ -185,6 +185,15 @@ window.ProfileView = (() => {
     } else {
       out = openGames.map(g => matchCard(lang, g, me, `${league} · ${g.round}-${lang === 'ru' ? 'тур' : lang === 'en' ? 'round' : 'tur'}`)).join('');
     }
+    // Chempionlar ligasi o'yinlari (faqat o'qish; hisobni admin kiritadi)
+    const uclMine = (st.ucl && st.ucl.mine) || [];
+    const uclStage = { league: { uz: 'Lig bosqichi', ru: 'Лиговый этап', en: 'League phase' }, qf: { uz: 'Chorak final', ru: '1/4 финала', en: 'Quarter-final' }, sf: { uz: 'Yarim final', ru: '1/2 финала', en: 'Semi-final' }, final: { uz: 'Final', ru: 'Финал', en: 'Final' } };
+    uclMine.forEach((m) => {
+      const sc = (m.hg != null && m.ag != null) ? `${m.mine ? m.hg : m.ag} : ${m.mine ? m.ag : m.hg}` : '—';
+      const stL = (uclStage[m.stage] || {})[lang] || (uclStage[m.stage] || {}).en || m.stage;
+      out += `<div class="gh-card"><div class="gh-cap"><span>🏆 ${esc(lang === 'ru' ? 'Лига чемпионов' : lang === 'en' ? 'Champions League' : 'Chempionlar ligasi')} · ${esc(stL)}</span>${m.matchNo ? `<b class="gh-mno">#${m.matchNo}</b>` : ''}</div>
+        <div class="gh-teams"><span>${esc(EFL.clubName(me.league, me.club))}</span><span class="gh-vs">${sc}</span><span>${esc(m.opponent)}</span></div></div>`;
+    });
     // Kubok o'yinlari pastda
     const c = st.cups;
     if (c && c.stages) {

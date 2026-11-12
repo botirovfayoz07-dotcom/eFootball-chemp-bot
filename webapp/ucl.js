@@ -10,7 +10,11 @@ window.UclView = (() => {
       champion: 'Champion', standings: 'League table', knockout: 'Knockout', mine: 'My matches', none: 'No matches yet',
       notStarted: 'The tournament has not started', vs: 'vs', pending: 'pending', err: 'Could not load', ph: 'Home', home: 'Home', away: 'Away' },
   };
-  const T2 = { ...T, ru: T.en };
+  T.ru = { title: 'Лига чемпионов', phase: { setup: 'Настройка', league: 'Лиговый этап', knockout: 'Плей-офф', finished: 'Завершён' },
+    stage: { league: 'Лиговый этап', qf: '1/4 финала', sf: '1/2 финала', final: 'Финал' },
+    champion: 'Чемпион', standings: 'Таблица лиги', knockout: 'Плей-офф', mine: 'Мои матчи', none: 'Матчей пока нет',
+    notStarted: 'Турнир ещё не начался', vs: 'против', pending: 'ожидается', err: 'Не удалось загрузить', ph: 'Домашний', home: 'Дома', away: 'В гостях' };
+  const T2 = T;
   let root = null, lang = 'uz', toastFn = () => {};
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const api = (path) => fetch(path, { headers: { 'Content-Type': 'application/json', 'x-init-data': window.Telegram?.WebApp?.initData || '' } })

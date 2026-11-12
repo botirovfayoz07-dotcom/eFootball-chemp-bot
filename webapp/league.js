@@ -284,7 +284,7 @@ window.LeagueView = (() => {
   const renderMe = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.html(lang, { clubs: prof.clubs, unread: unread.clubs, collection: prof.collection, equipped: prof.equipped, sel: meSel, openGame, supportUnread: prof.supportUnread, cups: prof.cups, staff: !!window.IS_STAFF })}</div>${nav(T[lang], 1)}`; };
   const openTg = (u) => { const url = 'https://t.me/' + u; if (tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank'); };
   window.addEventListener('staffready', () => { if (loaded && tab === 'me') renderMe(); });
-  const renderClub = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.gameTabHtml(lang, { clubs: prof.clubs, cups: prof.cups, unread: unread.clubs })}</div>${nav(T[lang], 2)}`; };
+  const renderClub = () => { el.innerHTML = `<div class="page l-page">${window.ProfileView.gameTabHtml(lang, { clubs: prof.clubs, cups: prof.cups, ucl: prof.ucl, unread: unread.clubs })}</div>${nav(T[lang], 2)}`; };
   const renderShop = () => { el.innerHTML = `<div class="page l-page">${window.ShopView.html(lang, { ...shop, lots })}</div>${nav(T[lang], 3)}`; };
   const renderAdmin = () => { el.innerHTML = `<div class="page l-page" id="adminHost"></div>${nav(T[lang], 'admin')}`; window.AdminView.show(el.querySelector('#adminHost'), toast, 'league'); };
   // ——— Qizil belgilar: raqib/ishtirokchidan o'qilmagan xabarlar soni ———
@@ -320,7 +320,7 @@ window.LeagueView = (() => {
   setInterval(loadUnread, 12000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadUnread(); });
 
-  async function loadProfile() { const [r, cs] = await Promise.all([api('/api/profile'), api('/api/cup/state')]); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {}, supportUnread: r.supportUnread || 0, cups: cs.ok ? cs : null }; window.AppBg.setOwn(prof.equipped.pbg); syncUnreadFromProfile(); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me' || tab === 'club') render(); if (autoSupport) { autoSupport = false; window.MatchView.openSupport(); } if (autoChat) { const cid = autoChat; autoChat = null; window.MatchView.openMatchChat(cid); } } }
+  async function loadProfile() { const [r, cs, ul] = await Promise.all([api('/api/profile'), api('/api/cup/state'), api('/api/ucl')]); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {}, supportUnread: r.supportUnread || 0, cups: cs.ok ? cs : null, ucl: ul.ok ? ul : null }; window.AppBg.setOwn(prof.equipped.pbg); syncUnreadFromProfile(); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me' || tab === 'club') render(); if (autoSupport) { autoSupport = false; window.MatchView.openSupport(); } if (autoChat) { const cid = autoChat; autoChat = null; window.MatchView.openMatchChat(cid); } } }
   async function loadLots() { const r = await api('/api/auctions'); if (r.ok) { lots = r.lots || []; if (tab === 'shop' && !modalOpen()) render(); } }
 
   // ——— Do'kon: Coins sotib olish, kosmetika, Sell (kubokni adminga sotish) ———

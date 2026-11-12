@@ -645,6 +645,7 @@ app.post('/api/admin/auction/config', adminOnly, ah(async (req, res) => {
   if ('auctionEnd' in (req.body || {})) $set.auctionEnd = auctionEnd ? new Date(auctionEnd) : null;
   if (typeof enabled === 'boolean') $set.enabled = enabled;
   if (Object.keys($set).length) await LeagueConfig.findOneAndUpdate({ season, league: 'auction' }, { $set }, { upsert: true });
+  await require('./lib/audit').audit((tgUser(req)?.id ?? 0), 'auction.config', season, $set);
   res.json({ ok: true });
 }));
 
@@ -668,6 +669,7 @@ app.post('/api/admin/auction/finalize', adminOnly, ah(async (req, res) => {
     );
     if (ok) done++;
   }
+  await require('./lib/audit').audit((tgUser(req)?.id ?? 0), 'auction.finalize', season, { done });
   res.json({ ok: true, done, finalized: done });
 }));
 
@@ -1011,22 +1013,18 @@ app.post('/api/matches/:id/confirm', ah(async (req, res) => {
   if (shot === false) return res.status(400).json({ error: 'badImage' });
   const cur = await Match.findOne({ _id: req.params.id, season, status: 'pending', reportedBy: { $ne: u.id }, $or: [{ home: u.id }, { away: u.id }] }).lean();
   if (!cur) return res.status(409).json({ error: 'gone' });
-  let fileId = '';
-  if (shot) {
-    const [ca, cb] = await Promise.all([whoIs(cur.league, cur.home), whoIs(cur.league, cur.away)]);
-    const sentShot = await sendResultShot(`📸 Tasdiqlash skrinshoti — ${EFL.trophyName(cur.league)}, ${cur.round}-tur\n${ca} — ${cb}\nHisob: ${cur.hg}:${cur.ag} (tasdiqladi: ${await whoIs(cur.league, u.id)})`, shot);
-    if (sentShot.ok) fileId = sentShot.fileId;
-  }
-  const setQuery = { status: 'confirmed', confirmedBy: 'player', updatedAt: new Date() };
-  const updateDoc = fileId
-    ? { $set: setQuery, $push: { proofs: { by: u.id, text: '', fileId, hg: cur.hg, ag: cur.ag, at: new Date() } } }
-    : { $set: setQuery };
+  // Avval holatni atomik tasdiqlaymiz; skrinshot faqat tasdiqlash muvaffaqiyatli bo'lgandan keyin yuboriladi
   const m = await Match.findOneAndUpdate(
     { _id: req.params.id, season, status: 'pending', reportedBy: { $ne: u.id }, $or: [{ home: u.id }, { away: u.id }] },
-    updateDoc,
+    { $set: { status: 'confirmed', confirmedBy: 'player', updatedAt: new Date() } },
     { new: true }
   ).lean();
   if (!m) return res.status(409).json({ error: 'gone' });
+  if (shot) {
+    const [ca, cb] = await Promise.all([whoIs(cur.league, cur.home), whoIs(cur.league, cur.away)]);
+    const sentShot = await sendResultShot(`📸 Tasdiqlash skrinshoti — ${EFL.trophyName(cur.league)}, ${cur.round}-tur\n${ca} — ${cb}\nHisob: ${cur.hg}:${cur.ag} (tasdiqladi: ${await whoIs(cur.league, u.id)})`, shot);
+    if (sentShot.ok) await Match.updateOne({ _id: m._id }, { $push: { proofs: { by: u.id, text: '', fileId: sentShot.fileId, hg: cur.hg, ag: cur.ag, at: new Date() } } });
+  }
   await recalc(m.league); // jadvalga avtomatik o'tadi
   const rep = m.reportedBy === m.home;
   notify(m.reportedBy, 'confirmed', await whoIs(m.league, u.id), rep ? m.hg : m.ag, rep ? m.ag : m.hg);
@@ -1046,18 +1044,22 @@ app.post('/api/matches/:id/dispute', ah(async (req, res) => {
   if (await roundGate(res, old.league, old.round)) return;
   const isHome = old.home === u.id, my = req.body?.my, opp = req.body?.opp, real = goal(my) && goal(opp);
   const proof = { by: u.id, text, fileId: '', hg: real ? (isHome ? my : opp) : null, ag: real ? (isHome ? opp : my) : null, at: new Date() };
-  const [a, b] = await Promise.all([whoIs(old.league, old.home), whoIs(old.league, old.away)]);
-  const cap = `⚠️ Bahsli o'yin — ${EFL.byId[old.league].name}, ${old.round}-tur\n${a} — ${b}\nKiritilgan hisob: ${old.hg}:${old.ag} («Yolg'on» deb belgilandi)\n${real ? `Raqib aytgan hisob: ${proof.hg}:${proof.ag}\n` : ''}${text ? `💬 Izoh: ${text}\n` : ''}${buf ? '📎 Skrinshot ilova qilingan\n' : ''}Natijani admin panelda kiriting.`;
-  const sent = await sendToAdmins(cap, buf);
-  if (!sent.ok) return res.status(502).json({ error: 'fail' });
-  proof.fileId = sent.fileId;
-  // Hisob bekor: jadvalga o'tmaydi, admin kiritadi. Kiritilgan hisob va isbot faqat admin ma'lumoti uchun saqlanadi.
+  // Avval holatni o'zgartiramiz (ikki marta bahs bo'lmasin), keyin adminga yuboramiz
   const m = await Match.findOneAndUpdate(
     { _id: old._id, status: 'pending', hg: old.hg, ag: old.ag, reportedBy: old.reportedBy },
     { $set: { status: 'disputed', claim: { hg: old.hg, ag: old.ag, by: old.reportedBy }, hg: null, ag: null, reportedBy: null, updatedAt: new Date() }, $push: { proofs: proof } },
     { new: true }
   ).lean();
   if (!m) return res.status(409).json({ error: 'gone' });
+  const [a, b] = await Promise.all([whoIs(old.league, old.home), whoIs(old.league, old.away)]);
+  const cap = `⚠️ Bahsli o'yin — ${EFL.byId[old.league].name}, ${old.round}-tur\n${a} — ${b}\nKiritilgan hisob: ${old.hg}:${old.ag} («Yolg'on» deb belgilandi)\n${real ? `Raqib aytgan hisob: ${proof.hg}:${proof.ag}\n` : ''}${text ? `💬 Izoh: ${text}\n` : ''}${buf ? '📎 Skrinshot ilova qilingan\n' : ''}Natijani admin panelda kiriting.`;
+  const sent = await sendToAdmins(cap, buf);
+  if (!sent.ok) {
+    // Admin xabari ketmadi: holatni oldingi holatiga qaytaramiz
+    await Match.updateOne({ _id: old._id, status: 'disputed' }, { $set: { status: 'pending', hg: old.hg, ag: old.ag, reportedBy: old.reportedBy, claim: null, updatedAt: new Date() }, $pull: { proofs: { by: u.id, at: proof.at } } });
+    return res.status(502).json({ error: 'fail' });
+  }
+  if (sent.fileId) await Match.updateOne({ _id: old._id, 'proofs.at': proof.at, 'proofs.by': u.id }, { $set: { 'proofs.$.fileId': sent.fileId } });
   notify(old.reportedBy, 'rejected', await whoIs(m.league, u.id));
   res.json({ ok: true });
 }));
