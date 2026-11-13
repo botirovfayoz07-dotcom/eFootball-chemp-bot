@@ -15,6 +15,7 @@ const FX = require('./fixtures');
 const EFL = require('./webapp/league-data');
 const SHOP = require('./webapp/shop-data');
 const Trophy = require('./models/Trophy');
+const GeneralAdmin = require('./models/GeneralAdmin');
 const Rule = require('./models/Rule');
 const CupPrice = require('./models/CupPrice');
 const ChatMessage = require('./models/ChatMessage');
@@ -137,21 +138,30 @@ const adminOnly = (req, res, next) => {
   if (!ADMINS.includes(u.id)) return res.status(403).json({ error: 'forbidden' });
   req.admin = u; next();
 };
+// Glava yoki umumiy admin: liga/klub/auksion/qoidalar/tozalash kabi boshqaruv amallari
+const coreOnly = async (req, res, next) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  if (!ADMINS.includes(u.id) && !(await GeneralAdmin.exists({ telegramId: u.id }))) return res.status(403).json({ error: 'forbidden' });
+  req.admin = u; next();
+};
 // Yordamchi admin: katta admin (ADMINS) hammasini, yordamchi faqat o'ziga biriktirilgan ligani boshqaradi
 const staffOnly = async (req, res, next) => {
   try {
     const u = tgUser(req);
     if (!u) return res.status(401).json({ error: 'auth' });
     req.admin = u;
-    req.superAdmin = ADMINS.includes(u.id);
-    if (req.superAdmin) return next();
+    req.fullScope = ADMINS.includes(u.id);                       // glava admin
+    req.general = !req.fullScope && !!(await GeneralAdmin.exists({ telegramId: u.id }));   // umumiy admin
+    req.fullScope = req.fullScope || req.general;                // hamma ligaga kirish
+    if (req.fullScope) return next();
     req.helperLeagues = (await LeagueHelper.find({ telegramId: u.id }).lean()).map((h) => h.league);
     if (!req.helperLeagues.length) return res.status(403).json({ error: 'forbidden' });
     next();
   } catch (e) { next(e); }
 };
 const canLeague = (req, league) => {
-  if (req.superAdmin) return true;
+  if (req.fullScope) return true;
   const hl = req.helperLeagues || [];
   if (hl.includes(league)) return true;
   const f = cupLogic.FAMILIES[league] || cupLogic.familyOfKey(league);
@@ -648,7 +658,7 @@ app.post('/api/auction/bid', ah(async (req, res) => {
 }));
 
 // Auksion holatini tekshirish va yakunlash — faqat katta admin
-app.post('/api/admin/auction/config', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/auction/config', coreOnly, ah(async (req, res) => {
   const { auctionEnd, enabled } = req.body || {};
   const $set = {};
   if ('auctionEnd' in (req.body || {})) $set.auctionEnd = auctionEnd ? new Date(auctionEnd) : null;
@@ -658,21 +668,21 @@ app.post('/api/admin/auction/config', adminOnly, ah(async (req, res) => {
   res.json({ ok: true });
 }));
 
-app.get('/api/admin/auction/config', adminOnly, ah(async (req, res) => {
+app.get('/api/admin/auction/config', coreOnly, ah(async (req, res) => {
   const cfg = await LeagueConfig.findOne({ season, league: 'auction' }).lean();
   res.json({ ok: true, auctionEnd: cfg?.auctionEnd || null, enabled: cfg?.enabled !== false });
 }));
 
 // Auksionni yakunlash: oxirgi bidder ga klub o'tkazish (faqat katta admin, barcha ligalar)
 // Admin: klubni auksionga qo'yish (istalgan klub, narxni o'zi belgilaydi). Eski taklif bo'lsa, egasiga qaytariladi.
-app.get('/api/admin/auction/clubs', adminOnly, ah(async (req, res) => {
+app.get('/api/admin/auction/clubs', coreOnly, ah(async (req, res) => {
   const league = String(req.query.league || '');
   if (!EFL.byId[league]) return res.status(400).json({ error: 'fail' });
   const regs = await Registration.find({ season, league }).lean();
   const names = new Map((await User.find({ telegramId: { $in: regs.map((r) => r.telegramId) } }).lean()).map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
   res.json({ ok: true, clubs: regs.map((r) => ({ club: r.club, name: EFL.clubName(league, r.club), tid: r.telegramId, user: names.get(r.telegramId) || '', vacant: !!r.vacant, owned: !!r.telegramId && !r.vacant, auction: r.auction?.price ? { price: r.auction.price, currentBid: r.auction.currentBid || 0 } : null })).sort((a, b) => a.name.localeCompare(b.name)) });
 }));
-app.post('/api/admin/auction/list', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/auction/list', coreOnly, ah(async (req, res) => {
   const { league, club } = req.body || {};
   const price = Math.floor(Number(req.body?.price));
   if (!EFL.byId[league] || !club) return res.status(400).json({ error: 'fail' });
@@ -685,7 +695,7 @@ app.post('/api/admin/auction/list', adminOnly, ah(async (req, res) => {
 }));
 
 // Admin: klubga odam qo'shish (bo'sh klub yoki egasi o'zgarishi). Egasi o'yin o'ynagan bo'lsa, almashtirilmaydi.
-app.post('/api/admin/club/assign', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/club/assign', coreOnly, ah(async (req, res) => {
   const { league, club } = req.body || {};
   const raw = String(req.body?.user || '').trim().replace(/^@/, '');
   if (!EFL.byId[league] || !club || !raw) return res.status(400).json({ error: 'fail' });
@@ -706,7 +716,7 @@ app.post('/api/admin/club/assign', adminOnly, ah(async (req, res) => {
 }));
 
 // Admin: klubni bo'shatish (egasi ketadi, klub bo'sh bo'ladi)
-app.post('/api/admin/club/vacate', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/club/vacate', coreOnly, ah(async (req, res) => {
   const { league, club } = req.body || {};
   const reg = await Registration.findOne({ season, league, club, vacant: { $ne: true } }).lean();
   if (!reg) return res.status(404).json({ error: 'fail' });
@@ -715,7 +725,31 @@ app.post('/api/admin/club/vacate', adminOnly, ah(async (req, res) => {
   res.json({ ok: true });
 }));
 
-app.post('/api/admin/auction/finalize', adminOnly, ah(async (req, res) => {
+// Umumiy adminlar (faqat glava admin boshqaradi)
+app.get('/api/admin/generals', adminOnly, ah(async (req, res) => {
+  const rows = await GeneralAdmin.find({}).sort({ addedAt: 1 }).lean();
+  const names = new Map((await User.find({ telegramId: { $in: rows.map((r) => r.telegramId) } }).lean()).map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
+  res.json({ ok: true, list: rows.map((r) => ({ telegramId: r.telegramId, name: names.get(r.telegramId) || '' })) });
+}));
+app.post('/api/admin/generals', adminOnly, ah(async (req, res) => {
+  const raw = String(req.body?.user || '').trim().replace(/^@/, '');
+  if (!raw) return res.status(400).json({ error: 'fail' });
+  const usr = /^\d+$/.test(raw) ? await User.findOne({ telegramId: Number(raw) }).lean() : await User.findOne({ username: new RegExp('^' + raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }).lean();
+  if (!usr) return res.status(404).json({ error: 'nouser' });
+  if (ADMINS.includes(usr.telegramId)) return res.status(409).json({ error: 'already' });   // glava allaqachon to'liq huquqli
+  await GeneralAdmin.updateOne({ telegramId: usr.telegramId }, { $setOnInsert: { addedBy: req.admin.id, addedAt: new Date() } }, { upsert: true });
+  await require('./lib/audit').audit(req.admin.id, 'general.add', String(usr.telegramId), {});
+  res.json({ ok: true });
+}));
+app.post('/api/admin/generals/remove', adminOnly, ah(async (req, res) => {
+  const tid = Number(req.body?.telegramId);
+  if (!Number.isInteger(tid)) return res.status(400).json({ error: 'fail' });
+  await GeneralAdmin.deleteOne({ telegramId: tid });
+  await require('./lib/audit').audit(req.admin.id, 'general.remove', String(tid), {});
+  res.json({ ok: true });
+}));
+
+app.post('/api/admin/auction/finalize', coreOnly, ah(async (req, res) => {
   const lots = await Registration.find({ season, 'auction.bidder': { $exists: true }, 'auction.currentBid': { $gt: 0 } }).lean();
   let done = 0;
   for (const lot of lots) {
@@ -807,7 +841,7 @@ async function sendSupport(league, text, buf) {
   return sendToIds(ADMINS, text, buf);
 }
 // Murojaatni ko'rish/javob berish huquqi: katta admin hammasini, yordamchi faqat o'z ligasini
-const supportOk = (req, league) => req.superAdmin || (!!league && (req.helperLeagues || []).includes(league));
+const supportOk = (req, league) => req.fullScope || (!!league && (req.helperLeagues || []).includes(league));
 const leagueNameOf = (id) => leagueOf(id)?.name || '';
 const tgName = (x) => (x?.username ? '@' + x.username : x?.firstName || '');
 
@@ -948,7 +982,7 @@ app.post('/api/shop/sell', limits.money, ah(async (req, res) => {
 }));
 
 // Admin: kubok (FA Cup / Copa del Rey) yoki supercup (Community Shield / Supercopa) g'olibiga kubok topshirish
-app.post('/api/admin/cup/award', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/cup/award', coreOnly, ah(async (req, res) => {
   const f = cupLogic.FAMILIES[req.body?.cup], kind = req.body?.kind === 'shield' ? 'shield' : 'cup';
   if (!f) return res.status(400).json({ error: 'fail' });
   let tid = 0;
@@ -974,7 +1008,7 @@ app.post('/api/admin/cup/award', adminOnly, ah(async (req, res) => {
 }));
 
 // Admin: ligada g'olib bo'lgan ishtirokchiga kubok topshirish
-app.post('/api/admin/league/:id/award', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/league/:id/award', coreOnly, ah(async (req, res) => {
   const league = EFL.byId[req.params.id], tid = Number(req.body?.telegramId);
   if (!league || !tid) return res.status(400).json({ error: 'fail' });
   if (!(await Registration.exists({ season, league: league.id, telegramId: tid }))) return res.status(404).json({ error: 'gone' });
@@ -1323,7 +1357,7 @@ app.get('/api/rules', ah(async (req, res) => {
   res.json({ canEdit: ADMINS.includes(u.id), rules: rows.map((r) => ({ id: String(r._id), title: r.title, text: r.text })) });
 }));
 const cleanRule = (b) => ({ title: String(b?.title || '').trim().slice(0, 80), text: String(b?.text || '').trim().slice(0, 8000) });
-app.post('/api/admin/rules', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/rules', coreOnly, ah(async (req, res) => {
   const d = cleanRule(req.body);
   if (!d.title) return res.status(400).json({ error: 'noTitle' });
   if (!d.text) return res.status(400).json({ error: 'noText' });
@@ -1331,7 +1365,7 @@ app.post('/api/admin/rules', adminOnly, ah(async (req, res) => {
   const r = await Rule.create({ ...d, order: (last?.order || 0) + 1, by: req.admin.id });
   res.json({ ok: true, id: String(r._id) });
 }));
-app.post('/api/admin/rules/:id', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/rules/:id', coreOnly, ah(async (req, res) => {
   if (!validId(req.params.id)) return res.status(400).json({ error: 'fail' });
   const d = cleanRule(req.body);
   if (!d.title) return res.status(400).json({ error: 'noTitle' });
@@ -1339,7 +1373,7 @@ app.post('/api/admin/rules/:id', adminOnly, ah(async (req, res) => {
   const r = await Rule.findByIdAndUpdate(req.params.id, { $set: { ...d, updatedAt: new Date() } });
   res.json(r ? { ok: true } : { error: 'gone' });
 }));
-app.post('/api/admin/rules/:id/delete', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/rules/:id/delete', coreOnly, ah(async (req, res) => {
   if (!validId(req.params.id)) return res.status(400).json({ error: 'fail' });
   await Rule.deleteOne({ _id: req.params.id });
   res.json({ ok: true });
@@ -1382,7 +1416,7 @@ app.get('/api/admin/matches/:id/chat', staffOnly, ah(async (req, res) => {
 
 // Admin: «Muammoli holatlar» murojaatlari
 app.get('/api/admin/support', staffOnly, ah(async (req, res) => {
-  const scope = req.superAdmin ? {} : { league: { $in: req.helperLeagues } };
+  const scope = req.fullScope ? {} : { league: { $in: req.helperLeagues } };
   const agg = await ChatMessage.aggregate([
     { $match: { kind: 'support', ...scope } }, { $sort: { at: -1 } },
     { $group: { _id: { key: '$key', league: { $ifNull: ['$league', ''] } }, last: { $first: '$$ROOT' }, unread: { $sum: { $cond: [{ $and: [{ $eq: ['$admin', false] }, { $eq: ['$adminRead', false] }] }, 1, 0] } } } },
@@ -1425,9 +1459,9 @@ app.get('/api/admin/overview', staffOnly, ah(async (req, res) => {
     const c = cfg.get(l.id), n = cnt[l.id] || { total: 0, confirmed: 0, action: 0 };
     return { id: l.id, name: l.name, group: l.group, max: l.max, closed: !!c?.closed, players: regs.filter((r) => r.league === l.id).length, drawAt: c?.drawAt || null, drawnAt: c?.drawnAt || null, rounds: c?.rounds || 2, roundDays: c?.roundDays || 7, roundDeadlines: dlMap[l.id] || {}, ...lockInfo(c, roundMax.get(l.id) || 0), ...n };
   });
-  const support = await ChatMessage.countDocuments({ kind: 'support', admin: false, adminRead: false, ...(req.superAdmin ? {} : { league: { $in: req.helperLeagues } }) });
-  const vis = req.superAdmin ? leagues : leagues.filter((l) => canLeague(req, l.id));
-  res.json({ leagues: vis, action: vis.reduce((s, l) => s + l.action, 0), support, superAdmin: req.superAdmin });
+  const support = await ChatMessage.countDocuments({ kind: 'support', admin: false, adminRead: false, ...(req.fullScope ? {} : { league: { $in: req.helperLeagues } }) });
+  const vis = req.fullScope ? leagues : leagues.filter((l) => canLeague(req, l.id));
+  res.json({ leagues: vis, action: vis.reduce((s, l) => s + l.action, 0), support, superAdmin: req.fullScope, role: req.superAdmin ? 'glava' : (req.general ? 'umumiy' : 'yordamchi') });
 }));
 
 // Yordamchi adminlar (faqat katta admin boshqaradi)
@@ -1504,7 +1538,7 @@ app.get('/api/admin/matches', staffOnly, ah(async (req, res) => {
     if (!canLeague(req, league)) return res.status(403).json({ error: 'forbidden' });
     q.league = league;
   }
-  else if (!req.superAdmin) q.league = { $in: req.helperLeagues };
+  else if (!req.fullScope) q.league = { $in: req.helperLeagues };
   if (status === 'action') q.status = { $in: ['disputed', 'pending'] };
   else if (['scheduled', 'confirmed', 'pending', 'disputed'].includes(status)) q.status = status;
   let [ms, total] = await Promise.all([Match.find(q).sort(status === 'action' ? { status: 1, updatedAt: 1 } : { round: 1, matchNo: 1, _id: 1 }).limit(searchQ ? 500 : 100).lean(), Match.countDocuments(q)]);
@@ -1530,7 +1564,7 @@ app.get('/api/admin/matches', staffOnly, ah(async (req, res) => {
 app.post('/api/admin/matches/:id/result', staffOnly, ah(async (req, res) => {
   const { hg, ag } = req.body || {};
   if (!validId(req.params.id) || !goal(hg) || !goal(ag)) return res.status(400).json({ error: 'badScore' });
-  if (!req.superAdmin) {
+  if (!req.fullScope) {
     const cur = await Match.findOne({ _id: req.params.id, season }).select('league').lean();
     if (!cur) return res.status(404).json({ error: 'gone' });
     if (!canLeague(req, cur.league)) return res.status(403).json({ error: 'forbidden' });
@@ -1631,7 +1665,7 @@ app.post('/api/admin/league/:id/draw-cancel', staffOnly, ah(async (req, res) => 
 }));
 // Bitta turning dedlayni: shu turdagi tugallanmagan o'yinlarga qo'yiladi (faqat belgilangan tur)
 // Liga yoki kubokni 0 dan boshlash: o'yinlar, natijalar, qura holati (ixtiyoriy: ro'yxat ham). Faqat katta admin.
-app.post('/api/admin/reset-data', adminOnly, ah(async (req, res) => {
+app.post('/api/admin/reset-data', coreOnly, ah(async (req, res) => {
   const { target, keepRegs, confirm } = req.body || {};
   if (confirm !== 'RESET') return res.status(400).json({ error: 'confirm' });
   const actor = (tgUser(req)?.id ?? 0);

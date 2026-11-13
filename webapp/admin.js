@@ -629,7 +629,10 @@ window.AdminView = (() => {
         ['cmgr', '🛠 Klub boshqaruvi'],
         ['clubs', '🏟 Klublar']
       ];
-      tabs = superAdmin ? globalTabs : globalTabs.filter(([k]) => k === 'tour' || k === 'clubs');
+      // glava: hammasi. umumiy: statistika, yordamchilar va kubok narxi yashirin. yordamchi: faqat tur va klublar
+      const isGlava = ov?.role === 'glava';
+      const hiddenForGeneral = ['stats', 'helpers', 'cups'];
+      tabs = superAdmin ? (isGlava ? globalTabs : globalTabs.filter(([k]) => !hiddenForGeneral.includes(k))) : globalTabs.filter(([k]) => k === 'tour' || k === 'clubs');
     }
 
     return `<div class="ad-tabs" style="margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;display:flex;gap:6px;padding-bottom:4px;">
@@ -686,7 +689,7 @@ window.AdminView = (() => {
     } else if (mainTab === 'broadcast') {
       content = broadcastHtml();
     } else if (mainTab === 'helpers') {
-      content = helpersHtml();
+      content = helpersHtml() + generalsHtml();
     } else if (mainTab === 'cups') {
       content = cupsHtml();
     } else if (mainTab === 'open') {
@@ -861,6 +864,23 @@ window.AdminView = (() => {
     render();
   }
 
+  // ——— Umumiy adminlar (faqat glava boshqaradi) ———
+  let generalsList = null;
+  function generalsHtml() {
+    if (ov?.role !== 'glava') return '';
+    const rows = generalsList ? (generalsList.length ? generalsList.map(function (g) {
+      return '<div class="ad-row" style="gap:6px;align-items:center;padding:4px 0;"><span style="flex:1;">' + esc(g.name || String(g.telegramId)) + ' <small class="ad-hint">' + g.telegramId + '</small></span><button class="ad-btn bad sm" data-act="gen-remove" data-tid="' + g.telegramId + '">Olib tashlash</button></div>';
+    }).join('') : '<p class="ad-hint">Umumiy admin yo\'q</p>') : '<p class="ad-hint">Yuklanmoqda…</p>';
+    return '<div class="g-card ad-lg" style="margin-top:12px;"><b>🧭 Umumiy adminlar</b><p class="ad-hint">Umumiy admin hamma ligani va klubni boshqaradi, lekin statistika, yordamchilar va kubok narxini ko\'ra olmaydi.</p>' +
+      rows + '<div class="ad-row" style="gap:6px;margin-top:8px;"><input id="genUser" placeholder="Telegram ID yoki @username" style="flex:1;"><button class="ad-btn ok sm" data-act="gen-add">Qo\'shish</button></div></div>';
+  }
+  async function loadGenerals() {
+    if (ov?.role !== 'glava') return;
+    const r = await api('/api/admin/generals');
+    generalsList = r.ok ? r.list : [];
+    render();
+  }
+
   // ——— Chempionlar ligasi (UCL) admin paneli ———
   function uclHtml() {
     if (!uclData) return '<p class="ad-hint">Yuklanmoqda…</p>';
@@ -978,6 +998,7 @@ window.AdminView = (() => {
       if (mainTab === 'auction') loadAuction();
       if (mainTab === 'ucl') loadUcl();
       if (mainTab === 'cmgr') loadCmgr();
+      if (mainTab === 'helpers') loadGenerals();
       return;
     }
     if (act === 'pick-league') {
@@ -1351,6 +1372,17 @@ window.AdminView = (() => {
       if (!(await confirmBox("Hammasi o'chadi: o'yinlar, natijalar, reyting, klub egalari. Liga ro'yxatdan o'tishga qaytadi. Davom etasizmi?"))) return;
       const r = await post('/api/admin/reset-data', { target, confirm: 'RESET' });
       return done(r, `Tozalandi: ${r.matches || 0} ta o'yin${r.refunded ? ', ' + r.refunded + ' ta taklif qaytarildi' : ''} ♻️`, loadMatches);
+    }
+    if (act === 'gen-add') {
+      const user = (el.querySelector('#genUser') || {}).value || '';
+      if (!user.trim()) return toast('Telegram ID yoki @username kiriting');
+      const r = await post('/api/admin/generals', { user: user.trim() });
+      return done(r, "Umumiy admin qo'shildi ✅", loadGenerals);
+    }
+    if (act === 'gen-remove') {
+      if (!(await confirmBox("Bu umumiy adminni olib tashlaysizmi?"))) return;
+      const r = await post('/api/admin/generals/remove', { telegramId: Number(btn.dataset.tid) });
+      return done(r, 'Olib tashlandi', loadGenerals);
     }
     if (act === 'cm-load') {
       cmgr.league = el.querySelector('#cmLeague').value;
