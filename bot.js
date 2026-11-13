@@ -1604,7 +1604,8 @@ app.post('/api/admin/reset-data', adminOnly, ah(async (req, res) => {
   const { target, keepRegs, confirm } = req.body || {};
   if (confirm !== 'RESET') return res.status(400).json({ error: 'confirm' });
   const actor = (tgUser(req)?.id ?? 0);
-  const fam = cupLogic.fam(target) || cupLogic.familyOfKey(target);
+  // Faqat aniq kubok kaliti bo'lsa kubok hisoblanadi (cupLogic.fam har doim qiymat qaytaradi — undan foydalanilmaydi)
+  const fam = cupLogic.FAMILIES[target] || cupLogic.familyOfKey(target) || null;
   const keys = fam ? [fam.id, fam.shieldKey, fam.shieldId].filter(Boolean) : [String(target || '')];
   if (!fam && !EFL.byId[target]) return res.status(400).json({ error: 'fail' });
   let refunded = 0;
