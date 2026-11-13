@@ -275,10 +275,9 @@ window.AdminView = (() => {
     const resetBox = function (target, name) {
       return '<div class="g-card ad-lg" style="margin-top:12px;border:1px solid rgba(239,68,68,.45);">' +
         '<b style="color:#f87171;">⚠️ ' + esc(name) + ': ma\'lumotlarni tozalash</b>' +
-        '<p class="ad-hint">O\'yinlar, natijalar va qura holati o\'chiriladi, 0 dan boshlanadi. Bu amalni qaytarib bo\'lmaydi.</p>' +
+        '<p class="ad-hint">O\'yinlar, natijalar, reyting, klub egalari va qura holati o\'chadi. Liga ro\'yxatdan o\'tishga qaytadi (0 dan). Qaytarib bo\'lmaydi.</p>' +
         '<div class="ad-row" style="gap:6px;flex-wrap:wrap;">' +
-        '<button class="ad-btn bad sm" data-act="reset-data" data-keep="1" data-target="' + esc(target) + '">Natijalarni tozalash (ro\'yxat qoladi)</button>' +
-        '<button class="ad-btn bad sm" data-act="reset-data" data-keep="0" data-target="' + esc(target) + '">Hammasini o\'chirish (ro\'yxat ham)</button>' +
+        '<button class="ad-btn bad sm" data-act="reset-data" data-target="' + esc(target) + '">Hammasini tozalash (0 dan boshlash)</button>' +
         '</div></div>';
     };
     const cupObj = (typeof cupsList !== 'undefined' && Array.isArray(cupsList)) ? cupsList.find(function (c) { return c.id === curCup; }) : null;
@@ -1308,9 +1307,9 @@ window.AdminView = (() => {
     }
 
     if (act === 'reset-data') {
-      const target = btn.dataset.target, keep = btn.dataset.keep === '1';
-      if (!(await confirmBox(keep ? "Liga/kubokning o'yinlari va natijalari o'chiriladi, ro'yxat qoladi. Davom etasizmi?" : "Liga/kubok va ro'yxat BUTUNLAY o'chiriladi. Davom etasizmi?"))) return;
-      const r = await post('/api/admin/reset-data', { target, keepRegs: keep, confirm: 'RESET' });
+      const target = btn.dataset.target;
+      if (!(await confirmBox("Hammasi o'chadi: o'yinlar, natijalar, reyting, klub egalari. Liga ro'yxatdan o'tishga qaytadi. Davom etasizmi?"))) return;
+      const r = await post('/api/admin/reset-data', { target, confirm: 'RESET' });
       return done(r, `Tozalandi: ${r.matches || 0} ta o'yin${r.refunded ? ', ' + r.refunded + ' ta taklif qaytarildi' : ''} ♻️`, loadMatches);
     }
     if (act === 'auc-adm-load') {

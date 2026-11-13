@@ -1608,7 +1608,8 @@ app.post('/api/admin/reset-data', adminOnly, ah(async (req, res) => {
   const keys = fam ? [fam.id, fam.shieldKey, fam.shieldId].filter(Boolean) : [String(target || '')];
   if (!fam && !EFL.byId[target]) return res.status(400).json({ error: 'fail' });
   let refunded = 0;
-  if (!fam && !keepRegs) {
+  // To'liq tozalash: liga/kubok 0 dan boshlanadi — klub egalari, natijalar, reyting (kubok titullari), qura holati
+  if (!fam) {
     // Ro'yxat o'chirilishidan oldin faol auksion taklifi qaytariladi (coinlar yo'qolmasin)
     const regs = await Registration.find({ season, league: target, 'auction.bidder': { $ne: null }, 'auction.currentBid': { $gt: 0 } }).lean();
     for (const r of regs) { await refundActiveBid(r, 'liga tozalandi'); refunded++; }
@@ -1619,10 +1620,11 @@ app.post('/api/admin/reset-data', adminOnly, ah(async (req, res) => {
   if (fam) {
     await Cup.deleteMany({ season, cup: { $in: keys } });
   } else {
-    await LeagueConfig.updateOne({ season, league: target }, { $set: { drawnAt: null, drawAt: null, roundsLocked: false, openRounds: [], adminDeadlineRounds: [] } }, { upsert: true });
-    if (!keepRegs) await Registration.deleteMany({ season, league: target });
+    await LeagueConfig.updateOne({ season, league: target }, { $set: { closed: false, drawnAt: null, drawAt: null, roundsLocked: false, openRounds: [], adminDeadlineRounds: [] } }, { upsert: true });
+    await Registration.deleteMany({ season, league: target });   // klub egalari ketadi: ro'yxatdan o'tish qaytadan ochiladi
+    await Trophy.deleteMany({ season, league: target, status: { $in: ['owned', 'selling'] } });   // yutilgan kubok titullari (sotilganlari tarix sifatida qoladi)
   }
-  await require('./lib/audit').audit(actor, 'reset-data', target, { keepRegs: !!keepRegs, matches: md.deletedCount, refunded, cup: !!fam });
+  await require('./lib/audit').audit(actor, 'reset-data', target, { matches: md.deletedCount, refunded, cup: !!fam });
   res.json({ ok: true, matches: md.deletedCount, refunded });
 }));
 
