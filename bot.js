@@ -151,9 +151,9 @@ const staffOnly = async (req, res, next) => {
     const u = tgUser(req);
     if (!u) return res.status(401).json({ error: 'auth' });
     req.admin = u;
-    req.fullScope = ADMINS.includes(u.id);                       // glava admin
-    req.general = !req.fullScope && !!(await GeneralAdmin.exists({ telegramId: u.id }));   // umumiy admin
-    req.fullScope = req.fullScope || req.general;                // hamma ligaga kirish
+    req.superAdmin = ADMINS.includes(u.id);                       // glava admin
+    req.general = !req.superAdmin && !!(await GeneralAdmin.exists({ telegramId: u.id }));   // umumiy admin
+    req.fullScope = req.superAdmin || req.general;                // hamma ligaga kirish
     if (req.fullScope) return next();
     req.helperLeagues = (await LeagueHelper.find({ telegramId: u.id }).lean()).map((h) => h.league);
     if (!req.helperLeagues.length) return res.status(403).json({ error: 'forbidden' });
