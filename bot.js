@@ -839,9 +839,11 @@ app.get('/api/auctions', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
   const regs = await Registration.find({ season, 'auction.price': { $gt: 0 } }).sort({ 'auction.at': -1 }).lean();
-  const users = await User.find({ telegramId: { $in: regs.map((r) => r.telegramId) } }).lean();
+  const ids = [...new Set(regs.flatMap((r) => [r.telegramId, r.auction?.bidder].filter(Boolean)))];
+  const users = await User.find({ telegramId: { $in: ids } }).lean();
   const names = new Map(users.map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
-  res.json({ lots: regs.map((r) => ({ league: r.league, club: r.club, price: r.auction.price, bid: r.auction.currentBid || 0, games: r.w + r.d + r.l, mine: r.telegramId === u.id, user: names.get(r.telegramId) || '' })) });
+  // Oxirgi taklif qo'ygan odam (faqat oxirgisi)
+  res.json({ lots: regs.map((r) => ({ league: r.league, club: r.club, price: r.auction.price, bid: r.auction.currentBid || 0, bidder: r.auction.bidder ? (names.get(r.auction.bidder) || String(r.auction.bidder)) : '', games: r.w + r.d + r.l, mine: r.telegramId === u.id, user: names.get(r.telegramId) || '' })) });
 }));
 
 // ——— Do'kon: Coins, kosmetika, kubok sotish (Sell) ———
