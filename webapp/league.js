@@ -334,7 +334,7 @@ window.LeagueView = (() => {
     const cur = lot.bid || lot.price, min = cur + 1;
     const name = EFL.clubName(league, club);
     closeModal();
-    el.insertAdjacentHTML('beforeend', `<div class="modal" id="bidModal"><div class="modal-box"><h3>${esc(name)}</h3><p class="ad-hint">${lot.bid ? 'Joriy taklif' : 'Boshlang\'ich narx'}: <b>${cur}</b> coin</p><label>Pul tikish (kamida ${min} coin)</label><input id="bidAmt" type="number" inputmode="numeric" min="${min}" value="${min}"><div class="modal-btns"><button class="mb-no" data-act="aucno">${T[lang].aucCancel || 'Bekor'}</button><button class="mb-ok" data-act="submit-bid" data-bidl="${esc(league)}" data-bidc="${esc(club)}">Pul tikish</button></div></div></div>`);
+    el.insertAdjacentHTML('beforeend', `<div class="modal" id="bidModal"><div class="modal-box"><h3>${esc(name)}</h3><p class="ad-hint">${lot.bid ? 'Joriy taklif' : 'Boshlang\'ich narx'}: <b>${cur}</b> coin</p><label>Taklif kiritish (kamida ${min} coin)</label><input id="bidAmt" type="number" inputmode="numeric" min="${min}" value="${min}"><div class="modal-btns"><button class="mb-no" data-act="aucno">${T[lang].aucCancel || 'Bekor'}</button><button class="mb-ok" data-act="submit-bid" data-bidl="${esc(league)}" data-bidc="${esc(club)}">Taklif kiritish</button></div></div></div>`);
     el.querySelector('#bidAmt')?.focus();
   }
   async function submitBid(league, club) {
@@ -522,7 +522,7 @@ window.LeagueView = (() => {
   }
 
   const curKey = () => meSel || (prof.clubs[0] ? prof.clubs[0].league + '|' + prof.clubs[0].club : '');
-  const closeModal = () => el.querySelector('#aucModal')?.remove();
+  const closeModal = () => { el.querySelector('#aucModal')?.remove(); el.querySelector('#bidModal')?.remove(); };
   function openAuction() {
     const t = T[lang];
     closeModal();

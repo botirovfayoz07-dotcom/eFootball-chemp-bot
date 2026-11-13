@@ -344,3 +344,16 @@ main.page .carousel > .card { flex: none; width: 100%; min-height: 168px; }
 .club.auc { border: 1px dashed #f59e0b !important; background: linear-gradient(135deg, rgba(245,158,11,.14), rgba(245,158,11,.04)) !important; opacity: 1 !important; }
 .club.auc small.auc-tag { display: block; font: 700 11px 'Rajdhani', sans-serif; color: #fbbf24; letter-spacing: .04em; }
 .auc-note { font-size: 12px; opacity: .8; margin: 10px 4px 0; }
+
+/* Taklif kiritish oynasi: to'q ko'k, shaffof fon */
+#bidModal.modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(3,8,20,.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#bidModal .modal-box { width: 100%; max-width: 360px; box-sizing: border-box; padding: 20px; border-radius: 22px; background: linear-gradient(160deg, #0f2148, #14113a); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 24px 60px -20px rgba(0,0,0,.7); color: #eaf3ff; }
+#bidModal h3 { font: 700 20px/1.2 'Rajdhani', sans-serif; letter-spacing: .02em; margin: 0 0 6px; color: #f5faff; }
+#bidModal label { display: block; font: 600 12px 'Rajdhani', sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #9fdcff; margin: 14px 0 6px; }
+#bidModal input { width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); background: rgba(4,10,28,.7); color: #f2f7ff; font: 600 18px 'Rajdhani', sans-serif; outline: none; }
+#bidModal input:focus { border-color: #3fd8ff; box-shadow: 0 0 0 3px rgba(63,216,255,.18); }
+#bidModal .ad-hint { color: rgba(214,228,255,.72); font-size: 13px; margin: 0; }
+#bidModal .modal-btns { display: flex; gap: 10px; margin-top: 18px; }
+#bidModal .modal-btns button { flex: 1; padding: 12px; border-radius: 14px; border: 0; font: 700 15px 'Rajdhani', sans-serif; letter-spacing: .04em; cursor: pointer; }
+#bidModal .mb-no { background: rgba(255,255,255,.07); color: #d9ecff; border: 1px solid rgba(255,255,255,.16) !important; }
+#bidModal .mb-ok { background: linear-gradient(90deg, #3fd8ff, #8b5cf6); color: #071420; box-shadow: 0 10px 24px -12px rgba(63,216,255,.8); }
