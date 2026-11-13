@@ -13,6 +13,7 @@ const schema = new mongoose.Schema({
   // false (eski ligalar) — barcha turlar ochiq, cheklov yo'q.
   roundsLocked: { type: Boolean, default: false },
   openRounds: { type: [Number], default: [] },
+  adminDeadlineRounds: { type: [Number], default: [] }, // admin dedlayn belgilagan turlar (faqat shularning e'loni yuboriladi)
 });
 schema.index({ season: 1, league: 1 }, { unique: true });
 

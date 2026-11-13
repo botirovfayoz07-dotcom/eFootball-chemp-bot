@@ -60,6 +60,8 @@ window.UnofficialView = (() => {
   const fmt = (d) => { const x = new Date(d), p = (n) => String(n).padStart(2, '0'); return `${p(x.getDate())}.${p(x.getMonth() + 1)} ${p(x.getHours())}:${p(x.getMinutes())}`; };
   const local = (d) => { const x = new Date(d), p = (n) => String(n).padStart(2, '0'); return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}T${p(x.getHours())}:${p(x.getMinutes())}`; };
 
+  let mode = null;   // 'wc' bo'lsa — faqat JCH (rejim tanlashdan kelgan)
+  const WC_TITLE = { uz: 'JCH — Jahon chempionati', en: 'World Cup', ru: 'Чемпионат мира' };
   let el, lang = 'uz', toast, view = 'list', tid = null, S = null, list = null, tab = 'home', rtab = 'table', panel = null, mfilter = 'action', mlist = null;
   const t = () => T[lang];
   // JCH: davlat nomi bayrog'i bilan; oddiy turnirda jamoa nomi
@@ -82,7 +84,7 @@ window.UnofficialView = (() => {
     const x = t();
     const cards = (list || []).map((c) => `<button class="g-card ut-card" data-act="open" data-tid="${c.id}"><span><b>${esc(c.name)}</b><small>${c.players}/${c.max} ${esc(x.pl.toLowerCase())}${c.owner ? ' · ' + esc(x.owner) : ''}</small></span>${stBadge(c.status)}</button>`).join('');
     return `<div class="page l-page"><button class="back" data-act="back"><span>‹</span> ${x.back}</button>
-      <div class="ut-hero"><h2>${esc(x.heroTitle)}</h2><p>${esc(x.heroSub)}</p><button class="l-reg" data-act="new">${esc(x.create)}</button></div>
+      <div class="ut-hero"><h2>${esc(mode === 'wc' ? WC_TITLE[lang] || WC_TITLE.uz : x.heroTitle)}</h2><p>${esc(x.heroSub)}</p><button class="l-reg" data-act="new">${esc(x.create)}</button></div>
       <div class="g-label"><span>${x.codeTitle}</span></div>
       <div class="ut-row"><input type="text" id="utCode" placeholder="${esc(x.codePh)}" maxlength="12"><button class="gm-btn" data-act="code">${x.go}</button></div>
       <div class="g-label"><span>${x.myTitle}</span></div>
@@ -91,7 +93,7 @@ window.UnofficialView = (() => {
   function createHtml() {
     const x = t(), sel = (id, opts, def) => `<select id="${id}">${opts.map(([v, l]) => `<option value="${v}" ${v === def ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
     return `<div class="page l-page"><button class="back" data-act="back"><span>‹</span> ${x.back}</button>
-      <div class="g-card ut-form"><div class="ut-presets"><button type="button" class="ut-preset" data-act="ut-preset" data-p="league">📋 ${x.presetLeague}</button><button type="button" class="ut-preset" data-act="ut-preset" data-p="ucl">🏆 ${x.presetUcl}</button><button type="button" class="ut-preset" data-act="ut-preset" data-p="wc">🌍 ${x.presetWc}</button></div><div class="ut-wc" id="cfWcBox" hidden><label>${x.fGroups}${sel('cfGroups', [[2, 2], [4, 4], [8, 8]], 4)}</label><label>${x.fAdv}${sel('cfAdv', [[1, 1], [2, 2]], 2)}</label></div><label>${x.fName}<input type="text" id="cfName" maxlength="40"></label><p class="ut-hint">${x.costHint}</p>
+      <div class="g-card ut-form"><div class="ut-presets"><button type="button" class="ut-preset" data-act="ut-preset" data-p="league">📋 ${x.presetLeague}</button><button type="button" class="ut-preset" data-act="ut-preset" data-p="ucl">🏆 ${x.presetUcl}</button><button type="button" class="ut-preset${mode === 'wc' ? ' on' : ''}" data-act="ut-preset" data-p="wc">🌍 ${x.presetWc}</button></div><div class="ut-wc" id="cfWcBox" ${mode === 'wc' ? '' : 'hidden'}><label>${x.fGroups}${sel('cfGroups', [[2, 2], [4, 4], [8, 8]], 4)}</label><label>${x.fAdv}${sel('cfAdv', [[1, 1], [2, 2]], 2)}</label></div><label>${x.fName}<input type="text" id="cfName" maxlength="40"></label><p class="ut-hint">${x.costHint}</p>
       <label>${x.fMax}${sel('cfMax', [4, 6, 8, 10, 12, 16, 20, 24, 28, 32, 48, 64].map((n) => [n, n]), 16)}</label>
       <label>${x.fRounds}${sel('cfRounds', Array.from({ length: 14 }, (_, i) => [i + 3, i + 3]), 8)}</label>
       <label>${x.fPlayoff}${sel('cfPlayoff', [[0, x.fNone], ...[4, 8, 16].map((n) => [n, x.fTop(n)])], 0)}</label>
@@ -213,7 +215,17 @@ window.UnofficialView = (() => {
   function render() { el.innerHTML = view === 'create' ? createHtml() : view === 't' ? tHtml() : listHtml(); }
 
   // ——— Ma'lumot yuklash ———
-  async function loadList() { const r = await api('/api/ut/mine'); if (r.ok) { list = r.list; if (view === 'list') render(); } }
+  async function loadList() {
+    if (mode === 'wc') {
+      const [mine, open] = await Promise.all([api('/api/ut/mine'), api('/api/ut/open?format=wc')]);
+      const seen = new Map();
+      [...(mine.list || []).filter((c) => c.format === 'wc'), ...(open.list || [])].forEach((c) => seen.set(c.id, c));
+      list = [...seen.values()];
+      if (view === 'list') render();
+      return;
+    }
+    const r = await api('/api/ut/mine'); if (r.ok) { list = r.list; if (view === 'list') render(); }
+  }
   async function loadT(keepScroll) {
     const id = tid, r = await api('/api/ut/' + id);
     if (id !== tid) return;
@@ -257,7 +269,7 @@ window.UnofficialView = (() => {
     if (k === 'mk') {
       const g = (id) => el.querySelector('#' + id).value, name = g('cfName').trim();
       if (name.length < 2) return toast(x.fName);
-      const fmt = el.dataset.fmt === 'wc' ? 'wc' : 'league';
+      const fmt = (el.dataset.fmt === 'wc' || mode === 'wc') ? 'wc' : 'league';
       const r = await post('/api/ut/create', { name, format: fmt, groups: +g('cfGroups') || 0, advance: +g('cfAdv') || 0, maxPlayers: +g('cfMax'), rounds: +g('cfRounds'), playoff: +g('cfPlayoff'), roundDays: +g('cfDays') });
       if (r.ok) { tg?.HapticFeedback?.notificationOccurred('success'); view = 'list'; location.hash = '#unofficial/' + r.id; } else toast(r.error === 'limit' ? x.limit : r.error === 'noCoins' ? x.noCoins : x.fail);
       return;
@@ -311,6 +323,8 @@ window.UnofficialView = (() => {
   }
   function show(root, l, toastFn, a, b) {
     el = root; lang = l; toast = toastFn;
+    mode = window.UT_MODE || null;
+    if (mode === 'wc' && view === 'list') list = null;
     if (!el.dataset.bound) { el.dataset.bound = '1'; el.addEventListener('click', onClick); el.addEventListener('change', onChange); }
     if (a === 'code' && b) { openCode(b); return; }
     if (a) {

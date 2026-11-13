@@ -1575,6 +1575,7 @@ app.post('/api/admin/league/:id/round-deadline', staffOnly, ah(async (req, res) 
   const at = new Date(req.body?.deadline);
   if (isNaN(at) || at <= new Date()) return res.status(400).json({ error: 'time' });
   const r = await Match.updateMany({ season, league: league.id, round, status: { $in: ['scheduled', 'pending', 'disputed'] } }, { $set: { deadline: at, notified: [] } });
+    await LeagueConfig.updateOne({ season, league: league.id }, { $addToSet: { adminDeadlineRounds: round } }, { upsert: true });
   res.json({ ok: true, matches: r.modifiedCount ?? r.nModified ?? 0 });
 }));
 // Eski (dedlaynsiz) o'yinlarga dedlayn berish: tugallanmagan turlar «hozirdan» ketma-ket sanaladi
@@ -1586,6 +1587,7 @@ app.post('/api/admin/league/:id/deadlines', staffOnly, ah(async (req, res) => {
   if (!ms.length) return res.status(409).json({ error: 'nodl' });
   const st = DL.stampSeq(ms.map((m) => ({ _id: m._id, round: m.round })), new Date(), days);
   await Match.bulkWrite(st.map((m) => ({ updateOne: { filter: { _id: m._id }, update: { $set: { startsAt: m.startsAt, deadline: m.deadline, notified: m.notified } } } })));
+      await LeagueConfig.updateOne({ season, league: league.id }, { $addToSet: { adminDeadlineRounds: { $each: [...new Set(ms.map((m) => m.round))] } } }, { upsert: true });
   await LeagueConfig.updateOne({ season, league: league.id }, { $set: { roundDays: days } }, { upsert: true });
   res.json({ ok: true, matches: st.length });
 }));

@@ -223,7 +223,15 @@ module.exports = function mount(app, d) {
   // ——— O'yinchi API ———
   app.get('/api/ut/mine', auth, ah(async (req, res) => {
     const ts = await Tournament.find({ $or: [{ ownerId: req.u.id }, { 'players.telegramId': req.u.id }] }).sort({ createdAt: -1 }).limit(50).lean();
-    res.json({ list: ts.map((t) => ({ id: String(t._id), name: t.name, status: t.status, players: (t.players || []).length, max: t.maxPlayers, owner: t.ownerId === req.u.id })) });
+    res.json({ list: ts.map((t) => ({ id: String(t._id), name: t.name, status: t.status, players: (t.players || []).length, max: t.maxPlayers, owner: t.ownerId === req.u.id, format: t.format || 'league' })) });
+  }));
+
+  // Ochiq turnirlar ro'yxati (ixtiyoriy format: ?format=wc — faqat JCH)
+  app.get('/api/ut/open', auth, ah(async (req, res) => {
+    const q = { status: 'open' };
+    if (req.query.format === 'wc') q.format = 'wc';
+    const ts = await Tournament.find(q).sort({ createdAt: -1 }).limit(30).lean();
+    res.json({ list: ts.map((t) => ({ id: String(t._id), name: t.name, status: t.status, players: (t.players || []).length, max: t.maxPlayers, owner: t.ownerId === req.u.id, format: t.format || 'league' })) });
   }));
 
   app.post('/api/ut/create', auth, ah(async (req, res) => {

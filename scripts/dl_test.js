@@ -45,7 +45,9 @@ const Match=mk(matches), Cup=mk([]);
 const chat=[{from:30,key:'m4'},{from:50,key:'m6'},{from:51,key:'m6'},{from:99,key:'m5'}];
 const ChatMessage={distinct:async(f,q)=>[...new Set(chat.filter(c=>c.key===q.key&&q.from.$in.includes(c.from)).map(c=>c.from))]};
 const EFL={byId:{'premier-league':{name:'Premier Liga'}}};
-const t=mount({Match,Cup,ChatMessage,season:1,EFL,notify:(id,key,...a)=>sent.push([id,key,...a]),whoIs:async(l,id)=>'U'+id,recalc:async l=>recalced.push(l),notifyAdmins:(x)=>admin.push(x)});
+// Admin dedlayn belgilagan va ochilgan turlar: e'lon faqat shunda yuboriladi
+const LeagueConfig={find:()=>({select:()=>({lean:async()=>[{league:'premier-league',roundsLocked:false,openRounds:[],adminDeadlineRounds:Array.from({length:40},(_,i)=>i+1)}]})})};
+const t=mount({Match,Cup,ChatMessage,LeagueConfig,season:1,EFL,notify:(id,key,...a)=>sent.push([id,key,...a]),whoIs:async(l,id)=>'U'+id,recalc:async l=>recalced.push(l),notifyAdmins:(x)=>admin.push(x)});
 (async()=>{
   await t.tick();
   const by=(k)=>sent.filter(s=>s[1]===k).map(s=>s[0]).sort((a,b)=>a-b);
