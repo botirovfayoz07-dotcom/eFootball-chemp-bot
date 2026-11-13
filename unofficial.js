@@ -223,20 +223,23 @@ module.exports = function mount(app, d) {
   // ——— O'yinchi API ———
   app.get('/api/ut/mine', auth, ah(async (req, res) => {
     const ts = await Tournament.find({ $or: [{ ownerId: req.u.id }, { 'players.telegramId': req.u.id }] }).sort({ createdAt: -1 }).limit(50).lean();
-    res.json({ list: ts.map((t) => ({ id: String(t._id), name: t.name, status: t.status, players: (t.players || []).length, max: t.maxPlayers, owner: t.ownerId === req.u.id, format: t.format || 'league' })) });
+    res.json({ list: ts.map((t) => ({ id: String(t._id), name: t.name, status: t.status, players: (t.players || []).length, max: t.maxPlayers, owner: t.ownerId === req.u.id, format: t.format || 'league', official: !!t.official })) });
   }));
 
   // Ochiq turnirlar ro'yxati (ixtiyoriy format: ?format=wc — faqat JCH)
   app.get('/api/ut/open', auth, ah(async (req, res) => {
     const q = { status: 'open' };
     if (req.query.format === 'wc') q.format = 'wc';
+    q.official = req.query.official === '1' ? true : { $ne: true };   // rasmiy (admin) turnirlari alohida ro'yxatda
     const ts = await Tournament.find(q).sort({ createdAt: -1 }).limit(30).lean();
-    res.json({ list: ts.map((t) => ({ id: String(t._id), name: t.name, status: t.status, players: (t.players || []).length, max: t.maxPlayers, owner: t.ownerId === req.u.id, format: t.format || 'league' })) });
+    res.json({ list: ts.map((t) => ({ id: String(t._id), name: t.name, status: t.status, players: (t.players || []).length, max: t.maxPlayers, owner: t.ownerId === req.u.id, format: t.format || 'league', official: !!t.official })) });
   }));
 
   app.post('/api/ut/create', auth, ah(async (req, res) => {
     const b = req.body || {}, name = clean(b.name, 40);
     const isWc = b.format === 'wc';
+    const official = b.official === true;
+    if (official && !ADMINS.includes(req.u.id)) return res.status(403).json({ error: 'notAdmin' });   // rasmiy turnirni faqat admin yaratadi
     const groups = isWc ? Number(b.groups) : 0, advance = isWc ? Number(b.advance) : 0;
     const maxPlayers = Number(b.maxPlayers), rounds = Number(b.rounds), roundDays = Number(b.roundDays);
     let playoff = Number(b.playoff);
@@ -261,7 +264,7 @@ module.exports = function mount(app, d) {
     try {
       for (let i = 0; i < 5 && !t; i++) {
         try {
-          t = await Tournament.create({ name, format: isWc ? 'wc' : 'league', groups, advance, maxPlayers, rounds: isWc ? 16 : rounds, playoff, roundDays, ownerId: req.u.id, paid: charged, code: crypto.randomBytes(3).toString('hex').toUpperCase(), drawAt: new Date(Date.now() + UT_AUTO_DRAW_MIN * 60 * 1000) });
+          t = await Tournament.create({ name, format: isWc ? 'wc' : 'league', official, groups, advance, maxPlayers, rounds: isWc ? 16 : rounds, playoff, roundDays, ownerId: req.u.id, paid: charged, code: crypto.randomBytes(3).toString('hex').toUpperCase(), drawAt: new Date(Date.now() + UT_AUTO_DRAW_MIN * 60 * 1000) });
         } catch (e) { if (e.code !== 11000) throw e; }
       }
     } catch (e) { await refund('create-error'); throw e; }

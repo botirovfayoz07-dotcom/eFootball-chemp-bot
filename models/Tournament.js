@@ -13,6 +13,7 @@ const schema = new mongoose.Schema({
   status: { type: String, enum: ['open', 'league', 'playoff', 'finished'], default: 'open' },
   drawAt: { type: Date, default: null },
   format: { type: String, enum: ['league', 'wc'], default: 'league' }, // league: lig+pley-off; wc: JCH — guruhlar+pley-off
+  official: { type: Boolean, default: false },   // rasmiy turnir (admin yaratadi va boshqaradi)
   groups: { type: Number, default: 0 },           // wc: guruhlar soni (2/4/8)
   advance: { type: Number, default: 0 },          // wc: har guruhdan chiqadiganlar (1/2)
   paid: { type: Number, default: 0 },          // yaratish uchun to'langan coin (adminlarda 0)
