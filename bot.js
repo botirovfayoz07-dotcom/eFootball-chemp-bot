@@ -335,6 +335,51 @@ async function performDraw(leagueId, rounds, roundDays) {
 }
 
 // Barcha ligalar: o'yinchilar soni, band klublar va foydalanuvchining o'z ro'yxati (bitta so'rovda)
+// ——— Majburiy obuna: SUB_CHANNELS=@kanal1,@kanal2 (bot kanallarda admin bo'lishi kerak) ———
+const SUB_CHANNELS = (process.env.SUB_CHANNELS || '').split(',').map((x) => x.trim()).filter(Boolean);
+const subCache = new Map();   // userId -> { res, at } (30 soniya)
+const SUB_EXEMPT = ['/api/sub/status', '/api/sub/check', '/api/me'];
+async function checkSubs(userId) {
+  if (!SUB_CHANNELS.length) return { ok: true, channels: [] };
+  const hit = subCache.get(userId);
+  if (hit && Date.now() - hit.at < 30000) return hit.res;
+  const channels = await Promise.all(SUB_CHANNELS.map(async (ch) => {
+    let subscribed = true;   // tekshirib bo'lmasa (bot kanalda emas) foydalanuvchini bloklamaymiz
+    try {
+      const m = await bot.telegram.getChatMember(ch, userId);
+      subscribed = ['member', 'administrator', 'creator'].includes(m.status) || (m.status === 'restricted' && m.is_member);
+    } catch (e) { console.error('obuna tekshiruvi', ch, e.message); }
+    return { id: ch, url: 'https://t.me/' + ch.replace(/^@/, ''), subscribed };
+  }));
+  const res = { ok: channels.every((c) => c.subscribed), channels };
+  subCache.set(userId, { res, at: Date.now() });
+  return res;
+}
+// Har bir API so'rovi: obuna bo'lmagan foydalanuvchiga 403 'subscribe'
+app.use('/api', async (req, res, next) => {
+  if (!SUB_CHANNELS.length || SUB_EXEMPT.includes(req.originalUrl.split('?')[0])) return next();
+  const u = tgUser(req);
+  if (!u || ADMINS.includes(u.id)) return next();   // admin va noma'lum so'rovlar
+  try {
+    const r = await checkSubs(u.id);
+    if (r.ok) return next();
+    return res.status(403).json({ error: 'subscribe', channels: r.channels });
+  } catch (e) { return next(); }
+});
+app.get('/api/sub/status', ah(async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  const r = await checkSubs(u.id);
+  res.json({ ok: r.ok, channels: r.channels });
+}));
+app.post('/api/sub/check', ah(async (req, res) => {
+  const u = tgUser(req);
+  if (!u) return res.status(401).json({ error: 'auth' });
+  subCache.delete(u.id);
+  const r = await checkSubs(u.id);
+  res.json({ ok: r.ok, channels: r.channels });
+}));
+
 app.get('/api/leagues', ah(async (req, res) => {
   const u = tgUser(req);
   if (!u) return res.status(401).json({ error: 'auth' });
