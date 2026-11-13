@@ -284,7 +284,10 @@ window.AdminView = (() => {
     const cupObj = (typeof cupsList !== 'undefined' && Array.isArray(cupsList)) ? cupsList.find(function (c) { return c.id === curCup; }) : null;
     const resetBlock = (curLeague ? resetBox(curLeague, (l && l.name) || curLeague) : '') + (curCup && cupObj ? resetBox(curCup, cupObj.name) : '');
 
+    const lsetItems = [['draw', '🔁 Tur va dedlayn'], ['results', '✏️ Natijalarni tuzatish'], ['players', '🔄 Ishtirokchini almashtirish'], ['support', '💬 Ishtirokchi xabarlari'], ['helpers', '👮 Turnir adminlari'], ['cup', '🏆 Kubok boshqaruvi'], ['open', '🔓 Ligalar holati'], ['auction', '⏱ Auksion vaqti'], ['cmgr', "🏷 Auksionga klub qo\'yish"]];
+    const lsetMenu = '<div class="g-card ad-lg" style="margin-bottom:12px;"><b>⚙️ Liga sozlamalari</b><p class="ad-hint">Registratsiyadan keyingi boshqaruv. Har bir bo\'lim tegishli joyga olib boradi.</p><div class="ad-row" style="gap:6px;flex-wrap:wrap;">' + lsetItems.map(function (x) { return '<button class="ad-btn ghost sm" data-act="lset" data-go="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div></div>';
     return (
+      lsetMenu +
       '<!-- 1. HERO CARD -->' +
       '<div class="ad-hero-card">' +
         '<div class="ad-hero-left">' +
@@ -377,7 +380,7 @@ window.AdminView = (() => {
         '<div class="chips" style="margin-bottom:12px;">' +
           cupsList.map(function(cp){ return '<button class="chip' + (curCup === cp.id ? ' on' : '') + '" data-act="pick-cup" data-cid="' + cp.id + '">' + cp.flag + ' ' + esc(cp.name) + '</button>'; }).join('') +
         '</div>' +
-        faCupBlock + resetBlock +
+        '<div id="cupAnchor"></div>' + faCupBlock + resetBlock +
       '</div>'
     );
   }
@@ -619,20 +622,20 @@ window.AdminView = (() => {
       // Bo'limni tanlang dagi asosiy admin panel: statistika, turnirlar, tizim boshqaruvi
       const globalTabs = [
         ['stats', '📊 Statistika'],
-        ['tour', '🎮 Turnirlar'],
-        ['broadcast', '📢 Xabar'],
-        ['helpers', '👥 Yordamchilar'],
-        ['generals', '🧭 Umumiy adminlar'],
-        ['cups', '💰 Kubok narxi'],
+        ['tour', '🏁 Turnirlar'],
+        ['broadcast', '📣 Xabar'],
+        ['ucl', '🏆 Chempionlar ligasi'],
+        ['jch', '🌍 JCH'],
+        ['adminadd', '➕ Admin qo\'shish'],
         ['open', '🔓 Ligalar holati'],
         ['auction', '🏷️ Auksion'],
-        ['ucl', '🏆 Chempionlar ligasi'],
         ['cmgr', '🛠 Klub boshqaruvi'],
-        ['clubs', '🏟 Klublar']
+        ['cups', '🏆 Kubok narxi'],
+        ['clubs', '👥 Klublar']
       ];
       // glava: hammasi. umumiy: statistika, yordamchilar va kubok narxi yashirin. yordamchi: faqat tur va klublar
       const isGlava = ov?.role === 'glava';
-      const hiddenForGeneral = ['stats', 'helpers', 'cups', 'generals'];
+      const hiddenForGeneral = ['stats', 'cups', 'adminadd', 'jch'];
       tabs = superAdmin ? (isGlava ? globalTabs : globalTabs.filter(([k]) => !hiddenForGeneral.includes(k))) : globalTabs.filter(([k]) => k === 'tour' || k === 'clubs');
     }
 
@@ -701,6 +704,10 @@ window.AdminView = (() => {
       content = toursHtml();
     } else if (mainTab === 'auction') {
       content = auctionHtml();
+    } else if (mainTab === 'adminadd') {
+      content = adminAddHtml();
+    } else if (mainTab === 'jch') {
+      content = jchHtml();
     } else if (mainTab === 'generals') {
       content = generalsHtml();
     } else if (mainTab === 'cmgr') {
@@ -867,6 +874,22 @@ window.AdminView = (() => {
     render();
   }
 
+  // ——— Admin qo'shish: umumiy yoki yordamchi (faqat glava) ———
+  let aaType = 'gen';
+  function adminAddHtml() {
+    if (ov?.role !== 'glava') return '<p class="ad-hint">Bu bo\'lim faqat glava admin uchun</p>';
+    const seg = '<div class="ad-row" style="gap:6px;margin-bottom:10px;">' +
+      '<button class="ad-btn ' + (aaType === 'gen' ? 'ok' : 'ghost') + ' sm" data-act="aa-type" data-t="gen">🧭 Umumiy admin</button>' +
+      '<button class="ad-btn ' + (aaType === 'help' ? 'ok' : 'ghost') + ' sm" data-act="aa-type" data-t="help">👥 Yordamchi admin</button></div>';
+    return seg + (aaType === 'gen' ? generalsHtml() : helpersHtml());
+  }
+  // ——— JCH: rasmiy JCH turnirlari (admin yaratadi) ———
+  function jchHtml() {
+    return '<div class="g-card ad-lg"><b>🌍 JCH — rasmiy Jahon chempionati</b>' +
+      '<p class="ad-hint">Rasmiy JCH turnirini yaratish va boshqarish uchun JCH rejimini oching. U yerda yaratilgan turnir rasmiy bo\'ladi: bepul, admin boshqaradi, o\'yinchilar davlat tanlab qo\'shiladi.</p>' +
+      '<div class="ad-row" style="gap:6px;"><button class="ad-btn ok sm" data-act="open-jch">🌍 JCH rejimini ochish</button></div></div>';
+  }
+
   // ——— Umumiy adminlar (faqat glava boshqaradi) ———
   let generalsList = null;
   function generalsHtml() {
@@ -1001,7 +1024,7 @@ window.AdminView = (() => {
       if (mainTab === 'auction') loadAuction();
       if (mainTab === 'ucl') loadUcl();
       if (mainTab === 'cmgr') loadCmgr();
-      if (mainTab === 'generals') loadGenerals();
+      if (mainTab === 'adminadd') { aaType === 'gen' ? loadGenerals() : loadHelpers(); }
       return;
     }
     if (act === 'pick-league') {
@@ -1375,6 +1398,32 @@ window.AdminView = (() => {
       if (!(await confirmBox("Hammasi o'chadi: o'yinlar, natijalar, reyting, klub egalari. Liga ro'yxatdan o'tishga qaytadi. Davom etasizmi?"))) return;
       const r = await post('/api/admin/reset-data', { target, confirm: 'RESET' });
       return done(r, `Tozalandi: ${r.matches || 0} ta o'yin${r.refunded ? ', ' + r.refunded + ' ta taklif qaytarildi' : ''} ♻️`, loadMatches);
+    }
+    if (act === 'lset') {
+      const go = btn.dataset.go;
+      if (['draw', 'results', 'players', 'support'].includes(go)) {
+        mainTab = 'liga'; ligaSubTab = go; render();
+        if (go === 'results') loadMatches();
+        if (go === 'players') loadPlayers();
+        if (go === 'support') loadSupport();
+        return;
+      }
+      if (go === 'cup') { mainTab = 'liga'; render(); el.querySelector('#cupAnchor')?.scrollIntoView({ behavior: 'smooth' }); return; }
+      if (go === 'helpers') { mainTab = 'adminadd'; aaType = 'help'; await loadHelpers(); return; }
+      mainTab = go; render();
+      if (go === 'auction') loadAuction();
+      if (go === 'cmgr') loadCmgr();
+      return;
+    }
+    if (act === 'aa-type') {
+      aaType = btn.dataset.t === 'help' ? 'help' : 'gen';
+      if (aaType === 'gen') await loadGenerals(); else await loadHelpers();
+      return render();
+    }
+    if (act === 'open-jch') {
+      window.UT_MODE = 'wc';
+      location.hash = '#unofficial';
+      return;
     }
     if (act === 'gen-add') {
       const user = (el.querySelector('#genUser') || {}).value || '';

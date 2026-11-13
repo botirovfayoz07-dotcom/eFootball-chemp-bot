@@ -498,6 +498,7 @@ app.post('/api/leagues/:league/register', ah(async (req, res) => {
     const lg0 = EFL.byId[req.params.league], club0 = req.body?.club;
     if (lg0 && club0 && await Registration.exists({ season, league: lg0.id, club: club0, vacant: true })) {
       if (await LeagueConfig.exists({ season, league: lg0.id, closed: true })) return res.status(409).json({ error: 'closed' });
+      if (await Registration.exists({ season, league: lg0.id, club: club0, vacant: true, 'auction.price': { $gt: 0 } })) return res.status(409).json({ error: 'taken' });   // auksiondagi klub: faqat auksion orqali
       await touchUser(u);
       if (await Registration.exists({ season, telegramId: u.id })) return res.status(409).json({ error: 'already' });
       const took = await takeOverVacant(lg0.id, club0, u.id);
@@ -679,8 +680,14 @@ app.get('/api/admin/auction/clubs', coreOnly, ah(async (req, res) => {
   const league = String(req.query.league || '');
   if (!EFL.byId[league]) return res.status(400).json({ error: 'fail' });
   const regs = await Registration.find({ season, league }).lean();
-  const names = new Map((await User.find({ telegramId: { $in: regs.map((r) => r.telegramId) } }).lean()).map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
-  res.json({ ok: true, clubs: regs.map((r) => ({ club: r.club, name: EFL.clubName(league, r.club), tid: r.telegramId, user: names.get(r.telegramId) || '', vacant: !!r.vacant, owned: !!r.telegramId && !r.vacant, auction: r.auction?.price ? { price: r.auction.price, currentBid: r.auction.currentBid || 0 } : null })).sort((a, b) => a.name.localeCompare(b.name)) });
+  const byClub = new Map(regs.map((r) => [r.club, r]));
+  const names = new Map((await User.find({ telegramId: { $in: regs.filter((r) => !r.vacant).map((r) => r.telegramId) } }).lean()).map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
+  const clubs = EFL.byId[league].clubs.map((c) => {
+    const r = byClub.get(c.id);
+    if (!r) return { club: c.id, name: c.name, tid: null, user: '', vacant: false, owned: false, free: true, auction: null };
+    return { club: c.id, name: EFL.clubName(league, c.id), tid: r.vacant ? null : r.telegramId, user: r.vacant ? '' : (names.get(r.telegramId) || ''), vacant: !!r.vacant, owned: !!r.telegramId && !r.vacant, free: false, auction: r.auction?.price ? { price: r.auction.price, currentBid: r.auction.currentBid || 0 } : null };
+  });
+  res.json({ ok: true, clubs: clubs.sort((a, b) => a.name.localeCompare(b.name)) });
 }));
 app.post('/api/admin/auction/list', coreOnly, ah(async (req, res) => {
   const { league, club } = req.body || {};
@@ -688,7 +695,13 @@ app.post('/api/admin/auction/list', coreOnly, ah(async (req, res) => {
   if (!EFL.byId[league] || !club) return res.status(400).json({ error: 'fail' });
   if (!(price >= 1 && price <= 1e9)) return res.status(400).json({ error: 'badPrice' });
   const old = await Registration.findOneAndUpdate({ season, league, club }, { auction: { price, at: new Date() } }, { new: false }).lean();
-  if (!old) return res.status(404).json({ error: 'fail' });
+  if (!old) {
+    // Hali tanlanmagan klub: bo'sh (vacant) yozuv auksion narxi bilan yaratiladi — registratsiyada yopiq turadi
+    if (!EFL.byId[league].clubs.some((c) => c.id === club)) return res.status(400).json({ error: 'fail' });
+    await Registration.create({ season, league, club, telegramId: -(Date.now() * 1000 + Math.floor(Math.random() * 1000)), vacant: true, auction: { price, at: new Date() } });
+    await require('./lib/audit').audit((tgUser(req)?.id ?? 0), 'auction.list', `${league}|${club}`, { price, free: true });
+    return res.json({ ok: true });
+  }
   await refundActiveBid(old, 'admin lotni qayta qo\'ydi');
   await require('./lib/audit').audit((tgUser(req)?.id ?? 0), 'auction.list', `${league}|${club}`, { price });
   res.json({ ok: true });
@@ -704,8 +717,17 @@ app.post('/api/admin/club/assign', coreOnly, ah(async (req, res) => {
     : await User.findOne({ username: new RegExp('^' + raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }).lean();
   if (!usr) return res.status(404).json({ error: 'nouser' });
   const tid = usr.telegramId;
-  const reg = await Registration.findOne({ season, league, club }).lean();
-  if (!reg) return res.status(404).json({ error: 'fail' });
+  let reg = await Registration.findOne({ season, league, club }).lean();
+  if (!reg) {
+    // Hali tanlanmagan klub: yangi ishtirokchi sifatida yoziladi
+    if (!EFL.byId[league].clubs.some((c) => c.id === club)) return res.status(400).json({ error: 'fail' });
+    if (await Registration.exists({ season, telegramId: tid })) return res.status(409).json({ error: 'userBusy' });
+    if ((await Registration.countDocuments({ season, league })) >= EFL.byId[league].max) return res.status(409).json({ error: 'full' });
+    await Registration.create({ season, league, club, telegramId: tid });
+    await recalc(league);
+    await require('./lib/audit').audit((tgUser(req)?.id ?? 0), 'club.assign', `${league}|${club}`, { user: tid, free: true });
+    return res.json({ ok: true });
+  }
   if (!reg.vacant && reg.telegramId === tid) return res.status(409).json({ error: 'already' });
   if (await Registration.exists({ season, telegramId: tid })) return res.status(409).json({ error: 'userBusy' });   // bitta foydalanuvchi — bitta klub
   if (!reg.vacant && (await Match.exists({ season, league, status: { $ne: 'cancelled' }, $or: [{ home: reg.telegramId }, { away: reg.telegramId }] }))) return res.status(409).json({ error: 'hasGames' });
@@ -1386,7 +1408,7 @@ app.get('/api/me', ah(async (req, res) => {
   await touchUser(u);
   await migrateEq(u.id);
   const me = await User.findOne({ telegramId: u.id }).lean();
-  res.json({ admin: ADMINS.includes(u.id) || !!(await LeagueHelper.exists({ telegramId: u.id })), bg: eqOf(me).pbg });
+  res.json({ admin: ADMINS.includes(u.id) || !!(await LeagueHelper.exists({ telegramId: u.id })) || !!(await GeneralAdmin.exists({ telegramId: u.id })), bg: eqOf(me).pbg });
 }));
 
 // Ligalar: ishtirokchilar, qura vaqti/holati, o'yinlar soni
