@@ -549,14 +549,12 @@ window.LeagueView = (() => {
   };
   function belowHtml() {
     const t = T[lang], l = EFL.byId[cur], taken = stat(cur).taken, full = isShut(l);
-    const aucMap = new Map((stat(cur).auction || []).map((a) => [a.club, a]));
+    const aucIds = new Set((stat(cur).auction || []).map((a) => a.club));   // auksiondagi klub registratsiyada yopiq turadi
     const clubs = l.clubs.map((c) => {
-      const a = aucMap.get(c.id);
-      if (a) return `<button class="club auc" data-club="${c.id}" disabled>${EFL.crest(l.id, c.id, c.name)}<span>${esc(c.name)}</span><small class="auc-tag">🏷 ${a.bid || a.price}</small></button>`;
-      const off = taken.includes(c.id) || full;
+      const off = taken.includes(c.id) || full || aucIds.has(c.id);
       return `<button class="club${selected === c.id ? ' sel' : ''}${off ? ' taken' : ''}" data-club="${c.id}" ${off ? 'disabled' : ''}>${EFL.crest(l.id, c.id, c.name)}<span>${esc(c.name)}</span></button>`;
     }).join('');
-    const aucNote = aucMap.size ? `<p class="auc-note">🏷 ${({ uz: "Auksiondagi klublar: Do'kon → Auksion bo'limida sotib olinadi", en: 'Auction clubs: buy them in Shop → Auction', ru: 'Клубы на аукционе: покупаются в Магазине → Аукцион' })[lang] || ''}</p>` : '';
+    const aucNote = aucIds.size ? `<p class="auc-note">🏷 ${({ uz: "Auksiondagi klublar: Do'kon → Auksion bo'limida sotib olinadi", en: 'Auction clubs: buy them in Shop → Auction', ru: 'Клубы на аукционе: покупаются в Магазине → Аукцион' })[lang] || ''}</p>` : '';
     return `<div class="g-label"><span>${t.clubs}</span></div><div class="clubs">${clubs}</div>${aucNote}`;
   }
   const updHero = () => { const h = el.querySelector('#lHero'); if (h) h.innerHTML = heroHtml(); };

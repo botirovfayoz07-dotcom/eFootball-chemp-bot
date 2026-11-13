@@ -670,7 +670,7 @@ app.get('/api/admin/auction/clubs', adminOnly, ah(async (req, res) => {
   if (!EFL.byId[league]) return res.status(400).json({ error: 'fail' });
   const regs = await Registration.find({ season, league }).lean();
   const names = new Map((await User.find({ telegramId: { $in: regs.map((r) => r.telegramId) } }).lean()).map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
-  res.json({ ok: true, clubs: regs.map((r) => ({ club: r.club, name: EFL.clubName(league, r.club), user: names.get(r.telegramId) || '', vacant: !!r.vacant, auction: r.auction?.price ? { price: r.auction.price, currentBid: r.auction.currentBid || 0 } : null })).sort((a, b) => a.name.localeCompare(b.name)) });
+  res.json({ ok: true, clubs: regs.map((r) => ({ club: r.club, name: EFL.clubName(league, r.club), tid: r.telegramId, user: names.get(r.telegramId) || '', vacant: !!r.vacant, owned: !!r.telegramId && !r.vacant, auction: r.auction?.price ? { price: r.auction.price, currentBid: r.auction.currentBid || 0 } : null })).sort((a, b) => a.name.localeCompare(b.name)) });
 }));
 app.post('/api/admin/auction/list', adminOnly, ah(async (req, res) => {
   const { league, club } = req.body || {};
@@ -681,6 +681,37 @@ app.post('/api/admin/auction/list', adminOnly, ah(async (req, res) => {
   if (!old) return res.status(404).json({ error: 'fail' });
   await refundActiveBid(old, 'admin lotni qayta qo\'ydi');
   await require('./lib/audit').audit((tgUser(req)?.id ?? 0), 'auction.list', `${league}|${club}`, { price });
+  res.json({ ok: true });
+}));
+
+// Admin: klubga odam qo'shish (bo'sh klub yoki egasi o'zgarishi). Egasi o'yin o'ynagan bo'lsa, almashtirilmaydi.
+app.post('/api/admin/club/assign', adminOnly, ah(async (req, res) => {
+  const { league, club } = req.body || {};
+  const raw = String(req.body?.user || '').trim().replace(/^@/, '');
+  if (!EFL.byId[league] || !club || !raw) return res.status(400).json({ error: 'fail' });
+  const usr = /^\d+$/.test(raw)
+    ? await User.findOne({ telegramId: Number(raw) }).lean()
+    : await User.findOne({ username: new RegExp('^' + raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }).lean();
+  if (!usr) return res.status(404).json({ error: 'nouser' });
+  const tid = usr.telegramId;
+  const reg = await Registration.findOne({ season, league, club }).lean();
+  if (!reg) return res.status(404).json({ error: 'fail' });
+  if (!reg.vacant && reg.telegramId === tid) return res.status(409).json({ error: 'already' });
+  if (await Registration.exists({ season, telegramId: tid })) return res.status(409).json({ error: 'userBusy' });   // bitta foydalanuvchi — bitta klub
+  if (!reg.vacant && (await Match.exists({ season, league, status: { $ne: 'cancelled' }, $or: [{ home: reg.telegramId }, { away: reg.telegramId }] }))) return res.status(409).json({ error: 'hasGames' });
+  await refundActiveBid(reg, 'klub egasi o\'zgardi');   // faol auksion taklifi qaytariladi
+  await Registration.updateOne({ _id: reg._id }, { $set: { telegramId: tid, vacant: false, pts: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0 }, $unset: { auction: 1 } });
+  await require('./lib/audit').audit((tgUser(req)?.id ?? 0), 'club.assign', `${league}|${club}`, { user: tid });
+  res.json({ ok: true });
+}));
+
+// Admin: klubni bo'shatish (egasi ketadi, klub bo'sh bo'ladi)
+app.post('/api/admin/club/vacate', adminOnly, ah(async (req, res) => {
+  const { league, club } = req.body || {};
+  const reg = await Registration.findOne({ season, league, club, vacant: { $ne: true } }).lean();
+  if (!reg) return res.status(404).json({ error: 'fail' });
+  if (!(await vacateClub(league, reg.telegramId, club))) return res.status(404).json({ error: 'fail' });
+  await require('./lib/audit').audit((tgUser(req)?.id ?? 0), 'club.vacate', `${league}|${club}`, {});
   res.json({ ok: true });
 }));
 

@@ -33,7 +33,8 @@ window.AdminView = (() => {
   let bc = { list: null, count: null, text: '', league: '', lang: '' };
   let bcTimer = null;
   let aucCfg = null;
-  let aucAdm = { league: '', clubs: null };   // admin: klubni auksionga qo'yish
+  let aucAdm = { league: '', clubs: null };
+  let cmgr = { league: '', clubs: null };   // klub boshqaruvi: odam qo'shish, bo'shatish, auksionga qo'yish   // admin: klubni auksionga qo'yish
   let uclData = null, uclSel = null;   // Chempionlar ligasi: holat va tanlangan ishtirokchilar
 
   const fmtLocal = (d) => { const x = new Date(d), p = (n) => String(n).padStart(2, '0'); return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}T${p(x.getHours())}:${p(x.getMinutes())}`; };
@@ -625,6 +626,7 @@ window.AdminView = (() => {
         ['open', '🔓 Ligalar holati'],
         ['auction', '🏷️ Auksion'],
         ['ucl', '🏆 Chempionlar ligasi'],
+        ['cmgr', '🛠 Klub boshqaruvi'],
         ['clubs', '🏟 Klublar']
       ];
       tabs = superAdmin ? globalTabs : globalTabs.filter(([k]) => k === 'tour' || k === 'clubs');
@@ -695,6 +697,8 @@ window.AdminView = (() => {
       content = toursHtml();
     } else if (mainTab === 'auction') {
       content = auctionHtml();
+    } else if (mainTab === 'cmgr') {
+      content = cmgrHtml();
     } else if (mainTab === 'ucl') {
       content = uclHtml();
     }
@@ -822,6 +826,41 @@ window.AdminView = (() => {
     }
   }
 
+  // ——— Klub boshqaruvi: odam qo'shish, bo'shatish, auksionga qo'yish ———
+  function cmgrHtml() {
+    const lgOpts = (ov && ov.leagues ? ov.leagues : []).map(function (l) { return '<option value="' + esc(l.id) + '"' + (l.id === cmgr.league ? ' selected' : '') + '>' + esc(l.name) + '</option>'; }).join('');
+    let body = '<p class="ad-hint">Liga tanlang va "Klublarni ko\'rsatish" ni bosing</p>';
+    if (cmgr.clubs) {
+      body = cmgr.clubs.length ? cmgr.clubs.map(function (c) {
+        const egasi = c.owned ? ('Egasi: ' + esc(c.user || c.tid)) : 'Bo\'sh klub';
+        const au = c.auction ? (' · 🏷 auksionda: ' + c.auction.price + (c.auction.currentBid ? ' (taklif ' + c.auction.currentBid + ')' : '')) : '';
+        return '<div class="g-card" style="margin-top:8px;padding:10px;">' +
+          '<b>' + esc(c.name) + '</b> <small class="ad-hint">' + egasi + esc(au) + '</small>' +
+          '<div class="ad-row" style="gap:6px;flex-wrap:wrap;margin-top:8px;">' +
+            '<input id="cm-u-' + esc(c.club) + '" placeholder="Telegram ID yoki @username" style="flex:1;min-width:160px;">' +
+            '<button class="ad-btn ok sm" data-act="cm-assign" data-club="' + esc(c.club) + '">Odam qo\'shish</button>' +
+          '</div>' +
+          '<div class="ad-row" style="gap:6px;flex-wrap:wrap;margin-top:6px;">' +
+            '<input id="cm-p-' + esc(c.club) + '" type="number" min="1" placeholder="Narx" style="width:110px;">' +
+            '<button class="ad-btn ghost sm" data-act="cm-auction" data-club="' + esc(c.club) + '">Auksionga qo\'yish</button>' +
+            (c.owned ? '<button class="ad-btn bad sm" data-act="cm-vacate" data-club="' + esc(c.club) + '">Bo\'shatish</button>' : '') +
+          '</div></div>';
+      }).join('') : '<p class="ad-hint">Bu ligada klub yo\'q</p>';
+    }
+    return '<div class="g-card ad-lg"><b>🛠 Klub boshqaruvi</b>' +
+      '<div class="ad-row" style="gap:6px;flex-wrap:wrap;margin-top:8px;">' +
+        '<select id="cmLeague">' + lgOpts + '</select>' +
+        '<button class="ad-btn ghost sm" data-act="cm-load">Klublarni ko\'rsatish</button>' +
+      '</div>' + body + '</div>';
+  }
+
+  async function loadCmgr() {
+    if (!cmgr.league) return render();
+    const r = await api('/api/admin/auction/clubs?league=' + encodeURIComponent(cmgr.league));
+    cmgr.clubs = r.ok ? r.clubs : [];
+    render();
+  }
+
   // ——— Chempionlar ligasi (UCL) admin paneli ———
   function uclHtml() {
     if (!uclData) return '<p class="ad-hint">Yuklanmoqda…</p>';
@@ -938,6 +977,7 @@ window.AdminView = (() => {
       if (mainTab === 'cups') loadCups();
       if (mainTab === 'auction') loadAuction();
       if (mainTab === 'ucl') loadUcl();
+      if (mainTab === 'cmgr') loadCmgr();
       return;
     }
     if (act === 'pick-league') {
@@ -1311,6 +1351,27 @@ window.AdminView = (() => {
       if (!(await confirmBox("Hammasi o'chadi: o'yinlar, natijalar, reyting, klub egalari. Liga ro'yxatdan o'tishga qaytadi. Davom etasizmi?"))) return;
       const r = await post('/api/admin/reset-data', { target, confirm: 'RESET' });
       return done(r, `Tozalandi: ${r.matches || 0} ta o'yin${r.refunded ? ', ' + r.refunded + ' ta taklif qaytarildi' : ''} ♻️`, loadMatches);
+    }
+    if (act === 'cm-load') {
+      cmgr.league = el.querySelector('#cmLeague').value;
+      return loadCmgr();
+    }
+    if (act === 'cm-assign') {
+      const club = btn.dataset.club, user = (el.querySelector('#cm-u-' + club) || {}).value || '';
+      if (!user.trim()) return toast('Telegram ID yoki @username kiriting');
+      const r = await post('/api/admin/club/assign', { league: cmgr.league, club, user: user.trim() });
+      return done(r, "Odam klubga qo'shildi ✅", loadCmgr);
+    }
+    if (act === 'cm-vacate') {
+      if (!(await confirmBox("Klub egasi ketadi va klub bo'sh bo'ladi. Davom etasizmi?"))) return;
+      const r = await post('/api/admin/club/vacate', { league: cmgr.league, club: btn.dataset.club });
+      return done(r, 'Klub bo\'shatildi', loadCmgr);
+    }
+    if (act === 'cm-auction') {
+      const club = btn.dataset.club, price = Number((el.querySelector('#cm-p-' + club) || {}).value);
+      if (!Number.isInteger(price) || price < 1) return toast('Narxni to\'g\'ri kiriting');
+      const r = await post('/api/admin/auction/list', { league: cmgr.league, club, price });
+      return done(r, "Klub auksionga qo'yildi ✅", loadCmgr);
     }
     if (act === 'auc-adm-load') {
       aucAdm.league = el.querySelector('#aucAdmLeague').value;
