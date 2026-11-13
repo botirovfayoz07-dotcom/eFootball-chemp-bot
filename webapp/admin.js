@@ -616,7 +616,8 @@ window.AdminView = (() => {
       tabs = [
         ['liga', '🏆 Liga'],
         ['cup', '🎟️ Kubok'],
-        ['clubs', '🏟 Klublar']
+        ['clubs', '🏟 Klublar'],
+        ...(superAdmin ? [['global', '🧭 Barcha bo\'limlar']] : [])
       ];
     } else {
       // Bo'limni tanlang dagi asosiy admin panel: statistika, turnirlar, tizim boshqaruvi
@@ -1011,6 +1012,7 @@ window.AdminView = (() => {
       return;
     }
     if (act === 'switch-main') {
+      if (btn.dataset.tab === 'global') { viewMode = 'global'; mainTab = 'stats'; render(); loadStats(); return; }
       mainTab = btn.dataset.tab;
       render();
       if (mainTab === 'cup' && !cupState) loadCup();
