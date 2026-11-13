@@ -334,7 +334,7 @@ window.LeagueView = (() => {
     const cur = lot.bid || lot.price, min = cur + 1;
     const name = EFL.clubName(league, club);
     closeModal();
-    el.insertAdjacentHTML('beforeend', `<div class="modal" id="bidModal"><div class="modal-box"><h3>${esc(name)}</h3><p class="ad-hint">${lot.bid ? 'Joriy taklif' : 'Boshlang\'ich narx'}: <b>${cur}</b> coin</p><label>Taklifingiz (kamida ${min})</label><input id="bidAmt" type="number" inputmode="numeric" min="${min}" value="${min}"><div class="modal-btns"><button class="mb-no" data-act="aucno">${T[lang].aucCancel || 'Bekor'}</button><button class="mb-ok" data-act="submit-bid" data-lg="${esc(league)}" data-cl="${esc(club)}">Taklif qilish</button></div></div></div>`);
+    el.insertAdjacentHTML('beforeend', `<div class="modal" id="bidModal"><div class="modal-box"><h3>${esc(name)}</h3><p class="ad-hint">${lot.bid ? 'Joriy taklif' : 'Boshlang\'ich narx'}: <b>${cur}</b> coin</p><label>Pul tikish (kamida ${min} coin)</label><input id="bidAmt" type="number" inputmode="numeric" min="${min}" value="${min}"><div class="modal-btns"><button class="mb-no" data-act="aucno">${T[lang].aucCancel || 'Bekor'}</button><button class="mb-ok" data-act="submit-bid" data-bidl="${esc(league)}" data-bidc="${esc(club)}">Pul tikish</button></div></div></div>`);
     el.querySelector('#bidAmt')?.focus();
   }
   async function submitBid(league, club) {
@@ -779,8 +779,8 @@ window.LeagueView = (() => {
         else if (a === 'sellcup') { const tr = shop.trophies.find((x) => x.league === btn.dataset.league && x.status !== 'selling'); if (tr) openSell(tr.id); else toast(window.ShopView.T[lang].notOwned); }
         else if (a === 'sell') openSell(btn.dataset.tid);
         else if (a === 'sellgo') confirmSell(btn.dataset.tid);
-        else if (a === 'buy') openBidModal(btn.dataset.league, btn.dataset.club);
-        else if (a === 'submit-bid') submitBid(btn.dataset.lg, btn.dataset.cl);
+        else if (a === 'buy') openBidModal(btn.dataset.bl, btn.dataset.bc);
+        else if (a === 'submit-bid') submitBid(btn.dataset.bidl, btn.dataset.bidc);
         else if (a === 'pick-fav') pickFavPlayer();
       });
     }
