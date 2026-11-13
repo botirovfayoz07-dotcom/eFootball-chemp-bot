@@ -339,3 +339,8 @@ main.page .carousel > .card { flex: none; width: 100%; min-height: 168px; }
   font: 700 11px/1 'Rajdhani', sans-serif !important; min-width: 18px; height: 18px; padding: 0 5px;
   border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-style: normal;
 }
+
+/* Registratsiya: auksiondagi klublar (yopiq emas, auksion belgisi bilan) */
+.club.auc { border: 1px dashed #f59e0b !important; background: linear-gradient(135deg, rgba(245,158,11,.14), rgba(245,158,11,.04)) !important; opacity: 1 !important; }
+.club.auc small.auc-tag { display: block; font: 700 11px 'Rajdhani', sans-serif; color: #fbbf24; letter-spacing: .04em; }
+.auc-note { font-size: 12px; opacity: .8; margin: 10px 4px 0; }

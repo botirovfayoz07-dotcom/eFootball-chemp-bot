@@ -55,13 +55,18 @@ window.LeagueView = (() => {
     data = { mine: null, stats: {} }, // stats: { [ligaId]: { players, taken[] } }
     cur = null, selected = null, el, lang = 'uz', toast, settle;
 
-  const stat = (id) => data.stats[id] || { players: 0, taken: [] };
+  const stat = (id) => data.stats[id] || { players: 0, taken: [], auction: [] };
   const isFull = (l) => stat(l.id).players >= l.max;
   const isShut = (l) => !!stat(l.id).closed || isFull(l);   // yopiq yoki to'lgan — ro'yxatdan o'tib bo'lmaydi
   const badge = (t, l) => (stat(l.id).closed ? `<span class="l-badge full">${t.closed}</span>` : `<span class="l-badge ${isFull(l) ? 'full' : 'open'}">${isFull(l) ? t.full : t.open}</span>`);
 
   // Pastki menyu: Ma'lumotlar · Me · Do'kon — faqat ro'yxatdan o'tgandan keyin
   const navHtml = (t, active) => {
+    if (!data.mine) {   // klubi yo'q (ro'yxatdan o'tish bosqichi): Liga, Me, Do'kon
+      const NH = { uz: 'Liga', en: 'League', ru: 'Лига' }[lang] || 'Liga';
+      const b0 = [{ id: 'home', icon: '🗺', label: NH }, { id: 'me', icon: '👤', label: t.nav[1] }, { id: 'shop', icon: '🛒', label: t.nav[2] }];
+      return `<nav class="l-nav">${b0.map((b) => `<button class="${b.id === active ? 'on' : ''}" data-act="${b.id}"><span>${b.icon}</span><small>${b.label}</small></button>`).join('')}</nav>`;
+    }
     const base = [
       { id: 'info', icon: '🏆', label: t.nav[0] },
       { id: 'me', icon: '👤', label: t.nav[1] },
@@ -74,7 +79,7 @@ window.LeagueView = (() => {
       return `<button class="${on ? 'on' : ''}" data-act="${b.id}"><span>${b.icon}</span>${b.badge ? `<i class="nav-badge">${b.badge > 99 ? '99+' : b.badge}</i>` : ''}<small>${b.label}</small></button>`;
     }).join('')}</nav>`;
   };
-  const nav = (t, active) => (data.mine ? navHtml(t, active) : '');
+  const nav = (t, active) => navHtml(t, active);
   const backBtn = (act = 'back') => `<button class="back" data-act="${act}"><span>‹</span> ${T[lang].back}</button>`;
 
   // ——— Kuboklar (bosilmaydi) va formatlar ———
@@ -544,11 +549,15 @@ window.LeagueView = (() => {
   };
   function belowHtml() {
     const t = T[lang], l = EFL.byId[cur], taken = stat(cur).taken, full = isShut(l);
+    const aucMap = new Map((stat(cur).auction || []).map((a) => [a.club, a]));
     const clubs = l.clubs.map((c) => {
+      const a = aucMap.get(c.id);
+      if (a) return `<button class="club auc" data-club="${c.id}" disabled>${EFL.crest(l.id, c.id, c.name)}<span>${esc(c.name)}</span><small class="auc-tag">🏷 ${a.bid || a.price}</small></button>`;
       const off = taken.includes(c.id) || full;
       return `<button class="club${selected === c.id ? ' sel' : ''}${off ? ' taken' : ''}" data-club="${c.id}" ${off ? 'disabled' : ''}>${EFL.crest(l.id, c.id, c.name)}<span>${esc(c.name)}</span></button>`;
     }).join('');
-    return `<div class="g-label"><span>${t.clubs}</span></div><div class="clubs">${clubs}</div>`;
+    const aucNote = aucMap.size ? `<p class="auc-note">🏷 ${({ uz: "Auksiondagi klublar: Do'kon → Auksion bo'limida sotib olinadi", en: 'Auction clubs: buy them in Shop → Auction', ru: 'Клубы на аукционе: покупаются в Магазине → Аукцион' })[lang] || ''}</p>` : '';
+    return `<div class="g-label"><span>${t.clubs}</span></div><div class="clubs">${clubs}</div>${aucNote}`;
   }
   const updHero = () => { const h = el.querySelector('#lHero'); if (h) h.innerHTML = heroHtml(); };
   const updBelow = () => { const b = el.querySelector('#lBelow'); if (b) b.innerHTML = belowHtml(); };
@@ -625,14 +634,14 @@ window.LeagueView = (() => {
     if (!loaded) { el.innerHTML = `<div class="page l-page">${window.Skel?.page() || ''}</div>`; return; }
     if (!modalOpen()) syncBg();
     if (data.mine && tab === 'home') tab = 'info';       // ro'yxatdan o'tgan -> Ma'lumotlar
-    if (!data.mine && tab !== 'home') { tab = 'home'; meSel = null; pview = null; }
+    if (!data.mine && !['home', 'me', 'shop'].includes(tab)) { tab = 'home'; meSel = null; pview = null; }
     if (pview) { el.innerHTML = `<div class="page l-page">${window.ProfileView.publicHtml(lang, pview)}</div>${nav(T[lang], 0)}`; return; }
     if (tab === 'admin') return renderAdmin();
     if (tab === 'info') { el.innerHTML = infoHtml(); return; }
     if (tab === 'me') return renderMe();
     if (tab === 'club') return renderClub();
     if (tab === 'shop') return renderShop();
-    el.innerHTML = view === 'country' && country ? countryHtml() : geoHtml();
+    el.innerHTML = (view === 'country' && country ? countryHtml() : geoHtml()) + (data.mine ? '' : nav(T[lang], 'home'));
     const tr = el.querySelector('#lTrack');
     if (tr) { centerOn(cur, false); nearest(tr); }
   }
@@ -640,7 +649,7 @@ window.LeagueView = (() => {
   async function load() {
     const r = await api('/api/leagues');
     loaded = true;
-    if (r.ok) data = { mine: r.mine, stats: Object.fromEntries(r.leagues.map((l) => [l.id, { players: l.players, taken: l.taken, closed: !!l.closed }])) };
+    if (r.ok) data = { mine: r.mine, stats: Object.fromEntries(r.leagues.map((l) => [l.id, { players: l.players, taken: l.taken, closed: !!l.closed, auction: l.auction || [] }])) };
     selected = null;
     render();
     if (tab === 'info') loadRank(); else if (tab === 'me' || tab === 'club') loadProfile();
@@ -728,7 +737,7 @@ window.LeagueView = (() => {
         else if (a === 'back') { if (!back()) location.hash = '#official'; }
         else if (a === 'staffpanel') { window.ADMIN_START_TAB = 'rounds'; location.hash = '#admin'; }
         else if (a === 'meback') { meSel = null; openGame = null; window.scrollTo(0, 0); render(); }
-        else if (a === 'info' || a === 'me' || a === 'club' || a === 'shop' || a === 'admin') setTab(a);
+        else if (a === 'info' || a === 'me' || a === 'club' || a === 'shop' || a === 'admin' || a === 'home') setTab(a);
         else if (a === 'leave') leaveClub();
         else if (a === 'auction') openAuction();
         else if (a === 'aucno') closeModal();

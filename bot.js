@@ -339,7 +339,8 @@ app.get('/api/leagues', ah(async (req, res) => {
     leagues: EFL.LEAGUES.map((l) => {
       const rs = regs.filter((r) => r.league === l.id);
       const live = rs.filter((r) => !r.vacant);   // bo'sh qolgan klub band emas — uni boshqa odam olishi mumkin
-      return { id: l.id, max: l.max, players: live.length, taken: live.map((r) => r.club), closed: closedSet.has(l.id) };
+      const auction = rs.filter((r) => r.auction?.price > 0).map((r) => ({ club: r.club, price: r.auction.price, bid: r.auction.currentBid || 0 }));
+      return { id: l.id, max: l.max, players: live.length, taken: live.map((r) => r.club), closed: closedSet.has(l.id), auction };
     }),
   });
 }));
@@ -663,6 +664,26 @@ app.get('/api/admin/auction/config', adminOnly, ah(async (req, res) => {
 }));
 
 // Auksionni yakunlash: oxirgi bidder ga klub o'tkazish (faqat katta admin, barcha ligalar)
+// Admin: klubni auksionga qo'yish (istalgan klub, narxni o'zi belgilaydi). Eski taklif bo'lsa, egasiga qaytariladi.
+app.get('/api/admin/auction/clubs', adminOnly, ah(async (req, res) => {
+  const league = String(req.query.league || '');
+  if (!EFL.byId[league]) return res.status(400).json({ error: 'fail' });
+  const regs = await Registration.find({ season, league }).lean();
+  const names = new Map((await User.find({ telegramId: { $in: regs.map((r) => r.telegramId) } }).lean()).map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
+  res.json({ ok: true, clubs: regs.map((r) => ({ club: r.club, name: EFL.clubName(league, r.club), user: names.get(r.telegramId) || '', vacant: !!r.vacant, auction: r.auction?.price ? { price: r.auction.price, currentBid: r.auction.currentBid || 0 } : null })).sort((a, b) => a.name.localeCompare(b.name)) });
+}));
+app.post('/api/admin/auction/list', adminOnly, ah(async (req, res) => {
+  const { league, club } = req.body || {};
+  const price = Math.floor(Number(req.body?.price));
+  if (!EFL.byId[league] || !club) return res.status(400).json({ error: 'fail' });
+  if (!(price >= 1 && price <= 1e9)) return res.status(400).json({ error: 'badPrice' });
+  const old = await Registration.findOneAndUpdate({ season, league, club }, { auction: { price, at: new Date() } }, { new: false }).lean();
+  if (!old) return res.status(404).json({ error: 'fail' });
+  await refundActiveBid(old, 'admin lotni qayta qo\'ydi');
+  await require('./lib/audit').audit((tgUser(req)?.id ?? 0), 'auction.list', `${league}|${club}`, { price });
+  res.json({ ok: true });
+}));
+
 app.post('/api/admin/auction/finalize', adminOnly, ah(async (req, res) => {
   const lots = await Registration.find({ season, 'auction.bidder': { $exists: true }, 'auction.currentBid': { $gt: 0 } }).lean();
   let done = 0;
@@ -1578,6 +1599,33 @@ app.post('/api/admin/league/:id/draw-cancel', staffOnly, ah(async (req, res) => 
   res.json({ ok: true });
 }));
 // Bitta turning dedlayni: shu turdagi tugallanmagan o'yinlarga qo'yiladi (faqat belgilangan tur)
+// Liga yoki kubokni 0 dan boshlash: o'yinlar, natijalar, qura holati (ixtiyoriy: ro'yxat ham). Faqat katta admin.
+app.post('/api/admin/reset-data', adminOnly, ah(async (req, res) => {
+  const { target, keepRegs, confirm } = req.body || {};
+  if (confirm !== 'RESET') return res.status(400).json({ error: 'confirm' });
+  const actor = (tgUser(req)?.id ?? 0);
+  const fam = cupLogic.fam(target) || cupLogic.familyOfKey(target);
+  const keys = fam ? [fam.id, fam.shieldKey, fam.shieldId].filter(Boolean) : [String(target || '')];
+  if (!fam && !EFL.byId[target]) return res.status(400).json({ error: 'fail' });
+  let refunded = 0;
+  if (!fam && !keepRegs) {
+    // Ro'yxat o'chirilishidan oldin faol auksion taklifi qaytariladi (coinlar yo'qolmasin)
+    const regs = await Registration.find({ season, league: target, 'auction.bidder': { $ne: null }, 'auction.currentBid': { $gt: 0 } }).lean();
+    for (const r of regs) { await refundActiveBid(r, 'liga tozalandi'); refunded++; }
+  }
+  const matchIds = (await Match.find({ season, league: { $in: keys } }).select('_id').lean()).map((m) => String(m._id));
+  await ChatMessage.deleteMany({ kind: 'match', key: { $in: matchIds } });
+  const md = await Match.deleteMany({ season, league: { $in: keys } });
+  if (fam) {
+    await Cup.deleteMany({ season, cup: { $in: keys } });
+  } else {
+    await LeagueConfig.updateOne({ season, league: target }, { $set: { drawnAt: null, drawAt: null, roundsLocked: false, openRounds: [], adminDeadlineRounds: [] } }, { upsert: true });
+    if (!keepRegs) await Registration.deleteMany({ season, league: target });
+  }
+  await require('./lib/audit').audit(actor, 'reset-data', target, { keepRegs: !!keepRegs, matches: md.deletedCount, refunded, cup: !!fam });
+  res.json({ ok: true, matches: md.deletedCount, refunded });
+}));
+
 app.post('/api/admin/league/:id/round-deadline', staffOnly, ah(async (req, res) => {
   if (!canLeague(req, req.params.id)) return res.status(403).json({ error: 'forbidden' });
   const league = EFL.byId[req.params.id];

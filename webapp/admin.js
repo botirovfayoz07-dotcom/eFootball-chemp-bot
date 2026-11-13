@@ -33,6 +33,7 @@ window.AdminView = (() => {
   let bc = { list: null, count: null, text: '', league: '', lang: '' };
   let bcTimer = null;
   let aucCfg = null;
+  let aucAdm = { league: '', clubs: null };   // admin: klubni auksionga qo'yish
   let uclData = null, uclSel = null;   // Chempionlar ligasi: holat va tanlangan ishtirokchilar
 
   const fmtLocal = (d) => { const x = new Date(d), p = (n) => String(n).padStart(2, '0'); return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}T${p(x.getHours())}:${p(x.getMinutes())}`; };
@@ -201,6 +202,19 @@ window.AdminView = (() => {
       }
     }
 
+    // --- Ma'lumotlarni tozalash (0 dan boshlash) ---
+    const resetBox = function (target, name) {
+      return '<div class="g-card ad-lg" style="margin-top:12px;border:1px solid rgba(239,68,68,.45);">' +
+        '<b style="color:#f87171;">⚠️ ' + esc(name) + ': ma\'lumotlarni tozalash</b>' +
+        '<p class="ad-hint">O\'yinlar, natijalar va qura holati o\'chiriladi, 0 dan boshlanadi. Bu amalni qaytarib bo\'lmaydi.</p>' +
+        '<div class="ad-row" style="gap:6px;flex-wrap:wrap;">' +
+        '<button class="ad-btn bad sm" data-act="reset-data" data-keep="1" data-target="' + esc(target) + '">Natijalarni tozalash (ro\'yxat qoladi)</button>' +
+        '<button class="ad-btn bad sm" data-act="reset-data" data-keep="0" data-target="' + esc(target) + '">Hammasini o\'chirish (ro\'yxat ham)</button>' +
+        '</div></div>';
+    };
+    const cupObj = (typeof cupsList !== 'undefined' && Array.isArray(cupsList)) ? cupsList.find(function (c) { return c.id === curCup; }) : null;
+    const resetBlock = (curLeague ? resetBox(curLeague, (l && l.name) || curLeague) : '') + (curCup && cupObj ? resetBox(curCup, cupObj.name) : '');
+
     // --- Match search result ---
     let matchSearchBlock = '';
     if (matchSearch.loading) {
@@ -363,7 +377,7 @@ window.AdminView = (() => {
         '<div class="chips" style="margin-bottom:12px;">' +
           cupsList.map(function(cp){ return '<button class="chip' + (curCup === cp.id ? ' on' : '') + '" data-act="pick-cup" data-cid="' + cp.id + '">' + cp.flag + ' ' + esc(cp.name) + '</button>'; }).join('') +
         '</div>' +
-        faCupBlock +
+        faCupBlock + resetBlock +
       '</div>'
     );
   }
@@ -547,6 +561,18 @@ window.AdminView = (() => {
   }
 
   // --- AUKSION SOZLAMALARI ---
+  function aucAdmClubsHtml() {
+    if (!aucAdm.clubs) return '<p class="ad-hint">Liga tanlang va "Klublarni ko\'rsatish" ni bosing</p>';
+    if (!aucAdm.clubs.length) return '<p class="ad-hint">Bu ligada klub yo\'q</p>';
+    return aucAdm.clubs.map(function (c) {
+      const st = c.auction ? ('Joriy narx: ' + c.auction.price + (c.auction.currentBid ? ' · taklif: ' + c.auction.currentBid : '')) : 'Auksionda emas';
+      return '<div class="ad-row" style="gap:6px;align-items:center;flex-wrap:wrap;padding:4px 0;">' +
+        '<span style="flex:1;min-width:140px;">' + esc(c.name) + ' <small class="ad-hint">' + esc(c.user || (c.vacant ? 'bo\'sh' : '')) + '</small><br><small class="ad-hint">' + esc(st) + '</small></span>' +
+        '<input id="aucp-' + esc(c.club) + '" type="number" min="1" placeholder="Narx" style="width:110px;">' +
+        '<button class="ad-btn ok sm" data-act="auc-adm-list" data-club="' + esc(c.club) + '">Qo\'yish</button></div>';
+    }).join('');
+  }
+
   function auctionHtml() {
     if (!aucCfg) return '<p class="ad-hint">Yuklanmoqda…</p>';
     return `<div class="g-card ad-lg">
@@ -565,6 +591,14 @@ window.AdminView = (() => {
       </div>
       <div class="ad-row" style="margin-top:14px;border-top:1px solid #1e293b;padding-top:12px;">
         <button class="ad-btn bad sm" data-act="auc-finalize">🏁 Auksionni yakunlash (klublarni g'oliblarga o'tkazish)</button>
+      </div>
+      <div class="g-card ad-lg" style="margin-top:12px;">
+        <b>🏷️ Klubni auksionga qo'yish (admin)</b>
+        <div class="ad-row" style="gap:6px;flex-wrap:wrap;margin-top:8px;">
+          <select id="aucAdmLeague">${(ov && ov.leagues ? ov.leagues : []).map(function (l) { return '<option value="' + esc(l.id) + '"' + (l.id === aucAdm.league ? ' selected' : '') + '>' + esc(l.name) + '</option>'; }).join('')}</select>
+          <button class="ad-btn ghost sm" data-act="auc-adm-load">Klublarni ko'rsatish</button>
+        </div>
+        <div style="margin-top:10px;">${aucAdmClubsHtml()}</div>
       </div>
       <p class="ad-hint" style="margin-top:12px;">Auksion ochilganda foydalanuvchilar Do'kon → Auksion bo'limida klublar uchun tanga taklif qilishadi. Har bir yangi stavkada eski taklif egasining tangalari avtomatik qaytariladi. Yakunlanganda klub eng yuqori taklif qilganga o'tadi.</p>
     </div>`;
@@ -1273,6 +1307,29 @@ window.AdminView = (() => {
       return done(r, `Auksion yakunlandi: ${r.finalized || 0} ta klub o'tkazildi 🏁`, loadAuction);
     }
 
+    if (act === 'reset-data') {
+      const target = btn.dataset.target, keep = btn.dataset.keep === '1';
+      if (!(await confirmBox(keep ? "Liga/kubokning o'yinlari va natijalari o'chiriladi, ro'yxat qoladi. Davom etasizmi?" : "Liga/kubok va ro'yxat BUTUNLAY o'chiriladi. Davom etasizmi?"))) return;
+      const r = await post('/api/admin/reset-data', { target, keepRegs: keep, confirm: 'RESET' });
+      return done(r, `Tozalandi: ${r.matches || 0} ta o'yin${r.refunded ? ', ' + r.refunded + ' ta taklif qaytarildi' : ''} ♻️`, loadMatches);
+    }
+    if (act === 'auc-adm-load') {
+      aucAdm.league = el.querySelector('#aucAdmLeague').value;
+      const r = await api('/api/admin/auction/clubs?league=' + encodeURIComponent(aucAdm.league));
+      aucAdm.clubs = r.ok ? r.clubs : [];
+      return render();
+    }
+    if (act === 'auc-adm-list') {
+      const club = btn.dataset.club;
+      const price = Number((el.querySelector('#aucp-' + club) || {}).value);
+      if (!Number.isInteger(price) || price < 1) return toast('Narxni to\'g\'ri kiriting');
+      const r = await post('/api/admin/auction/list', { league: aucAdm.league, club, price });
+      return done(r, "Klub auksionga qo'yildi ✅", async () => {
+        const x = await api('/api/admin/auction/clubs?league=' + encodeURIComponent(aucAdm.league));
+        aucAdm.clubs = x.ok ? x.clubs : [];
+        render();
+      });
+    }
     // --- Chempionlar ligasi ---
     if (act === 'ucl-toggle') {
       const id = Number(btn.dataset.id);
