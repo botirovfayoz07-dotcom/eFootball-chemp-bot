@@ -622,6 +622,7 @@ window.AdminView = (() => {
         ['tour', '🎮 Turnirlar'],
         ['broadcast', '📢 Xabar'],
         ['helpers', '👥 Yordamchilar'],
+        ['generals', '🧭 Umumiy adminlar'],
         ['cups', '💰 Kubok narxi'],
         ['open', '🔓 Ligalar holati'],
         ['auction', '🏷️ Auksion'],
@@ -631,7 +632,7 @@ window.AdminView = (() => {
       ];
       // glava: hammasi. umumiy: statistika, yordamchilar va kubok narxi yashirin. yordamchi: faqat tur va klublar
       const isGlava = ov?.role === 'glava';
-      const hiddenForGeneral = ['stats', 'helpers', 'cups'];
+      const hiddenForGeneral = ['stats', 'helpers', 'cups', 'generals'];
       tabs = superAdmin ? (isGlava ? globalTabs : globalTabs.filter(([k]) => !hiddenForGeneral.includes(k))) : globalTabs.filter(([k]) => k === 'tour' || k === 'clubs');
     }
 
@@ -689,7 +690,7 @@ window.AdminView = (() => {
     } else if (mainTab === 'broadcast') {
       content = broadcastHtml();
     } else if (mainTab === 'helpers') {
-      content = helpersHtml() + generalsHtml();
+      content = helpersHtml();
     } else if (mainTab === 'cups') {
       content = cupsHtml();
     } else if (mainTab === 'open') {
@@ -700,6 +701,8 @@ window.AdminView = (() => {
       content = toursHtml();
     } else if (mainTab === 'auction') {
       content = auctionHtml();
+    } else if (mainTab === 'generals') {
+      content = generalsHtml();
     } else if (mainTab === 'cmgr') {
       content = cmgrHtml();
     } else if (mainTab === 'ucl') {
@@ -867,7 +870,7 @@ window.AdminView = (() => {
   // ——— Umumiy adminlar (faqat glava boshqaradi) ———
   let generalsList = null;
   function generalsHtml() {
-    if (ov?.role !== 'glava') return '';
+    if (ov?.role !== 'glava') return '<p class="ad-hint">Bu bo\'lim faqat glava admin uchun</p>';
     const rows = generalsList ? (generalsList.length ? generalsList.map(function (g) {
       return '<div class="ad-row" style="gap:6px;align-items:center;padding:4px 0;"><span style="flex:1;">' + esc(g.name || String(g.telegramId)) + ' <small class="ad-hint">' + g.telegramId + '</small></span><button class="ad-btn bad sm" data-act="gen-remove" data-tid="' + g.telegramId + '">Olib tashlash</button></div>';
     }).join('') : '<p class="ad-hint">Umumiy admin yo\'q</p>') : '<p class="ad-hint">Yuklanmoqda…</p>';
@@ -998,7 +1001,7 @@ window.AdminView = (() => {
       if (mainTab === 'auction') loadAuction();
       if (mainTab === 'ucl') loadUcl();
       if (mainTab === 'cmgr') loadCmgr();
-      if (mainTab === 'helpers') loadGenerals();
+      if (mainTab === 'generals') loadGenerals();
       return;
     }
     if (act === 'pick-league') {
