@@ -26,6 +26,7 @@ const schema = new mongoose.Schema({
   // Dedlayn: tur boshlanishi va tugashi (null — dedlaynsiz, avto-yutuq ishlamaydi)
   startsAt: { type: Date, default: null },
   deadline: { type: Date, default: null },
+  needsAdmin: { type: Boolean, default: false }, // natija yuqori (5+ gol): faqat admin tasdiqlaydi
   notified: { type: [String], default: [] },   // yuborilgan eslatmalar: start | h3 | over | done
   auto: { type: { kind: String, at: Date }, default: null, _id: false }, // avtomatik qaror izi (win-home | win-away | void)
   updatedAt: { type: Date, default: Date.now },

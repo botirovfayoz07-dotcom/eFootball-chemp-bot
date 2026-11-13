@@ -219,6 +219,11 @@ const MSG = {
     en: (lg, r, opp, dl) => `⏰ ${lg}, round ${r}: 3 hours left until the deadline${dl ? ` (${dl})` : ''}.${opp ? `\nOpponent: ${opp}.` : ''}\nPlay and enter the score, or a technical defeat may be given.`,
     ru: (lg, r, opp, dl) => `⏰ ${lg}, ${r}-й тур: до дедлайна 3 часа${dl ? ` (${dl})` : ''}.${opp ? `\nСоперник: ${opp}.` : ''}\nСыграйте и введите счёт, иначе может быть засчитано техническое поражение.`,
   },
+  autoOk: {
+    uz: (lg, r, opp) => `✅ ${lg}, ${r}-tur: ${opp} bilan natija dedlaynda avtomatik tasdiqlandi.`,
+    en: (lg, r, opp) => `✅ ${lg}, round ${r}: the result with ${opp} was confirmed automatically at the deadline.`,
+    ru: (lg, r, opp) => `✅ ${lg}, ${r}-тур: результат с ${opp} автоматически подтверждён к дедлайну.`,
+  },
   remindConfirm: {
     uz: (lg, r, opp) => `⏰ ${lg}, ${r}-tur: dedlaynga 3 soat qoldi.${opp ? `\n${opp} hisob kiritgan.` : ''} Iltimos, tasdiqlang yoki «Yolg'on» ni bosing.`,
     en: (lg, r, opp) => `⏰ ${lg}, round ${r}: 3 hours left.${opp ? `\n${opp} entered the score.` : ''} Please confirm it or press “Fake”.`,
@@ -722,6 +727,8 @@ function decodeImage(img) {
 // Adminlarga matn (+ ixtiyoriy rasm) yuboradi; { ok, fileId } — fileId keyin admin panelda rasmni ko'rsatish uchun saqlanadi
 async function sendToAdmins(text, buf) { return sendToIds(ADMINS, text, buf); }
 // Natija skrinshotlari: PROOF_CHAT_ID (kanal/guruh) berilsa — o'sha yerga, bo'lmasa adminlarga (ovozsiz)
+// Dalil arxivi: skrinshot PROOF_CHAT_ID kanaliga bildirishnomasiz saqlanadi (sozlanmagan bo'lsa — saqlanmaydi, admin xabar olmaydi)
+const archiveShot = (text, buf) => (process.env.PROOF_CHAT_ID ? sendToIds([Number(process.env.PROOF_CHAT_ID)], text, buf, true) : Promise.resolve({ ok: true, fileId: '' }));
 const sendResultShot = (text, buf) => sendToIds(process.env.PROOF_CHAT_ID ? [Number(process.env.PROOF_CHAT_ID)] : ADMINS, text, buf, true);
 async function sendToIds(ids, text, buf, silent = false) {
   if (!ids.length) return { ok: true, fileId: '' };
@@ -992,12 +999,16 @@ app.post('/api/matches/:id/report', limits.chat, ah(async (req, res) => {
   if (!shot) return res.status(400).json({ error: 'needShot' });
   const isHome = m0.home === u.id;
   const [wa, wb] = await Promise.all([whoIs(m0.league, m0.home), whoIs(m0.league, m0.away)]);
-  const sentShot = await sendResultShot(`📸 Natija skrinshoti — ${EFL.trophyName(m0.league)}, ${m0.round}-tur\n${wa} — ${wb}\nHisob: ${isHome ? my : opp}:${isHome ? opp : my} (kiritdi: ${await whoIs(m0.league, u.id)})`, shot);
+  // 4 golдан ko'p (5+) bo'lsa — admin tasdig'i kerak: adminga xabar. Oddiy natijada admin xabar olmaydi.
+  const high = Math.max(my, opp) > 4;
+  // Skrinshot natija kirituvchidan majburiy. Yuqori natija (5+ gol) — adminga tasdiqlash uchun xabar; oddiy — faqat arxivga.
+  const caption = `${high ? '⚠️ TASDIQLASH KERAK (5+ gol)' : '📸 Natija skrinshoti'} — ${EFL.trophyName(m0.league)}, ${m0.round}-tur\n${wa} — ${wb}\nHisob: ${isHome ? my : opp}:${isHome ? opp : my} (kiritdi: ${await whoIs(m0.league, u.id)})`;
+  const sentShot = high ? await sendToIds(ADMINS, caption, shot, false) : await archiveShot(caption, shot);
   if (!sentShot.ok) return res.status(502).json({ error: 'fail' });
   // Hisob kiritish mumkin: hali kiritilmagan, yoki o'zi kiritgan va raqib hali tasdiqlamagan (tuzatish)
   const m = await Match.findOneAndUpdate(
     { _id: id, season, $or: [{ status: 'scheduled' }, { status: 'pending', reportedBy: u.id }] },
-    { $set: { hg: isHome ? my : opp, ag: isHome ? opp : my, status: 'pending', reportedBy: u.id, claim: null, updatedAt: new Date() }, $push: { proofs: { by: u.id, text: '', fileId: sentShot.fileId, hg: isHome ? my : opp, ag: isHome ? opp : my, at: new Date() } } },
+    { $set: { hg: isHome ? my : opp, ag: isHome ? opp : my, status: 'pending', reportedBy: u.id, claim: null, needsAdmin: high, updatedAt: new Date() }, $push: { proofs: { by: u.id, text: '', fileId: sentShot.fileId, hg: isHome ? my : opp, ag: isHome ? opp : my, at: new Date() } } },
     { new: true }
   ).lean();
   if (!m) return res.status(409).json({ error: 'gone' });
@@ -1016,17 +1027,18 @@ app.post('/api/matches/:id/confirm', ah(async (req, res) => {
   if (shot === false) return res.status(400).json({ error: 'badImage' });
   const cur = await Match.findOne({ _id: req.params.id, season, status: 'pending', reportedBy: { $ne: u.id }, $or: [{ home: u.id }, { away: u.id }] }).lean();
   if (!cur) return res.status(409).json({ error: 'gone' });
+  if (cur.needsAdmin) return res.status(409).json({ error: 'adminOnly' });   // 5+ gol: faqat admin tasdiqlaydi
   // Avval holatni atomik tasdiqlaymiz; skrinshot faqat tasdiqlash muvaffaqiyatli bo'lgandan keyin yuboriladi
   const m = await Match.findOneAndUpdate(
-    { _id: req.params.id, season, status: 'pending', reportedBy: { $ne: u.id }, $or: [{ home: u.id }, { away: u.id }] },
+    { _id: req.params.id, season, status: 'pending', needsAdmin: { $ne: true }, reportedBy: { $ne: u.id }, $or: [{ home: u.id }, { away: u.id }] },
     { $set: { status: 'confirmed', confirmedBy: 'player', updatedAt: new Date() } },
     { new: true }
   ).lean();
   if (!m) return res.status(409).json({ error: 'gone' });
+  // Tasdiqlash skrinshoti ixtiyoriy; berilsa dalil arxivga saqlanadi
   if (shot) {
-    const [ca, cb] = await Promise.all([whoIs(cur.league, cur.home), whoIs(cur.league, cur.away)]);
-    const sentShot = await sendResultShot(`📸 Tasdiqlash skrinshoti — ${EFL.trophyName(cur.league)}, ${cur.round}-tur\n${ca} — ${cb}\nHisob: ${cur.hg}:${cur.ag} (tasdiqladi: ${await whoIs(cur.league, u.id)})`, shot);
-    if (sentShot.ok) await Match.updateOne({ _id: m._id }, { $push: { proofs: { by: u.id, text: '', fileId: sentShot.fileId, hg: cur.hg, ag: cur.ag, at: new Date() } } });
+    const a = await archiveShot(`🤝 Tasdiqlash skrinshoti — ${EFL.trophyName(m.league)}, ${m.round}-tur\nHisob: ${m.hg}:${m.ag}`, shot);
+    if (a.ok && a.fileId) await Match.updateOne({ _id: m._id }, { $push: { proofs: { by: u.id, text: '', fileId: a.fileId, hg: m.hg, ag: m.ag, at: new Date() } } });
   }
   await recalc(m.league); // jadvalga avtomatik o'tadi
   const rep = m.reportedBy === m.home;
