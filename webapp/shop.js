@@ -90,7 +90,7 @@ window.ShopView = (() => {
     const EFL = window.EFL;
     const lots = (st.lots || []).map((l) => {
       const name = EFL.clubName(l.league, l.club), lg = EFL.byId[l.league]?.name || '';
-      const btn = l.mine ? `<button class="lot-btn" data-act="unauction" data-key="${esc(l.league + '|' + l.club)}">${t.cancel}</button>` : `<button class="lot-btn buy" data-act="buy">${t.aBuy}</button>`;
+      const btn = l.mine ? `<button class="lot-btn" data-act="unauction" data-key="${esc(l.league + '|' + l.club)}">${t.cancel}</button>` : `<button class="lot-btn buy" data-act="buy" data-league="${esc(l.league)}" data-club="${esc(l.club)}">${t.aBuy}</button>`;
       return `<div class="lot">${EFL.crest(l.league, l.club, name)}<span class="lot-info"><b>${esc(name)}</b><small>${esc(lg)} · ${l.games} ${t.games}</small>${l.user ? `<small class="lot-user">👤 ${esc(l.user)}</small>` : ''}</span><span class="lot-side"><i class="lot-price">${esc(l.price)} ${coin('sm')}</i>${btn}</span></div>`;
     }).join('');
     return lots || `<div class="pf-empty"><span>🔨</span><p>${t.empty}</p></div>`;

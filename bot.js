@@ -796,7 +796,7 @@ app.get('/api/auctions', ah(async (req, res) => {
   const regs = await Registration.find({ season, 'auction.price': { $gt: 0 } }).sort({ 'auction.at': -1 }).lean();
   const users = await User.find({ telegramId: { $in: regs.map((r) => r.telegramId) } }).lean();
   const names = new Map(users.map((x) => [x.telegramId, x.username ? '@' + x.username : x.firstName || '']));
-  res.json({ lots: regs.map((r) => ({ league: r.league, club: r.club, price: r.auction.price, games: r.w + r.d + r.l, mine: r.telegramId === u.id, user: names.get(r.telegramId) || '' })) });
+  res.json({ lots: regs.map((r) => ({ league: r.league, club: r.club, price: r.auction.price, bid: r.auction.currentBid || 0, games: r.w + r.d + r.l, mine: r.telegramId === u.id, user: names.get(r.telegramId) || '' })) });
 }));
 
 // ——— Do'kon: Coins, kosmetika, kubok sotish (Sell) ———

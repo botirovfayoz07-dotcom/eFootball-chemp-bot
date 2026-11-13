@@ -326,6 +326,28 @@ window.LeagueView = (() => {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadUnread(); });
 
   async function loadProfile() { const [r, cs, ul] = await Promise.all([api('/api/profile'), api('/api/cup/state'), api('/api/ucl')]); if (r.ok) { prof = { clubs: r.clubs || [], collection: r.collection || [], equipped: r.equipped || {}, supportUnread: r.supportUnread || 0, cups: cs.ok ? cs : null, ucl: ul.ok ? ul : null }; window.AppBg.setOwn(prof.equipped.pbg); syncUnreadFromProfile(); if (autoClub && prof.clubs.length) { meSel = prof.clubs[0].league + '|' + prof.clubs[0].club; autoClub = false; } if (tab === 'me' || tab === 'club') render(); if (autoSupport) { autoSupport = false; window.MatchView.openSupport(); } if (autoChat) { const cid = autoChat; autoChat = null; window.MatchView.openMatchChat(cid); } } }
+  // Auksion: taklif oynasi va taklif yuborish
+  const BID_ERR = { noCoins: "Coin yetarli emas — do'kondan xarid qiling", lowBid: 'Taklif joriy narxdan baland bo\'lishi kerak', gone: 'Bu klub auksionda emas', aucClosed: 'Auksion yopiq', ownClub: "O'z klubingizga taklif qilolmaysiz", badPrice: "Narx noto'g'ri", fail: "Xatolik, qayta urinib ko'ring" };
+  function openBidModal(league, club) {
+    const lot = lots.find((l) => l.league === league && l.club === club);
+    if (!lot) return toast(BID_ERR.gone);
+    const cur = lot.bid || lot.price, min = cur + 1;
+    const name = EFL.clubName(league, club);
+    closeModal();
+    el.insertAdjacentHTML('beforeend', `<div class="modal" id="bidModal"><div class="modal-box"><h3>${esc(name)}</h3><p class="ad-hint">${lot.bid ? 'Joriy taklif' : 'Boshlang\'ich narx'}: <b>${cur}</b> coin</p><label>Taklifingiz (kamida ${min})</label><input id="bidAmt" type="number" inputmode="numeric" min="${min}" value="${min}"><div class="modal-btns"><button class="mb-no" data-act="aucno">${T[lang].aucCancel || 'Bekor'}</button><button class="mb-ok" data-act="submit-bid" data-lg="${esc(league)}" data-cl="${esc(club)}">Taklif qilish</button></div></div></div>`);
+    el.querySelector('#bidAmt')?.focus();
+  }
+  async function submitBid(league, club) {
+    const amt = Math.floor(Number(el.querySelector('#bidAmt')?.value));
+    if (!(amt >= 1)) return toast(BID_ERR.badPrice);
+    const r = await post('/api/auction/bid', { league, club, bid: amt });
+    closeModal();
+    if (!r.ok) return toast(BID_ERR[r.error] || BID_ERR.fail);
+    tg?.HapticFeedback?.notificationOccurred('success');
+    toast('Taklif qabul qilindi ✅');
+    await Promise.all([loadLots(), loadProfile()]);
+  }
+
   async function loadLots() { const r = await api('/api/auctions'); if (r.ok) { lots = r.lots || []; if (tab === 'shop' && !modalOpen()) render(); } }
 
   // ——— Do'kon: Coins sotib olish, kosmetika, Sell (kubokni adminga sotish) ———
